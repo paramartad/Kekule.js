@@ -345,6 +345,7 @@ var kekuleFiles = {
 			'core/kekule.structures.js',
 			'core/kekule.structureBuilder.js',
 			'core/kekule.reactions.js',
+			'core/kekule.chemReactions.js',
 			'core/kekule.chemUtils.js',
 
 			'chemdoc/kekule.glyph.base.js',
