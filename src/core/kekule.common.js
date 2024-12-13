@@ -4838,7 +4838,7 @@ Kekule.ChemObjList = Class.create(Kekule.ChemObject,
 		else
 		{
 			var refIndex = this.indexOfItem(refChild);
-			return (refIndex >= 0)? this.insertItemAt(obj, refIndex): this.appendItem(obj);
+			return (refIndex >= 0)? this.insertItemAt(obj, refIndex): this.append(obj);
 		}
 	},
 	/**
