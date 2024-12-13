@@ -3265,9 +3265,34 @@ Kekule.ChemObject = Class.create(ObjectEx,
 	getNextSibling: function()
 	{
 		var parent = this.getParent();
-		if (parent && parent.getNextSiblingOfChild)
+		if (parent)
 		{
-			return parent.getNextSiblingOfChild(this);
+			if (parent.getNextSiblingOfChild)
+				return parent.getNextSiblingOfChild(this);
+			else {
+				var index = parent.indexOfChild(this) + 1;
+				return parent.getChildAt(index);
+			}
+		}
+		else
+			return null;
+	},
+	/**
+	 * Returns prev sibling object in parent.
+	 * If parent not set, null will be returned.
+	 * @returns {Object}
+	 */
+	getPrevSibling: function()
+	{
+		var parent = this.getParent();
+		if (parent)
+		{
+			if (parent.getPrevSiblingOfChild)
+				return parent.getPrevSiblingOfChild(this);
+			else {
+				var index = parent.indexOfChild(this) - 1;
+				return (index >= 0)? parent.getChildAt(index): null;
+			}
 		}
 		else
 			return null;
@@ -4704,6 +4729,16 @@ Kekule.ChemObjList = Class.create(Kekule.ChemObject,
 		var index = this.indexOf(childObj);
 		return (index >= 0)? this.getItemAt(index + 1): null;
 	},
+	/**
+	 * Returns prev sibling object to childObj.
+	 * @param {Object} childObj
+	 * @returns {Object}
+	 */
+	getPrevSiblingOfChild: function(childObj)
+	{
+		var index = this.indexOf(childObj);
+		return (index > 0)? this.getItemAt(index - 1): null;
+	},
 
 	/** @ignore */
 	getChildSubgroupNames: function(/*$super*/)
@@ -5102,6 +5137,15 @@ Kekule.ChemSpaceElement = Class.create(Kekule.ChemObject,
 	{
 		return this.getChildren().getNextSiblingOfChild(childObj);
 	},
+	/**
+	 * Returns prev sibling object to childObj.
+	 * @param {Object} childObj
+	 * @returns {Object}
+	 */
+	getPrevSiblingOfChild: function(childObj)
+	{
+		return this.getChildren().getPrevSiblingOfChild(childObj);
+	},
 	/*
 	 * Append obj to children list. If obj already inside, nothing will be done.
 	 * @param {Object} obj
@@ -5352,6 +5396,15 @@ Kekule.ChemSpace = Class.create(Kekule.ChemObject,
 	getNextSiblingOfChild: function(childObj)
 	{
 		return this.getRoot().getNextSiblingOfChild(childObj);
+	},
+	/**
+	 * Returns prev sibling object to childObj.
+	 * @param {Object} childObj
+	 * @returns {Object}
+	 */
+	getPrevSiblingOfChild: function(childObj)
+	{
+		return this.getRoot().getPrevSiblingOfChild(childObj);
 	},
 	/*
 	 * Append obj to children list of root. If obj already inside, nothing will be done.
