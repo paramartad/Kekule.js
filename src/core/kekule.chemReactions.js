@@ -125,6 +125,15 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
                     return this.getSubstancesOfType(Kekule.ChemReactionComponent.CATALYST);
                 }
         });
+        this.defineProp('solvents', {
+            'dataType': DataType.ARRAY,
+            'serializable': false,
+            'setter': null,
+            'getter': function()
+            {
+                return this.getSubstancesOfType(Kekule.ChemReactionComponent.SOLVENT);
+            }
+        });
         this.defineProp('reagents', {
             'dataType': DataType.ARRAY,
             'serializable': false,
