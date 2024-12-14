@@ -19,15 +19,24 @@ describe('Test of Kekule.ChemReaction class', function(){
         var catalyst1 = new Kekule.Molecule('catalyst1');
         r1.appendCatalyst(catalyst1);
 
+        r1.appendSolvent(new Kekule.Molecule('solvent1'));
+
+        r1.appendSubstance('custom', new Kekule.Molecule('custom1'));
+        r1.appendSubstance('custom', new Kekule.Molecule('custom2'));
+
         expect(r1.getReactantCount()).toEqual(3);
         expect(r1.getProductCount()).toEqual(1);
         expect(r1.getReagentCount()).toEqual(2);
         expect(r1.getCatalystCount()).toEqual(1);
+        expect(r1.getSolventCount()).toEqual(1);
+        expect(r1.getSubstanceCount('custom')).toEqual(2);
 
         expect(r1.getReactantAt(0).getId()).toEqual('reactant1');
         expect(r1.getReactantAt(2).getId()).toEqual('reactant3');
         expect(r1.getProductAt(0).getId()).toEqual('product1');
         expect(r1.getReagentAt(1).getId()).toEqual('reagent2');
+        expect(r1.getSolventAt(0).getId()).toEqual('solvent1');
+        expect(r1.getSubstanceAt('custom', 1).getId()).toEqual('custom2');
 
         expect(!r1.getReagentAt(3)).toBeTruthy();
 
