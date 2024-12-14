@@ -18,7 +18,8 @@ Kekule.ChemReactionComponent = {
     REACTANT: 'reactant',
     PRODUCT: 'product',
     CATALYST: 'catalyst',
-    REAGENT: 'reagent'
+    SOLVENT: 'solvent',
+    REAGENT: 'reagent',
 };
 
 /**
@@ -170,7 +171,7 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
     /** @private */
     _initSubstanceListsManipulationMethods()
     {
-        var names = this.getChildSubgroupNames();
+        var names = this.getDefaultSubstanceGroupNames();
         for (var i = 0, l = names.length; i < l; ++i)
         {
             var name = names[i];
@@ -199,6 +200,12 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
     },
 
     /** @ignore */
+    getDefaultSubstanceGroupNames: function()
+    {
+        var CC = Kekule.ChemReactionComponent;
+        return [CC.REACTANT, CC.PRODUCT, CC.CATALYST, CC.SOLVENT, CC.REAGENT];
+    },
+    /** @ignore */
     getChildSubgroupNames: function()
     {
         /*
@@ -210,13 +217,14 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
         }
         return result;
         */
-        return ['reactant', 'product', 'catalyst', 'reagent'];
+        // return ['reactant', 'product', 'catalyst', 'solvent', 'reagent'];
+        return Object.getOwnPropertyNames(this.getSubstances() || {});
     },
     /** @ignore */
     getBelongChildSubGroupName: function(obj)
     {
         // default insert child to the reactant group
-        return 'reactant';
+        return Kekule.ChemReactionComponent.REACTANT;
     },
 
     /** @private */
@@ -257,6 +265,7 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
             result.addEventListener('change', function()
             {
                 this.objectChange(['substances', substanceType + 's']);
+                this.notifySubstanceChanged(substanceType);
             }, this);
             substances[substanceType] = result;
         }
@@ -436,10 +445,14 @@ Kekule.EmbeddedReaction = Class.create(Kekule.ChemReaction,
     },
 
     /** @ignore */
-    getChildSubgroupNames: function()
+    getDefaultSubstanceGroupNames: function()
     {
         // replace the 'reactant' subgroup to 'explicitReactant'
-        return ['explicitReactant', 'product', 'catalyst', 'reagent'];
+        var result = this.tryApplySuper('getDefaultSubstanceGroupNames');
+        var reactantIndex = result.indexOf(Kekule.ChemReactionComponent.REACTANT);
+        if (reactant >= 0)
+            result.splice(reactantIndex, 1, 'explicitReactant');
+        return result;
     },
     /** @ignore */
     doGetReactants()
