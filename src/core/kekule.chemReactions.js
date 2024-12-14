@@ -406,6 +406,8 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
  * and the implicit reactant, actually the product of the previous step reaction.
  * @class
  * @augments Kekule.ChemObject
+ *
+ * @property {Kekule.Molecule[]} implicitReactants The implicit reactants of this reaction, usually the product of previous step reaction.
  */
 Kekule.EmbeddedReaction = Class.create(Kekule.ChemReaction,
 /** @lends Kekule.EmbeddedReaction# */
@@ -547,15 +549,7 @@ Kekule.EmbeddedReaction = Class.create(Kekule.ChemReaction,
  *
  * @property {String} name Name of reaction.
  * @property {String} title Title of reaction.
- * @property {String} reactionType Type of reaction.
- * @property {Float} yield Yield of reaction. 0 <= Value <= 1.
- * @property {Array} conditions Conditions of reaction, e.g. temperature, pressure.
- *   Each item should be a {@link Kekule.Scalar} (with both value and units).
- * @property {Kekule.ChemObjList} reactants Reactants of reaction.
- * @property {Kekule.ChemObjList} products Products of reaction.
- * @property {Kekule.ChemObjList} catalysts Catalysts of reaction.
- * @property {Kekule.ChemObjList} reagents Other reagents (e.g. solvent) of reaction.
- *
+ * @property {Kekule.EmbeddedReaction[]} reactions Child embedded reactions.
  */
 Kekule.MultiStepReaction = Class.create(Kekule.ChemObject,
 /** @lends Kekule.ChemReaction# */
@@ -577,8 +571,6 @@ Kekule.MultiStepReaction = Class.create(Kekule.ChemObject,
     {
         this.defineProp('name', {'dataType': DataType.STRING});
         this.defineProp('title', {'dataType': DataType.STRING});
-        this.defineProp('reactionType', {'dataType': DataType.STRING});
-        this.defineProp('yield', {'dataType': DataType.FLOAT});
         this.defineProp('reactions', {'dataType': DataType.ARRAY, 'setter': null, 'serializable': false,
             'getter': function(){
                 return this.getEmbeddedReactions().getItems();
@@ -644,3 +636,4 @@ Kekule.MultiStepReaction = Class.create(Kekule.ChemObject,
         return step;
     }
 });
+
