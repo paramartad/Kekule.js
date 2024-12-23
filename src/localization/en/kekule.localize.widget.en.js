@@ -271,7 +271,7 @@ Kekule.Localization.addResource('en', 'ChemWidgetTexts', {
   */
 
 	CAPTION_REPOSITORY_HEAT_SYMBOL: 'Heat symbol',
-	CAPTION_REPOSITORY_ADD_SYMBOL: 'Add symbol',
+	CAPTION_REPOSITORY_ADD_SYMBOL: 'Plus symbol',
 
 	// modifiers
 	CAPTION_TEXT_FORMAT: 'Text format',
@@ -421,7 +421,7 @@ Kekule.Localization.addResource('en', 'ChemWidgetTexts', {
 	HINT_REPOSITORY_GLYPH_OPEN_ARROW_ARC: 'Open arrow arc',
 	HINT_REPOSITORY_GLYPH_SINGLE_SIDE_OPEN_ARROW_ARC: 'Single side open arrow arc',
 	HINT_REPOSITORY_HEAT_SYMBOL: 'Heat symbol',
-	HINT_REPOSITORY_ADD_SYMBOL: 'Add symbol',
+	HINT_REPOSITORY_ADD_SYMBOL: 'Plus symbol',
 	HINT_ELECTRON_PUSHING_ARROW: 'Electron pushing arrow',
 	/*
 	HINT_REACTION_ARROW_NORMAL: 'Normal reaction arrow',

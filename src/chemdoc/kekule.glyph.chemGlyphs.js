@@ -64,11 +64,11 @@ Kekule.Glyph.HeatSymbol = Class.create(Kekule.Glyph.Polygon,
  * @class
  * @augments Kekule.Glyph.PathGlyph
  */
-Kekule.Glyph.AddSymbol = Class.create(Kekule.Glyph.PathGlyph,
-/** @lends Kekule.Glyph.AddSymbol# */
+Kekule.Glyph.PlusSymbol = Class.create(Kekule.Glyph.PathGlyph,
+/** @lends Kekule.Glyph.PlusSymbol# */
 {
 	/** @private */
-	CLASS_NAME: 'Kekule.Glyph.AddSymbol',
+	CLASS_NAME: 'Kekule.Glyph.PlusSymbol',
 	/** @constructs */
 	initialize: function(/*$super, */id, refLength, initialParams, coord2D, coord3D)
 	{
@@ -120,6 +120,8 @@ Kekule.Glyph.AddSymbol = Class.create(Kekule.Glyph.PathGlyph,
 		connector.setPathParams(initialParams);
 	}
 });
+// for backward compatibility
+Kekule.Glyph.AddSymbol = Kekule.Glyph.PlusSymbol;
 
 /////////////// Set of line based glyphs ////////////////////
 
