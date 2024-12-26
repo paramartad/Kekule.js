@@ -3161,6 +3161,31 @@ Kekule.GeometryUtils = {
 	},
 
 	/**
+	 * Returns the genenral line equation (ax + by + c = 0) of a line defined by two coords.
+	 * @param {Hash} coord1
+	 * @param {Hash} coord2
+	 * @returns {Hash} {a, b, c}, means a line with formula ax + by + c = 0
+	 */
+	getLineGeneralEquationParams: function(coord1, coord2)
+	{
+		var a = coord2.y - coord1.y;
+		var b = coord1.x - coord2.x;
+		var c = coord2.x * coord1.y - coord1.x * coord2.y;
+		return {a: a, b: b, c: c};
+	},
+
+	/**
+	 * Returns the relative position (left, or right) of a point to a line defined by lineEquationParams.
+	 * @param {Hash} coord
+	 * @param {Hash} lineEquationParams
+	 * @returns {number} 0 means on the line, 1 and -1 means at different side of line.
+	 */
+	getPointRelPositionToLine: function(coord, lineEquationParams)
+	{
+		return Math.sign(lineEquationParams.a * coord.x + lineEquationParams.b * coord.y + lineEquationParams.c);
+	},
+
+	/**
 	 * Returns the cross point of a vertical line from coord to a existing line (lineCoord1-lineCoord2)
 	 * @param {Hash} coord
 	 * @param {Hash} lineCoord1
@@ -3252,9 +3277,57 @@ Kekule.GeometryUtils = {
 	 * @param {Hash} line1Coord2
 	 * @param {Hash} line2Coord1
 	 * @param {Hash} line2Coord2
+	 * @param {Bool} unlimitedLine1 If false, line1 will be regarded as segment.
+	 * @param {Bool} unlimitedLine2 If false, line2 will be regarded as segment.
 	 * @returns {Hash}
 	 */
-	getCrossPointOfLines: function(line1Coord1, line1Coord2, line2Coord1, line2Coord2)
+	getCrossPointOfLines: function(line1Coord1, line1Coord2, line2Coord1, line2Coord2, unlimitedLine1, unlimitedLine2)
+	{
+		if (!unlimitedLine1 && !unlimitedLine2)
+			return Kekule.GeometryUtils.getCrossPointOfLineSegments(line1Coord1, line1Coord2, line2Coord1, line2Coord2);
+		else {
+			// calc the cross point of two unlimited line furst
+			var a = line1Coord1, b = line1Coord2, c = line2Coord1, d = line2Coord2;
+			/** 1 解线性方程组, 求线段交点. **/
+			// 如果分母为0 则平行或共线, 不相交
+			var denominator = (b.y - a.y)*(d.x - c.x) - (a.x - b.x)*(c.y - d.y);
+			if (denominator === 0) {
+				return null;
+			}
+			// 线段所在直线的交点坐标 (x , y)
+			var x = ( (b.x - a.x) * (d.x - c.x) * (c.y - a.y)
+				+ (b.y - a.y) * (d.x - c.x) * a.x
+				- (d.y - c.y) * (b.x - a.x) * c.x ) / denominator ;
+			var y = -( (b.y - a.y) * (d.y - c.y) * (c.x - a.x)
+				+ (b.x - a.x) * (d.y - c.y) * a.y
+				- (d.x - c.x) * (b.y - a.y) * c.y ) / denominator;
+
+			/** 2 判断交点是否在线段上 **/
+			var crossed = true;
+			if (!unlimitedLine1)
+				// 交点在线段1上
+				crossed = crossed && ((x - a.x) * (x - b.x) <= 0 && (y - a.y) * (y - b.y) <= 0);
+			if (!unlimitedLine2)
+				// 且交点也在线段2上
+				crossed = crossed && ((x - c.x) * (x - d.x) <= 0 && (y - c.y) * (y - d.y) <= 0);
+
+			if (crossed)
+				return {'x': x, 'y': y};
+			else
+				return null;
+		}
+	},
+
+	/**
+	 * Returns the cross point coord of line1 and line2 segment. If no cross point or the point out of lines, null will be returned.
+	 * The algorithm is explained in https://www.jb51.net/article/90104.htm.
+	 * @param {Hash} line1Coord1
+	 * @param {Hash} line1Coord2
+	 * @param {Hash} line2Coord1
+	 * @param {Hash} line2Coord2
+	 * @returns {Hash}
+	 */
+	getCrossPointOfLineSegments: function(line1Coord1, line1Coord2, line2Coord1, line2Coord2)
 	{
 		// 三角形abc 面积的2倍
 		var area_abc = (line1Coord1.x - line2Coord1.x) * (line1Coord2.y - line2Coord1.y) - (line1Coord1.y - line2Coord1.y) * (line1Coord2.x - line2Coord1.x);
@@ -3431,6 +3504,30 @@ Kekule.GeometryUtils = {
 			}
 			return result;
 		}
+	},
+
+	/**
+	 * Returns the cross points of a line and a box.
+	 * @param {Array} lineCoords Coords of two line segment ends.
+	 * @param {Hash} box
+	 * @param {Bool} unlimitedLine
+	 * @returns {Array} Coords of cross points, or null if no cross point.
+	 */
+	getCrossPointsOfLineAndBox: function(lineCoords, box, unlimitedLine)
+	{
+		var GU = Kekule.GeometryUtils;
+		var nbox = Kekule.BoxUtils.normalize(box);
+		var allBoxCornerCoords = [
+			{x: nbox.x1, y: nbox.y1},
+			{x: nbox.x2, y: nbox.y1},
+			{x: nbox.x2, y: nbox.y2},
+			{x: nbox.x1, y: nbox.y2}
+		];
+		var result = [].concat((GU.getCrossPointOfLines(lineCoords[0], lineCoords[1], allBoxCornerCoords[0], allBoxCornerCoords[1], unlimitedLine, false)) || [])
+			.concat((GU.getCrossPointOfLines(lineCoords[0], lineCoords[1], allBoxCornerCoords[1], allBoxCornerCoords[2], unlimitedLine, false)) || [])
+			.concat((GU.getCrossPointOfLines(lineCoords[0], lineCoords[1], allBoxCornerCoords[2], allBoxCornerCoords[3], unlimitedLine, false)) || [])
+			.concat((GU.getCrossPointOfLines(lineCoords[0], lineCoords[1], allBoxCornerCoords[3], allBoxCornerCoords[0], unlimitedLine, false)) || []);
+		return result.length? result: null;
 	},
 
 	/**
