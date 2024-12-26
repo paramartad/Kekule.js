@@ -171,9 +171,17 @@ Kekule.ChemDocReactionUtils = {
 
         var distance;
         if (substanceType === 'reagent')
-            distance = neighborDetail?
-                (Math.abs(currMolDetail.distance - neighborDetail.distance)):
+        {
+            if (neighborDetail)
+                distance = Kekule.CoordUtils.getDistance(currMolDetail.centerCoord, neighborDetail.centerCoord);
+            else
+                distance = currMolDetail.distanceToArrowCenter;
+            /*
+            distance = neighborDetail ?
+                (Math.abs(currMolDetail.distance - neighborDetail.distance)) :
                 currMolDetail.distance;
+            */
+        }
         else  // product and reactant
         {
             distance = neighborDetail?
@@ -685,7 +693,8 @@ Kekule.ChemDocReactionUtils = {
                 containerBox = symbolGeometryInfo.containerBox;   // we regard the plus symbol as a single point
                 objCenterCoord = symbolGeometryInfo.centerCoord;
             }
-            var distance, distanceOnNormalLine, perpendicularDistance, crossLengthOnReactionArrowLine;
+
+            var distance = null, distanceOnNormalLine = null, perpendicularDistance = null, crossLengthOnReactionArrowLine = null;
 
             // check if molecule is on the horizontal direction of arrow line, if so, it may be a reactant or product
             var perpendicularCrossPointCoord = Kekule.GeometryUtils.getPerpendicularCrossPointFromCoordToLine(objCenterCoord, arrowCoords[0], arrowCoords[1], true);
@@ -807,11 +816,13 @@ Kekule.ChemDocReactionUtils = {
                 if (currObj instanceof Kekule.Molecule)
                 {
                     // only molecule can be reagent, so here we ignores the plus symbol
+                    var distanceToArrowCenter = Kekule.CoordUtils.getDistance(objCenterCoord, arrowCenterCoord);
                     reagentDetails.push({
                         'substanceType': 'reagent', 'onTop': crossPointToNormalLineDirection == arrowNormalLineDirection,
                         'containerBox': containerBox, 'centerCoord': objCenterCoord, 'distance': distanceOnNormalLine,
+                        'distanceToArrowCenter': distanceToArrowCenter,
                         'object': molAndPlusSymbols[i]
-                    })
+                    });
                     if (calcContainerBoxes)
                         reagentContainerBox = Kekule.BoxUtils.getContainerBox(reagentContainerBox, containerBox);
                 }
@@ -1093,7 +1104,8 @@ Kekule.ChemDocReactionUtils = {
         // var allReactionCount = reactionInfos.length;
         var remainingReactions = Kekule.ArrayUtils.clone(reactionInfos);
         var refReactionInfo = remainingReactions.shift();
-        addNewChain(refReactionInfo, chains);  // insert the first reaction to a new chain as initial
+        if (refReactionInfo)
+            addNewChain(refReactionInfo, chains);  // insert the first reaction to a new chain as initial
         while (remainingReactions.length > 0)
         {
             var reactionInsertedInThisRound = false;
