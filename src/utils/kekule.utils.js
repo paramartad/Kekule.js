@@ -3305,11 +3305,21 @@ Kekule.GeometryUtils = {
 			/** 2 判断交点是否在线段上 **/
 			var crossed = true;
 			if (!unlimitedLine1)
+			{
+				var checkThreshold = Kekule.CoordUtils.getDistance(a, b) * 1e-20;
 				// 交点在线段1上
-				crossed = crossed && ((x - a.x) * (x - b.x) <= 0 && (y - a.y) * (y - b.y) <= 0);
+				crossed = crossed
+					&& (Kekule.NumUtils.compareFloat((x - a.x) * (x - b.x), 0, checkThreshold) <= 0
+						&& Kekule.NumUtils.compareFloat((y - a.y) * (y - b.y), 0, checkThreshold) <= 0);
+			}
 			if (!unlimitedLine2)
+			{
+				var checkThreshold = Kekule.CoordUtils.getDistance(c, d) * 1e-20;
 				// 且交点也在线段2上
-				crossed = crossed && ((x - c.x) * (x - d.x) <= 0 && (y - c.y) * (y - d.y) <= 0);
+				crossed = crossed
+					&& (Kekule.NumUtils.compareFloat((x - c.x) * (x - d.x), 0, checkThreshold) <= 0
+						&& Kekule.NumUtils.compareFloat((y - c.y) * (y - d.y), 0, checkThreshold) <= 0);
+			}
 
 			if (crossed)
 				return {'x': x, 'y': y};
