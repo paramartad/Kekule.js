@@ -47,6 +47,8 @@ Kekule.ChemReactionDirection = {
  * @property {Kekule.Molecule[]} products Products of reaction.
  * @property {Kekule.Molecule[]} catalysts Catalysts of reaction.
  * @property {Kekule.Molecule[]} reagents Other reagents (e.g. solvent) of reaction.
+ * @property {Kekule.Molecule[]} inputs Inputted molecules in reaction, including reactants, reagents, catalysts and solvents.
+ * @property {Kekule.Molecule[]} outputs Outputted molecules in reaction, alias of products.
  *
  */
 Kekule.ChemReaction = Class.create(Kekule.ChemObject,
@@ -130,9 +132,9 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
             'serializable': false,
             'setter': null,
             'getter': function()
-            {
-                return this.getSubstancesOfType(Kekule.ChemReactionComponent.SOLVENT);
-            }
+                {
+                    return this.getSubstancesOfType(Kekule.ChemReactionComponent.SOLVENT);
+                }
         });
         this.defineProp('reagents', {
             'dataType': DataType.ARRAY,
@@ -141,6 +143,26 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
             'getter': function()
                 {
                     return this.getSubstancesOfType(Kekule.ChemReactionComponent.REAGENT);
+                }
+        });
+
+        this.defineProp('outputs', {
+            'dataType': DataType.ARRAY,
+            'serializable': false,
+            'setter': null,
+            'getter': function()
+                {
+                    return this.getProducts();
+                }
+        });
+        this.defineProp('inputs', {
+            'dataType': DataType.ARRAY,
+            'serializable': false,
+            'setter': null,
+            'getter': function()
+                {
+                    var result = [].concat(this.getReactants() || []).concat(this.getReagents() || []).concat(this.getCatalysts() || []).concat(this.getSolvents() || []);
+                    return result;
                 }
         });
 
@@ -154,7 +176,7 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
                     var r = this.getPropStoreFieldValue('substances');
                     if (!r && canCreate)
                     {
-                        r = [];
+                        r = {};
                         this.setPropStoreFieldValue('substances', r);
                     }
                     return r;
@@ -266,7 +288,7 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
     /** @private */
     _doGetSubstanceListOfType: function(substanceType, canCreate) {
         var substances = this.getSubstances(canCreate);
-        var result = substances[substanceType];
+        var result = substances && substances[substanceType];
         if (!result && canCreate)
         {
             result = new Kekule.ChemObjList(null, Kekule.Molecule, true);
@@ -413,7 +435,16 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
             substances.remove(molecule);
         }
         return this;
-    }
+    },
+
+    // method for comparing two reaction
+    /** @ignore */
+    doCompare: function(targetObj, options)
+    {
+        var result = this.tryApplySuper('doCompare', [targetObj, options]);
+        // TODO: unfinished
+        return result;
+    },
 });
 
 /**
@@ -451,6 +482,15 @@ Kekule.EmbeddedReaction = Class.create(Kekule.ChemReaction,
 					return (prev && prev.getProducts && prev.getProducts()) || [];
 				}
         });
+        this.defineProp('explicitReactants', {
+            'dataType': DataType.ARRAY,
+            'serializable': false,
+            'setter': null,
+            'getter': function()
+            {
+                return this.getSubstancesOfType('explicitReactant');
+            }
+        });
     },
 
     /** @ignore */
@@ -459,7 +499,7 @@ Kekule.EmbeddedReaction = Class.create(Kekule.ChemReaction,
         // replace the 'reactant' subgroup to 'explicitReactant'
         var result = this.tryApplySuper('getDefaultSubstanceGroupNames');
         var reactantIndex = result.indexOf(Kekule.ChemReactionComponent.REACTANT);
-        if (reactant >= 0)
+        if (reactantIndex >= 0)
             result.splice(reactantIndex, 1, 'explicitReactant');
         return result;
     },
@@ -468,7 +508,7 @@ Kekule.EmbeddedReaction = Class.create(Kekule.ChemReaction,
     {
         var result = [];
         result = result.concat(this.getImplicitReactants());
-        result = result.concat(this.getImplicitReactants());
+        result = result.concat(this.getExplicitReactants());
         return result;
     },
 
