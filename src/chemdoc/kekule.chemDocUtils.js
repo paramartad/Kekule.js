@@ -996,7 +996,7 @@ Kekule.ChemDocReactionUtils = {
         }
 
         // debug
-        console.log('reactionInfos', reactionInfos);
+        // console.log('reactionInfos', reactionInfos);
         // return reactionInfos;
 
 
@@ -1133,17 +1133,19 @@ Kekule.ChemDocReactionUtils = {
 
         // console.log('chains', chains);
 
-        if (!ops.disableSiblingMerging)
-            chains = RU._mergeMatchedSiblingChains(chemDoc, chains);
+        if (ops.enableSiblingMerging)
+            chains = RU._mergeMatchedSiblingChains(chemDoc, chains, ops);
 
         // console.log('merged chains', chains);
 
         return chains;
     },
 
-    _mergeMatchedSiblingChains: function(chemDoc, reactionChains)
+    _mergeMatchedSiblingChains: function(chemDoc, reactionChains, mergeOptions)
     {
         var result = [].concat(reactionChains);
+        var enableMergeSharedProductAndReactant = mergeOptions.enableSiblingMerging && mergeOptions.enableMergeSharedProductAndReactant;
+        var enableMergeOnProductOmission = mergeOptions.enableSiblingMerging && mergeOptions.enableMergeOnProductOmission;
         // check the sorted reaction chains, if the prev chain has no products and the next chain has no reactants, or vice versa, then merge them
         // TODO: this algorithm is quite simple, need to refine it later
         for (var i = result.length - 1; i > 0; --i)
@@ -1153,14 +1155,19 @@ Kekule.ChemDocReactionUtils = {
             var currChain = result[i];
             var currChainHeadReaction = currChain[0];
             var mergeChain = false;
-            if (!currChainHeadReaction.reactantDetails.length && prevChainTailReaction.productDetails.length)
+            if (enableMergeSharedProductAndReactant && !currChainHeadReaction.reactantDetails.length && prevChainTailReaction.productDetails.length)
             {
                 currChainHeadReaction.reactantDetails = prevChainTailReaction.productDetails;
                 mergeChain = true;
             }
-            else if (!prevChainTailReaction.productDetails.length && currChainHeadReaction.reactantDetails.length)
+            else if (enableMergeSharedProductAndReactant && !prevChainTailReaction.productDetails.length && currChainHeadReaction.reactantDetails.length)
             {
                 prevChainTailReaction.productDetails = currChainHeadReaction.reactantDetails;
+                mergeChain = true;
+            }
+            else if (enableMergeOnProductOmission && !currChainHeadReaction.reactantDetails.length && !prevChainTailReaction.productDetails.length)
+            {
+                // both empty, may be a simple continous reaction
                 mergeChain = true;
             }
             if (mergeChain)
@@ -1255,6 +1262,14 @@ Kekule.ChemDocReactionUtils = {
         // ops.primarySortAxis = ops.primarySortAxis || 'y' ;
         if (ops.sortAxisWeightRatioXY === undefined || ops.sortAxisWeightRatioXY === null)
             ops.sortAxisWeightRatioXY = 1/5;    // weight of deltaX/deltaY when sorting reactions
+
+        if (ops.enableSiblingMerging === undefined)
+            ops.enableSiblingMerging = true;
+        if (ops.enableMergeSharedProductAndReactant === undefined)
+            ops.enableMergeSharedProductAndReactant = true;
+        if (ops.enableMergeOnProductOmission === undefined)
+            ops.enableMergeOnProductOmission = true;
+
         return ops;
     },
 
