@@ -1396,12 +1396,18 @@ Kekule.Render.RichTextBased2DRenderer = Class.create(Kekule.Render.ChemObj2DRend
 		this.setDrawnObj(context, result.drawnObj);
 
 		// some chem object (e.g. text block) may need to set size automatically when drawing
-		if (this.getCanModifyTargetObj() && (chemObj.getNeedRecalcSize && chemObj.getNeedRecalcSize()) || (this.__$alwaysRecalcSize__))
+		if (this.getCanModifyTargetObj() && this._isChemObjNeedRecalcSize(chemObj) || (this.__$alwaysRecalcSize__))
 		{
 			this._autosetObjSize(context, chemObj, rectBoundInfo);
 		}
 
 		return result.drawnObj;
+	},
+
+	/** @private */
+	_isChemObjNeedRecalcSize: function(chemObj)
+	{
+		return chemObj.getNeedRecalcSize && chemObj.getNeedRecalcSize();
 	},
 
 	/** @private */

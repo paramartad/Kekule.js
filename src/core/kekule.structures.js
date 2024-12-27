@@ -2699,6 +2699,10 @@ Kekule.MolecularFormula = Class.create(ObjectEx,
 		this.defineProp('sections', {'dataType': DataType.ARRAY, 'setter': null});
 		this.defineProp('charge', {'dataType': DataType.FLOAT, 'getter': function() { return this.getPropStoreFieldValue('charge') || 0; } });
 		this.defineProp('radical', {'dataType': DataType.INT, 'getter': function() { return this.getPropStoreFieldValue('radical') || 0; } });
+
+		// special property, indicate whether the block has been changed and
+		// the size should be recalculated
+		this.defineProp('needRecalcSize', {'dataType': DataType.BOOL});
 	},
 	/** @private */
 	getHigherLevelObj: function()
@@ -2712,6 +2716,14 @@ Kekule.MolecularFormula = Class.create(ObjectEx,
 	isEmpty: function()
 	{
 		return this.getSectionCount() <= 0;
+	},
+
+	/** @ignore */
+	doObjectChange: function(/*$super, */modifiedPropNames)
+	{
+		// when formula content changed, size may need to be recalculated
+		if (Kekule.ArrayUtils.intersect(['sections', 'charge', 'radical'], modifiedPropNames).length)
+			this.setNeedRecalcSize(true);
 	},
 
 	/** @private */
@@ -2916,6 +2928,8 @@ Kekule.MolecularFormula = Class.create(ObjectEx,
 		//TODO: not finished
 	}
 });
+
+Kekule.ClassDefineUtils.addStandardSizeSupport(Kekule.MolecularFormula);
 
 
 /**
@@ -4944,6 +4958,34 @@ Kekule.StructureFragment = Class.create(Kekule.ChemStructureNode,
 					this.setPropStoreFieldValue('formula', value);
 				}
 		});
+		this.defineProp('formulaSize2D', {
+			'dataType': DataType.HASH, 'serializable': false,
+			'getter': function()
+				{
+					var f = this.getFormula();
+					return f && f.getSize2D();
+				},
+			'setter': function(value)
+				{
+					var f = this.getFormula();
+					if (f)
+						f.setSize2D(value);
+				}
+		});
+		this.defineProp('formulaSize3D', {
+			'dataType': DataType.HASH, 'serializable': false,
+			'getter': function()
+			{
+				var f = this.getFormula();
+				return f && f.getSize3D();
+			},
+			'setter': function(value)
+			{
+				var f = this.getFormula();
+				if (f)
+					f.setSize3D(value);
+			}
+		});
 		this.defineProp('ctab', {
 			'dataType': 'Kekule.StructureConnectionTable',
 			'getter': function(allowCreate)
@@ -5529,8 +5571,17 @@ Kekule.StructureFragment = Class.create(Kekule.ChemStructureNode,
 		{
 			return this.getCtab().getContainerBox(coordMode, allowCoordBorrow);
 		}
+		else if (this.hasFormula())
+		{
+			var coord = this.getAbsCoordOfMode(coordMode, allowCoordBorrow);
+			var formulaSize = this.getFormula().getSizeOfMode(coordMode) || {};
+			var result = Kekule.BoxUtils.createBox(coord, coord);
+			result = Kekule.BoxUtils.inflateBox(result,
+				(formulaSize.x || 0) / 2, (formulaSize.y || 0) / 2, (formulaSize.z || 0) / 2);
+			return result;
+		}
 		else
-			return this.tryApplySuper('getContainerBox', [coordMode])  /* $super(coordMode) */;
+			return this.tryApplySuper('getContainerBox', [coordMode, allowCoordBorrow]);
 	},
 
 	/**
