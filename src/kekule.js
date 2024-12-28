@@ -345,8 +345,9 @@ var kekuleFiles = {
 			'core/kekule.structures.js',
 			'core/kekule.structureBuilder.js',
 			'core/kekule.reactions.js',
-			'core/kekule.chemReactions.js',
 			'core/kekule.chemUtils.js',
+			'reaction/kekule.chemReactions.js',
+			'reaction/kekule.reactionUtils.js',
 
 			'chemdoc/kekule.glyph.base.js',
 			'chemdoc/kekule.glyph.utils.js',
@@ -356,7 +357,6 @@ var kekuleFiles = {
 			'chemdoc/kekule.contentBlocks.js',
 			'chemdoc/kekule.attachedMarkers.js',
 			'chemdoc/kekule.commonChemMarkers.js',
-			'chemdoc/kekule.chemDocUtils.js',
 		],
 		'category': 'core'
 	},
