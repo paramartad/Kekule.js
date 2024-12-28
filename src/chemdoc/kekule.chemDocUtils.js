@@ -12,6 +12,22 @@
  * requires /core/kekule.glyph.chemGlyphs.js
  */
 
+// reaction extraction global options
+Kekule.globalOptions.add('reaction', {
+    extraction: {
+        substanceGapLengthThresholdRatioToDocRefLength: 3,
+        reactionArrowPerpendicularExpansionRatioToDocRefLength: 1,
+        reactionArrowHorizontalExpansionRationToDocRefLength: 3,
+        reactionSortRefLengthRatioToDocRefLength: 1,
+        reactionSortXMode: 1,   // 1: from left to right, -1: from right to left
+        reactionSortYMode: -1,  // -1: from top to bottom, 1: from bottom to top
+        reactionSortAxisWeightRatioXY: 1/5,
+        enableSiblingMerging: true,
+        enableMergeSharedProductAndReactant: true,
+        enableMergeOnProductOmission: true
+    }
+});
+
 /**
  * Utility functions for chemical reaction.
  * @namespace
@@ -1246,29 +1262,30 @@ Kekule.ChemDocReactionUtils = {
 
     _prepareReactionExtractionOptions: function(chemDoc, options)
     {
+        var globalOps = Kekule.globalOptions.reaction.extraction;
         var ops = options || {};
         // TODO: property defAutoScaleRefLength is defined in render.extension.js, without it, how can we determinate the reference length?
         var docRefLength = chemDoc.getDefAutoScaleRefLength(Kekule.CoordMode.COORD2D);
         if (ops.substanceGapLengthThreshold === undefined)
-            ops.substanceGapLengthThreshold = docRefLength * 3 || undefined;  // TODO: currently fixed ratio
+            ops.substanceGapLengthThreshold = docRefLength * globalOps.substanceGapLengthThresholdRatioToDocRefLength || undefined;  // TODO: currently fixed ratio
         if (ops.reactionArrowPerpendicularExpansion === undefined)
-            ops.reactionArrowPerpendicularExpansion = docRefLength;
+            ops.reactionArrowPerpendicularExpansion = docRefLength * globalOps.reactionArrowPerpendicularExpansionRatioToDocRefLength;
         if (ops.reactionArrowHorizontalExpansion === undefined)
-            ops.reactionArrowHorizontalExpansion = ops.substanceGapLengthThreshold;
+            ops.reactionArrowHorizontalExpansion = docRefLength * globalOps.reactionArrowHorizontalExpansionRationToDocRefLength;
         if (ops.reactionSortRefLength === undefined)
-            ops.reactionSortRefLength = docRefLength;
-        ops.xSortMode = ops.xSortMode? ops.xSortMode: 1;  // 1: from left to right, -1: from right to left
-        ops.ySortMode = ops.ySortMode? ops.ySortMode: -1;  // -1: from top to bottom, 1: from bottom to top
+            ops.reactionSortRefLength = docRefLength * globalOps.reactionSortRefLengthRatioToDocRefLength;
+        ops.xSortMode = ops.xSortMode? ops.xSortMode: globalOps.reactionSortXMode;  // 1: from left to right, -1: from right to left
+        ops.ySortMode = ops.ySortMode? ops.ySortMode: globalOps.reactionSortYMode;  // -1: from top to bottom, 1: from bottom to top
         // ops.primarySortAxis = ops.primarySortAxis || 'y' ;
         if (ops.sortAxisWeightRatioXY === undefined || ops.sortAxisWeightRatioXY === null)
-            ops.sortAxisWeightRatioXY = 1/5;    // weight of deltaX/deltaY when sorting reactions
+            ops.sortAxisWeightRatioXY = globalOps.reactionSortAxisWeightRatioXY;    // weight of deltaX/deltaY when sorting reactions
 
         if (ops.enableSiblingMerging === undefined)
-            ops.enableSiblingMerging = true;
+            ops.enableSiblingMerging = globalOps.enableSiblingMerging;
         if (ops.enableMergeSharedProductAndReactant === undefined)
-            ops.enableMergeSharedProductAndReactant = true;
+            ops.enableMergeSharedProductAndReactant = globalOps.enableMergeSharedProductAndReactant;
         if (ops.enableMergeOnProductOmission === undefined)
-            ops.enableMergeOnProductOmission = true;
+            ops.enableMergeOnProductOmission = globalOps.enableMergeOnProductOmission;
 
         return ops;
     },
