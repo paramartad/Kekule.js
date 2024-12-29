@@ -29,10 +29,10 @@ Kekule.globalOptions.add('reaction', {
 });
 
 /**
- * Utility functions for chemical reaction.
+ * Utility functions for extraction chemical reactions from chem document.
  * @namespace
  */
-Kekule.ChemDocReactionUtils = {
+Kekule.ReactionExtractionUtils = {
     _getReactionArrowsInDoc: function(chemDoc)
     {
         return chemDoc.filterChildren(function(child) {
@@ -1473,6 +1473,6 @@ Kekule.ChemDocReactionUtils = {
     }
 };
 
-var RU = Kekule.ChemDocReactionUtils;
+var RU = Kekule.ReactionExtractionUtils;
 
 

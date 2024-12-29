@@ -26,7 +26,7 @@
         }
         function exportReaction() {
             var chemDoc = getEditor().getChemSpace();
-            var reaction = Kekule.ChemDocReactionUtils.extractReactionFromChemDocument(chemDoc);
+            var reaction = Kekule.ReactionExtractionUtils.extractReactionFromChemDocument(chemDoc);
             if (reaction) {
                 console.log('Reaction: ', reaction.getReactantCount(), reaction.getProductCount());
                 var reactantSmiles = reaction.getReactants().map(mol => Kekule.IO.saveFormatData(mol, Kekule.IO.DataFormat.SMILES) || `[${mol.id}]`);

@@ -126,7 +126,7 @@
         */
         function exportReactionChains(targetOutputElem, options) {
             var chemDoc = getEditor().getChemSpace();
-            var reactionChains = Kekule.ChemDocReactionUtils.extractReactionChainsFromChemDocument(chemDoc, options);
+            var reactionChains = Kekule.ReactionExtractionUtils.extractReactionChainsFromChemDocument(chemDoc, options);
             console.log(reactionChains);
             // var elem = document.getElementById('outputChains');
             var elem = targetOutputElem;
@@ -158,7 +158,7 @@
 
         function exportSingleReaction() {
             var chemDoc = getEditor().getChemSpace();
-            var reaction = Kekule.ChemDocReactionUtils.extractReactionFromChemDocument(chemDoc);
+            var reaction = Kekule.ReactionExtractionUtils.extractReactionFromChemDocument(chemDoc);
             var elem = document.getElementById('outputSingleReaction');
             elem.innerHTML = reaction? reactionToString(reaction): '';
         }

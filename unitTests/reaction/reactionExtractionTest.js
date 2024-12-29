@@ -231,12 +231,12 @@ describe('Test of reaction extraction from chem doc', function(){
     function testOnCase(testCase) {
         it(testCase.name, function(){
             if (testCase.singleReactionString) {
-                var reaction = Kekule.ChemDocReactionUtils.extractReactionFromChemDocument(testCase.chemDoc, testCase.options);
+                var reaction = Kekule.ReactionExtractionUtils.extractReactionFromChemDocument(testCase.chemDoc, testCase.options);
                 var reactionString = reactionToString(reaction, testCase.useMolSmiles);                
                 expect(reactionString).toEqual(testCase.singleReactionString);
             }
             if (testCase.reactionChainStrings) {
-                var reactionChains = Kekule.ChemDocReactionUtils.extractReactionChainsFromChemDocument(testCase.chemDoc, testCase.options);
+                var reactionChains = Kekule.ReactionExtractionUtils.extractReactionChainsFromChemDocument(testCase.chemDoc, testCase.options);
                 var strings = reactionChains.map(chain => reactionChainToString(chain, testCase.useMolSmiles));
                 expect(strings).toEqual(testCase.reactionChainStrings);
             }
