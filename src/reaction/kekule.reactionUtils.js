@@ -1668,7 +1668,7 @@ Kekule.ReactionLayoutUtils = {
 
             // first handle reagents, we divide them into two groups, one above arrow and one below arrow, and we need to calc the length of reaction arrow also
             var reagents = reaction.getReagents();
-            var firstHalfReagentCount = Math.floor(reagents.length / 2);
+            var firstHalfReagentCount = Math.ceil(reagents.length / 2);
             var reagentGroup1 = reagents.slice(0, firstHalfReagentCount);
             var reagentGroup2 = reagents.slice(firstHalfReagentCount);
             for (var i = reagentGroup1.length - 1; i >= 0; --i)  // group1, arrange them from bottom to top by default
