@@ -3761,6 +3761,22 @@ Kekule.BoxUtils = {
 	},
 
 	/**
+	 * Check if a box has no explicit x/y/z coord values.
+	 * @param {Variant} box
+	 * @returns {Bool}
+	 */
+	isUnset: function(box)
+	{
+		if (!box)
+			return true;
+		else
+		{
+			var valueUnset = Kekule.ObjUtils.isUnset;
+			return valueUnset(box.x1) && valueUnset(box.x2) && valueUnset(box.y1) && valueUnset(box.y2) && valueUnset(box.z1) && valueUnset(box.z2);
+		}
+	},
+
+	/**
 	 * Convert a box to a rect defined by left, top, width and height.
 	 * @param {Hash} box
 	 * @returns {Hash}
@@ -3849,9 +3865,13 @@ Kekule.BoxUtils = {
 	 */
 	getContainerBox: function(box1, box2)
 	{
-		if (!box1)
+		var b1Unset = Kekule.BoxUtils.isUnset(box1);
+		var b2Unset = Kekule.BoxUtils.isUnset(box2);
+		if (b1Unset && b2Unset)
+			return null;
+		if (b1Unset)  // (!box1)
 			return Kekule.BoxUtils.clone(box2); //Object.extend({}, box2);
-		else if (!box2)
+		else if (b2Unset) // (!box2)
 			return Kekule.BoxUtils.clone(box1); //Object.extend({}, box1);
 		var b1 = Kekule.BoxUtils.normalize(box1);
 		var b2 = Kekule.BoxUtils.normalize(box2);
