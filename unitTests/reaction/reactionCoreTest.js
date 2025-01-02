@@ -74,4 +74,6 @@ describe('Test of Kekule.ChemReaction class', function(){
         expect(r1.getChildAt(1).indexOfReactant(step1.getProductAt(1))).toEqual(1);
         expect(r1.getChildAt(1).indexOfReactant(step2.getExplicitReactantAt(0))).toEqual(2);
     });
+
+
 });
