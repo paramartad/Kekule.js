@@ -40,7 +40,7 @@ describe('Test of reaction extraction from chem doc', function(){
     var testCases = [];
     function createTestCase(name, chemDocJson, singleReactionString, reactionChainStrings, useMolSmiles = true, options = null) {
         var chemDoc = Kekule.IO.loadFormatData(chemDocJson, Kekule.IO.DataFormat.KEKULE_JSON);
-        console.log(chemDoc.getClassName(), chemDoc);
+        // console.log(chemDoc.getClassName(), chemDoc);
         window.currChemDoc = chemDoc;
         testCases.push({
            name, chemDoc, singleReactionString, reactionChainStrings, useMolSmiles, options
