@@ -438,13 +438,85 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
     },
 
     // method for comparing two reaction
+    /** @private */
+    _getComparisonOptionFlagValue: function(options, flagName)
+    {
+        var compatibleName = 'compare' + flagName.capitalizeFirst();
+        var result = options[compatibleName];
+        if (Kekule.ObjUtils.isUnset(result))
+            result = options[flagName];
+        return result;
+    },
+    /** @private */
+    _compareChildArrayItems: function(arr1, arr2, options)  // compare substance array regardless of order
+    {
+        var result = arr1.length - arr2.length;
+        if (!result)
+        {
+            var a1 = Kekule.ArrayUtils.clone(arr1);
+            var a2 = Kekule.ArrayUtils.clone(arr1);
+            var self = this;
+            // sort these two arrays, then begin the comparison
+            a1.sort(function (item1, item2) {
+                return Kekule.ObjComparer._compareValue(item1, item2, options);
+            });
+            a2.sort(function (item1, item2) {
+                return Kekule.ObjComparer._compareValue(item1, item2, options);
+            });
+            result = Kekule.ObjComparer._compareValue(a1, a2, options);
+        }
+        return result;
+    },
+    /** @ignore */
+    doGetActualCompareOptions: function(options)
+    {
+        var result = this.tryApplySuper('doGetActualCompareOptions', [options]);
+        /*
+        // by default we will compare substances
+        result = Object.extend({
+            'compareSubstances': true
+        }, result);
+        */
+        return result;
+    },
+    /** @ignore */
+    doGetComparisonPropNames: function(options)
+    {
+        var result = this.tryApplySuper('doGetComparisonPropNames', [options]) || [];
+        if (this._getComparisonOptionFlagValue(options, 'direction'))
+            result.push('direction');
+        if (this._getComparisonOptionFlagValue(options, 'yield'))
+            result.push('yield');
+        return result;
+    },
     /** @ignore */
     doCompare: function(targetObj, options)
     {
         var result = this.tryApplySuper('doCompare', [targetObj, options]);
-        // TODO: unfinished
+        // compare substances and conditions
+        if (!result && this._getComparisonOptionFlagValue(options, 'conditions'))
+            result = this._compareChildArrayItems(this.getConditions(), targetObj.getConditions(), options);
+        if (!result)
+        {
+            if (this._getComparisonOptionFlagValue(options, 'inputsOutputs'))
+                result = this._compareChildArrayItems(this.getInputs(), targetObj.getInputs(), options)
+                    || this._compareChildArrayItems(this.getOutputs(), targetObj.getOutputs(), options);
+            else if (this._getComparisonOptionFlagValue(options, 'substances') !== false)
+            {
+                var substanceNames = this.getDefaultSubstanceGroupNames();
+                for (var i = 0, l = substanceNames.length; i < l; ++i)
+                {
+                    var name = substanceNames[i];
+                    var doCompare = oneOf(this._getComparisonOptionFlagValue(options, name), this._getComparisonOptionFlagValue(options, name + 's'));
+                    if (doCompare !== false)
+                        result = this._compareChildArrayItems(this.getSubstancesOfType(name), targetObj.getSubstancesOfType(name), options);
+                    if (!!result)
+                        break;
+                }
+            }
+        }
         return result;
-    },
+    }
 });
 
 /**
@@ -599,7 +671,17 @@ Kekule.EmbeddedReaction = Class.create(Kekule.ChemReaction,
     {
         var prev = this.getPrevSibling();
         return (prev && prev.indexOfProduct && prev.indexOfProduct(molecule)) || -1;
-    }
+    },
+
+    /** @ignore */
+    doGetActualCompareOptions: function(options)
+    {
+        var result = this.tryApplySuper('doGetActualCompareOptions', [options]);
+        result = Object.extends({
+            'compareExplicitReactants': true
+        }, result);
+        return result;
+    },
 });
 
 /**
@@ -614,10 +696,10 @@ Kekule.EmbeddedReaction = Class.create(Kekule.ChemReaction,
  * @property {Kekule.EmbeddedReaction[]} reactions Child embedded reactions.
  */
 Kekule.MultiStepReaction = Class.create(Kekule.ChemObject,
-/** @lends Kekule.ChemReaction# */
+/** @lends Kekule.MultiStepReaction# */
 {
 	/** @private */
-	CLASS_NAME: 'Kekule.ChemReaction',
+	CLASS_NAME: 'Kekule.MultiStepReaction',
 	/** @private */
 	initialize: function(id)
 	{
@@ -696,6 +778,14 @@ Kekule.MultiStepReaction = Class.create(Kekule.ChemObject,
             reactionList.insert(step, index);
         }
         return step;
+    },
+
+    /** @ignore */
+    doGetComparisonPropNames: function(options)
+    {
+        var result = this.tryApplySuper('doGetComparisonPropNames', [options]) || [];
+        result.push('reactions');
+        return result;
     }
 });
 
