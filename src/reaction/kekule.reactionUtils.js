@@ -1721,8 +1721,10 @@ Kekule.ReactionLayoutUtils = {
                 reactionArrowStartingCoord = reactionArrowEndingCoord;
                 reactionArrowEndingCoord = tempCoord;
             }
-            var reactionArrow = new Kekule.Glyph.ReactionArrow(null, /*reactionArrowSize*/chemDoc.getDefAutoScaleRefLength(), {
+            var reactionArrow = new Kekule.Glyph.ReactionArrow(null, chemDoc.getDefAutoScaleRefLength(), {
                 // 'endArrowType': Kekule.Glyph.ArrowType.OPEN,
+                'startArrowWidth': 0.25,
+                'startArrowLength': 0.25,
                 'endArrowWidth': 0.25,
                 'endArrowLength': 0.25,
                 // 'startArrowType': Kekule.Glyph.ArrowType.NONE,
@@ -1730,6 +1732,10 @@ Kekule.ReactionLayoutUtils = {
             });
             chemDoc.appendChild(reactionArrow);
             reactionArrow.setCoord2D(currCoord);
+            if (reaction.getDirection() === Kekule.ReactionDirection.BIDIRECTION)
+                reactionArrow.setReactionType(Kekule.Glyph.ReactionArrowType.REVERSIBLE);
+            else
+                reactionArrow.setReactionType(Kekule.Glyph.ReactionArrowType.NORMAL);
             reactionArrow.getNodeAt(0).setCoord2D(reactionArrowStartingCoord);
             reactionArrow.getNodeAt(1).setCoord2D(reactionArrowEndingCoord);
             objGeometryMap.set(reactionArrow, {
