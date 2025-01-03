@@ -292,22 +292,20 @@ describe('Test of reaction extraction from chem doc', function(){
             // newChemDoc.setSize2D({x: 20, y: 20});
             var newChemDoc = testCase.chemDoc.clone();
             // clear old chem doc children, retain the size and ref length of doc
-            console.log('old', newChemDoc.getChildCount());
             for (var i = newChemDoc.getRoot().getChildren().getChildCount() - 1; i >= 0; i--)
                 newChemDoc.getRoot().getChildren().removeChildAt(i);
             /*
             for (var i = newChemDoc.getChildCount() - 1; i >= 0; i--)
                 newChemDoc.removeChildAt(i);
             */
-            console.log('new', newChemDoc.getChildCount());
 
             Kekule.ReactionLayoutUtils.layoutReactionInChemDoc(newChemDoc, srcReaction, {x: 10, y: 10}, testCase.options);
             var newReaction = Kekule.ReactionExtractionUtils.extractReactionFromChemDocument(newChemDoc, testCase.options);
 
             expect(newReaction.compare(srcReaction)).toEqual(0);
 
-            console.log('src reaction', reactionToString(srcReaction, true));
-            console.log('new reaction', reactionToString(newReaction, true));
+            // console.log('src reaction', reactionToString(srcReaction, true));
+            // console.log('new reaction', reactionToString(newReaction, true));
         }
     }
 
