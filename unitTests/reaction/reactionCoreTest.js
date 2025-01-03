@@ -50,7 +50,7 @@ describe('Test of Kekule.ChemReaction class', function(){
     });
 
     it('Basic methods test of Multistep reaction', function() {
-        var r1 = new Kekule.MultiStepReaction('r1');
+        var r1 = new Kekule.ConsecutiveReactions('r1');
         var step1 = new Kekule.EmbeddedReaction('step1');
         step1.appendReactant(new Kekule.Molecule('reactant11')).appendReactant(new Kekule.Molecule('reactant12'))
             .appendProduct(new Kekule.Molecule('product11')).appendProduct(new Kekule.Molecule('product12'));

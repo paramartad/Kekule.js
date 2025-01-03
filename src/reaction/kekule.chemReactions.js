@@ -520,7 +520,7 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
 });
 
 /**
- * A reaction step inside a {@link Kekule.MultiStepReaction}.
+ * A reaction step inside a {@link Kekule.ConsecutiveReactions}.
  * The multistep reaction may in form A + B -> C -> D,
  * where the reactant of second embedded reaction is actually the product of the first step reaction.
  * Thus, the reactant of embeddedReaction is consisted of two parts: the explicit reactant in substances list of this object,
@@ -695,11 +695,11 @@ Kekule.EmbeddedReaction = Class.create(Kekule.ChemReaction,
  * @property {String} title Title of reaction.
  * @property {Kekule.EmbeddedReaction[]} reactions Child embedded reactions.
  */
-Kekule.MultiStepReaction = Class.create(Kekule.ChemObject,
-/** @lends Kekule.MultiStepReaction# */
+Kekule.ConsecutiveReactions = Class.create(Kekule.ChemObject,
+/** @lends Kekule.ConsecutiveReactions# */
 {
 	/** @private */
-	CLASS_NAME: 'Kekule.MultiStepReaction',
+	CLASS_NAME: 'Kekule.ConsecutiveReactions',
 	/** @private */
 	initialize: function(id)
 	{
