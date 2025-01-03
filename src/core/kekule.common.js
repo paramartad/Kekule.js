@@ -2269,7 +2269,7 @@ Kekule.ObjComparer = {
 					result = Kekule.ObjComparer.compare(value1, value2, options);
 					if (result)
 					{
-						console.log(key, result, value1, value2);
+						// console.log(key, result, value1, value2);
 						break;
 					}
 				}
