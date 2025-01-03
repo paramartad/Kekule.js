@@ -86,8 +86,10 @@ Kekule.ReactionExtractionUtils = {
             return (child instanceof Kekule.Molecule);
         }, true);
     },
-    _generateMoleculeGeometryMap: function(chemDoc, molecules, containerBoxLengthThreshold, containerBoxExpansion)
+    _generateMoleculeGeometryMap: function(chemDoc, molecules, containerBoxLengthThreshold, expandedContainerBoxExpansion, normalContainerBoxExpansionRatio)
     {
+        if (normalContainerBoxExpansionRatio === undefined)
+            normalContainerBoxExpansionRatio = 1/100;    // expand the container box a little, let it easier to intersect with arrow line
         var result = new Kekule.MapEx();
         for (var i = 0, l = molecules.length; i < l; ++i)
         {
@@ -102,14 +104,19 @@ Kekule.ReactionExtractionUtils = {
             var expandedContainerBox = containerBox;
             if (containerBox.y2 - containerBox.y1 < containerBoxLengthThreshold)  // expand in y direction
             {
-                expandedContainerBox = Kekule.BoxUtils.inflateBox(expandedContainerBox, 0, containerBoxExpansion / 2);
+                expandedContainerBox = Kekule.BoxUtils.inflateBox(expandedContainerBox, 0, expandedContainerBoxExpansion / 2);
                 expanded = true;
             }
             if (containerBox.x2 - containerBox.x1 < containerBoxLengthThreshold)  // expand in x direction
             {
-                expandedContainerBox = Kekule.BoxUtils.inflateBox(expandedContainerBox, containerBoxExpansion / 2, 0);
+                expandedContainerBox = Kekule.BoxUtils.inflateBox(expandedContainerBox, expandedContainerBoxExpansion / 2, 0);
                 expanded = true;
             }
+
+            if (normalContainerBoxExpansionRatio)  // expand the container box a little, let it easier to intersect with arrow line
+                containerBox = Kekule.BoxUtils.inflateBox(containerBox,
+                    (containerBox.x2 - containerBox.x1) * normalContainerBoxExpansionRatio / 2,
+                    (containerBox.y2 - containerBox.y1) * normalContainerBoxExpansionRatio / 2);
 
             result.set(molecules[i], {
                 containerBox: containerBox,
@@ -1299,7 +1306,9 @@ Kekule.ReactionExtractionUtils = {
         var globalOps = Kekule.globalOptions.reaction.extraction;
         var ops = options || {};
         // TODO: property defAutoScaleRefLength is defined in render.extension.js, without it, how can we determinate the reference length?
-        var docRefLength = chemDoc.getDefAutoScaleRefLength(Kekule.CoordMode.COORD2D);
+        if (!ops.docRefLength)
+            ops.docRefLength = chemDoc.getDefAutoScaleRefLength(Kekule.CoordMode.COORD2D);
+        var docRefLength = ops.docRefLength;
         if (ops.substanceGapLengthThreshold === undefined)
             ops.substanceGapLengthThreshold = docRefLength * oneOf(ops.substanceGapLengthThresholdRatioToDocRefLength, globalOps.substanceGapLengthThresholdRatioToDocRefLength) || undefined;  // TODO: currently fixed ratio
         if (ops.reactionArrowPerpendicularExpansion === undefined)
@@ -1517,7 +1526,9 @@ Kekule.ReactionLayoutUtils = {
         var globalOps = Kekule.globalOptions.reaction.layout;
         var ops = options || {};
         // TODO: property defAutoScaleRefLength is defined in render.extension.js, without it, how can we determinate the reference length?
-        var docRefLength = chemDoc.getDefAutoScaleRefLength(Kekule.CoordMode.COORD2D);
+        if (!ops.docRefLength)
+            ops.docRefLength = chemDoc.getDefAutoScaleRefLength(Kekule.CoordMode.COORD2D);
+        var docRefLength = ops.docRefLength;
         if (ops.substanceGapPrimary === undefined || options.substanceGapPrimary === null)
             ops.substanceGapPrimary = docRefLength * oneOf(ops.substancePrimaryGapLengthRatioToDocRefLength, globalOps.substancePrimaryGapLengthRatioToDocRefLength);
         if (ops.substanceGapSecondary === undefined || options.substanceGapSecondary === null)
@@ -1721,7 +1732,7 @@ Kekule.ReactionLayoutUtils = {
                 reactionArrowStartingCoord = reactionArrowEndingCoord;
                 reactionArrowEndingCoord = tempCoord;
             }
-            var reactionArrow = new Kekule.Glyph.ReactionArrow(null, chemDoc.getDefAutoScaleRefLength(), {
+            var reactionArrow = new Kekule.Glyph.ReactionArrow(null, ops.docRefLength, {
                 // 'endArrowType': Kekule.Glyph.ArrowType.OPEN,
                 'startArrowWidth': 0.25,
                 'startArrowLength': 0.25,
