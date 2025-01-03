@@ -229,8 +229,90 @@ describe('Test of reaction extraction from chem doc', function(){
         false
     );
 
+    function testAutoLayout(testCase)
+    {
+        var baseLayoutOptions = {
+            "substancePrimaryGapLengthRatioToDocRefLength": 0.5,
+            "substanceSecondaryGapLengthRatioToDocRefLength": 0.5,
+            "plusSymbolSizeRatioToDocRefLength": 1,
+            "reactionArrowMinSizeRatioToDocRefLength": 1.5,
+            "reactionArrowPaddingRatioToDocRefLength": 0.5,
+            // "docRefLength": 0.8
+        }
+        var layoutOptions = [
+            {
+                "layoutXMode": Kekule.ReactionLayoutXMode.LtoR,
+                "layoutYMode": Kekule.ReactionLayoutYMode.TtoB,
+                "primaryAxis": "x",
+                "mainSubstancePrimaryAxisAlignMode": Kekule.ReactionObjectAlign.LEFT,
+                "mainSubstanceSecondaryAxisAlignMode": Kekule.ReactionObjectAlign.CENTER,
+                "assocSubstanceAlignMode": Kekule.ReactionObjectAlign.CENTER,
+                "reactionBoxXAlignment": Kekule.Render.BoxXAlignment.LEFT,
+                "reactionBoxYAlignment": Kekule.Render.BoxXAlignment.BOTTOM
+            },
+            {
+                "layoutXMode": Kekule.ReactionLayoutXMode.RtoL,
+                "layoutYMode": Kekule.ReactionLayoutYMode.TtoB,
+                "primaryAxis": "x",
+                "mainSubstancePrimaryAxisAlignMode": Kekule.ReactionObjectAlign.RIGHT,
+                "mainSubstanceSecondaryAxisAlignMode": Kekule.ReactionObjectAlign.TOP,
+                "assocSubstanceAlignMode": Kekule.ReactionObjectAlign.LEFT,
+                "reactionBoxXAlignment": Kekule.Render.BoxXAlignment.CENTER,
+                "reactionBoxYAlignment": Kekule.Render.BoxXAlignment.TOP
+            },
+            {
+                "layoutXMode": Kekule.ReactionLayoutXMode.RtoL,
+                "layoutYMode": Kekule.ReactionLayoutYMode.TtoB,
+                "primaryAxis": "y",
+                "mainSubstancePrimaryAxisAlignMode": Kekule.ReactionObjectAlign.RIGHT,
+                "mainSubstanceSecondaryAxisAlignMode": Kekule.ReactionObjectAlign.BOTTOM,
+                "assocSubstanceAlignMode": Kekule.ReactionObjectAlign.CENTER,
+                "reactionBoxXAlignment": Kekule.Render.BoxXAlignment.RIGHT,
+                "reactionBoxYAlignment": Kekule.Render.BoxXAlignment.CENTER
+            },
+            {
+                "layoutXMode": Kekule.ReactionLayoutXMode.LtoR,
+                "layoutYMode": Kekule.ReactionLayoutYMode.BtoT,
+                "primaryAxis": "y",
+                "mainSubstancePrimaryAxisAlignMode": Kekule.ReactionObjectAlign.CENTER,
+                "mainSubstanceSecondaryAxisAlignMode": Kekule.ReactionObjectAlign.CENTER,
+                "assocSubstanceAlignMode": Kekule.ReactionObjectAlign.CENTER,
+                "reactionBoxXAlignment": Kekule.Render.BoxXAlignment.RIGHT,
+                "reactionBoxYAlignment": Kekule.Render.BoxXAlignment.TOP
+            }
+        ];
+
+        // test on auto-layout of single reaction
+        var srcReaction = Kekule.ReactionExtractionUtils.extractReactionFromChemDocument(testCase.chemDoc, testCase.options);
+
+        for (let option of layoutOptions) {
+            var ops = Object.extend({}, baseLayoutOptions);
+            ops = Object.extend(ops, option);
+            // var newChemDoc = new Kekule.ChemDocument();
+            // newChemDoc.setSize2D({x: 20, y: 20});
+            var newChemDoc = testCase.chemDoc.clone();
+            // clear old chem doc children, retain the size and ref length of doc
+            console.log('old', newChemDoc.getChildCount());
+            for (var i = newChemDoc.getRoot().getChildren().getChildCount() - 1; i >= 0; i--)
+                newChemDoc.getRoot().getChildren().removeChildAt(i);
+            /*
+            for (var i = newChemDoc.getChildCount() - 1; i >= 0; i--)
+                newChemDoc.removeChildAt(i);
+            */
+            console.log('new', newChemDoc.getChildCount());
+
+            Kekule.ReactionLayoutUtils.layoutReactionInChemDoc(newChemDoc, srcReaction, {x: 10, y: 10}, testCase.options);
+            var newReaction = Kekule.ReactionExtractionUtils.extractReactionFromChemDocument(newChemDoc, testCase.options);
+
+            expect(newReaction.compare(srcReaction)).toEqual(0);
+
+            console.log('src reaction', reactionToString(srcReaction, true));
+            console.log('new reaction', reactionToString(newReaction, true));
+        }
+    }
+
     function testOnCase(testCase) {
-        it(testCase.name, function(){
+        it(testCase.name + ' : Extraction', function(){
             if (testCase.singleReactionString) {
                 var reaction = Kekule.ReactionExtractionUtils.extractReactionFromChemDocument(testCase.chemDoc, testCase.options);
                 var reactionString = reactionToString(reaction, testCase.useMolSmiles);                
@@ -241,6 +323,9 @@ describe('Test of reaction extraction from chem doc', function(){
                 var strings = reactionChains.map(chain => reactionChainToString(chain, testCase.useMolSmiles));
                 expect(strings).toEqual(testCase.reactionChainStrings);
             }
+        });
+        it(testCase.name + ' : Extraction/Layout', function(){
+            testAutoLayout(testCase);
         });
     }
 
