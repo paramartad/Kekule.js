@@ -1554,6 +1554,9 @@ Kekule.ReactionLayoutUtils = {
         if (ops.reactionBoxYAlignment === undefined)
             ops.reactionBoxYAlignment = Kekule.Render.BoxYAlignment.BOTTOM;
 
+        if (!ops.targetSubstances)
+            ops.targetSubstances = Kekule.ObjUtils.getOwnedFieldValues(Kekule.ChemReactionComponent);
+
         if (ops.cloneMolecules === undefined)
             ops.cloneMolecules = true;
 
@@ -1569,6 +1572,13 @@ Kekule.ReactionLayoutUtils = {
         var secondaryAxis = (primaryAxis === 'y')? 'x': 'y';
         var doMoleculesClone = ops.cloneMolecules;
         var ROA = Kekule.ReactionObjectAlign;
+
+        var targetMainSubstanceTypes = [];
+        if (ops.targetSubstances.indexOf(Kekule.ChemReactionComponent.REACTANT) >= 0)
+            targetMainSubstanceTypes.push(Kekule.ChemReactionComponent.REACTANT);
+        if (ops.targetSubstances.indexOf(Kekule.ChemReactionComponent.PRODUCT) >= 0)
+            targetMainSubstanceTypes.push(Kekule.ChemReactionComponent.PRODUCT);
+        var targetAssocSubstanceTypes = Kekule.ArrayUtils.exclude(ops.targetSubstances, [Kekule.ChemReactionComponent.REACTANT, Kekule.ChemReactionComponent.PRODUCT]);
 
         var mainSubstancePrimaryAxisLayoutWeight, mainSubstanceSecondaryAxisAlignWeight;
         var assocSubstancePrimaryAxisLayoutWeight;
@@ -1615,7 +1625,7 @@ Kekule.ReactionLayoutUtils = {
             return result;
         };
 
-        var arrangeMainObject = function(isAssocObj, startingCoord, substance, leadingPadding,
+        var arrangeReactionObject = function(isAssocObj, startingCoord, substance, leadingPadding,
                                       primaryAxis, secondaryAxis,
                                       primaryAxisAlignWeight, secondaryAxisAlignWeight,   // for main object
                                       assocSubstancePrimaryAxisWeight,    // for assoc object, align weight on primary axis
@@ -1667,7 +1677,7 @@ Kekule.ReactionLayoutUtils = {
             return result;
         };
 
-        var mainObjectsBox = {}, assocObjectsBox = {};
+        var mainObjectsBox = {}, assocObjectsBox = {}, reactionArrowBox = {};
         var objGeometryMap = new Kekule.MapEx();
         try
         {
@@ -1678,7 +1688,12 @@ Kekule.ReactionLayoutUtils = {
             var currCoord = {x: 0, y: 0};  // since we need to adjust coords of each object, we start from 0, 0 here
 
             // first handle reagents, we divide them into two groups, one above arrow and one below arrow, and we need to calc the length of reaction arrow also
-            var reagents = reaction.getReagents();
+            var reagents = [];
+            for (var i = 0, l = targetAssocSubstanceTypes.length; i < l; ++i)
+            {
+                reagents = reagents.concat(reaction.getSubstancesOfType(targetAssocSubstanceTypes[i]));
+            }
+
             var firstHalfReagentCount = Math.ceil(reagents.length / 2);
             var reagentGroup1 = reagents.slice(0, firstHalfReagentCount);
             var reagentGroup2 = reagents.slice(firstHalfReagentCount);
@@ -1686,7 +1701,7 @@ Kekule.ReactionLayoutUtils = {
             {
                 var currGeometry;
                 var substance = getTargetMolecule(reagentGroup1[i], chemDoc, doMoleculesClone);
-                currGeometry = arrangeMainObject(true, currCoord, substance, substanceGapSecondary, primaryAxis, secondaryAxis,
+                currGeometry = arrangeReactionObject(true, currCoord, substance, substanceGapSecondary, primaryAxis, secondaryAxis,
                     mainSubstancePrimaryAxisLayoutWeight, mainSubstanceSecondaryAxisAlignWeight,
                     assocSubstancePrimaryAxisLayoutWeight, 1, assocObjectsBox, objGeometryMap);
                 assocObjects.push(substance);
@@ -1697,7 +1712,7 @@ Kekule.ReactionLayoutUtils = {
             {
                 var currGeometry;
                 var substance = getTargetMolecule(reagentGroup2[i], chemDoc, doMoleculesClone);
-                currGeometry = arrangeMainObject(true, currCoord, substance, substanceGapSecondary, primaryAxis, secondaryAxis,
+                currGeometry = arrangeReactionObject(true, currCoord, substance, substanceGapSecondary, primaryAxis, secondaryAxis,
                     mainSubstancePrimaryAxisLayoutWeight, mainSubstanceSecondaryAxisAlignWeight,
                     assocSubstancePrimaryAxisLayoutWeight, -1, assocObjectsBox, objGeometryMap);
                 assocObjects.push(substance);
@@ -1750,64 +1765,72 @@ Kekule.ReactionLayoutUtils = {
             reactionArrow.getNodeAt(0).setCoord2D(reactionArrowStartingCoord);
             reactionArrow.getNodeAt(1).setCoord2D(reactionArrowEndingCoord);
             objGeometryMap.set(reactionArrow, {
-                'coordDelta': {x: 0, y: 0}
+                'coordDelta': {x: 0, y: 0},
             });
-
-            // reset to the reaction arrow start coord, begin to arrange reactants
-            currCoord = Object.extend({}, reactionArrowStartingCoord);
-            // currCoord[primaryAxis] += assocObjectBoxSize[primaryAxis] * assocSubstancePrimaryAxisLayoutWeight;
+            reactionArrowBox = Kekule.BoxUtils.createBox(reactionArrowStartingCoord, reactionArrowEndingCoord);
 
             // the reactants, on arrow left by default, we arrange them from the near to far (right to left by default, reverse the primary direction)
-            for (var i = reaction.getReactantCount() - 1; i >= 0; --i)
+            if (targetMainSubstanceTypes.indexOf(Kekule.ChemReactionComponent.REACTANT) >= 0)
             {
-                var currGeometry;
+                // reset to the reaction arrow start coord, begin to arrange reactants
+                currCoord = Object.extend({}, reactionArrowStartingCoord);
+                // currCoord[primaryAxis] += assocObjectBoxSize[primaryAxis] * assocSubstancePrimaryAxisLayoutWeight;
 
-                var substance = getTargetMolecule(reaction.getReactantAt(i), chemDoc, doMoleculesClone);
-                currGeometry = arrangeMainObject(false, currCoord, substance, substanceGapPrimary, primaryAxis, secondaryAxis,
-                    -mainSubstancePrimaryAxisLayoutWeight, mainSubstanceSecondaryAxisAlignWeight,
-                    assocSubstancePrimaryAxisLayoutWeight, 1, mainObjectsBox, objGeometryMap);
-                mainObjects.push(substance);
-                currCoord = currGeometry.nextStartingCoord;
-
-                if (i > 0)  // need to add a plus symbol
+                for (var i = reaction.getReactantCount() - 1; i >= 0; --i)
                 {
-                    var plusSymbol = createPlusSymbol(chemDoc);
-                    currGeometry = arrangeMainObject(false, currCoord, plusSymbol, substanceGapPrimary, primaryAxis, secondaryAxis,
+                    var currGeometry;
+
+                    var substance = getTargetMolecule(reaction.getReactantAt(i), chemDoc, doMoleculesClone);
+                    currGeometry = arrangeReactionObject(false, currCoord, substance, substanceGapPrimary, primaryAxis, secondaryAxis,
                         -mainSubstancePrimaryAxisLayoutWeight, mainSubstanceSecondaryAxisAlignWeight,
                         assocSubstancePrimaryAxisLayoutWeight, 1, mainObjectsBox, objGeometryMap);
-                    mainObjects.push(plusSymbol);
+                    mainObjects.push(substance);
                     currCoord = currGeometry.nextStartingCoord;
+
+                    if (i > 0)  // need to add a plus symbol
+                    {
+                        var plusSymbol = createPlusSymbol(chemDoc);
+                        currGeometry = arrangeReactionObject(false, currCoord, plusSymbol, substanceGapPrimary, primaryAxis, secondaryAxis,
+                            -mainSubstancePrimaryAxisLayoutWeight, mainSubstanceSecondaryAxisAlignWeight,
+                            assocSubstancePrimaryAxisLayoutWeight, 1, mainObjectsBox, objGeometryMap);
+                        mainObjects.push(plusSymbol);
+                        currCoord = currGeometry.nextStartingCoord;
+                    }
                 }
             }
 
-            // the products, on arrow right by default, arrange them from near to far (left to right by default)
-            currCoord = Object.extend({}, reactionArrowEndingCoord);
-
-            for (var i = 0, l = reaction.getProductCount(); i < l; ++i)
+            if (targetMainSubstanceTypes.indexOf(Kekule.ChemReactionComponent.PRODUCT) >= 0)
             {
-                var currGeometry;
+                // the products, on arrow right by default, arrange them from near to far (left to right by default)
+                currCoord = Object.extend({}, reactionArrowEndingCoord);
 
-                if (i > 0)  // need to add a plus symbol
+                for (var i = 0, l = reaction.getProductCount(); i < l; ++i)
                 {
-                    var plusSymbol = createPlusSymbol(chemDoc);
-                    currGeometry = arrangeMainObject(false, currCoord, plusSymbol, substanceGapPrimary, primaryAxis, secondaryAxis,
+                    var currGeometry;
+
+                    if (i > 0)  // need to add a plus symbol
+                    {
+                        var plusSymbol = createPlusSymbol(chemDoc);
+                        currGeometry = arrangeReactionObject(false, currCoord, plusSymbol, substanceGapPrimary, primaryAxis, secondaryAxis,
+                            mainSubstancePrimaryAxisLayoutWeight, mainSubstanceSecondaryAxisAlignWeight,
+                            assocSubstancePrimaryAxisLayoutWeight, 1, mainObjectsBox, objGeometryMap);
+                        mainObjects.push(plusSymbol);
+                        currCoord = currGeometry.nextStartingCoord;
+                    }
+
+                    var substance = getTargetMolecule(reaction.getProductAt(i), chemDoc, doMoleculesClone);
+                    currGeometry = arrangeReactionObject(false, currCoord, substance, substanceGapPrimary, primaryAxis, secondaryAxis,
                         mainSubstancePrimaryAxisLayoutWeight, mainSubstanceSecondaryAxisAlignWeight,
                         assocSubstancePrimaryAxisLayoutWeight, 1, mainObjectsBox, objGeometryMap);
-                    mainObjects.push(plusSymbol);
+                    mainObjects.push(substance);
                     currCoord = currGeometry.nextStartingCoord;
                 }
-
-                var substance = getTargetMolecule(reaction.getProductAt(i), chemDoc, doMoleculesClone);
-                currGeometry = arrangeMainObject(false, currCoord, substance, substanceGapPrimary, primaryAxis, secondaryAxis,
-                    mainSubstancePrimaryAxisLayoutWeight, mainSubstanceSecondaryAxisAlignWeight,
-                    assocSubstancePrimaryAxisLayoutWeight, 1, mainObjectsBox, objGeometryMap);
-                mainObjects.push(substance);
-                currCoord = currGeometry.nextStartingCoord;
             }
 
             // second: adjust the position of each object, calculate the delta coord
             var XA = Kekule.Render.BoxXAlignment, YA = Kekule.Render.BoxYAlignment;
             var totalContainerBox = Kekule.BoxUtils.getContainerBox(mainObjectsBox, assocObjectsBox);
+            totalContainerBox = Kekule.BoxUtils.getContainerBox(totalContainerBox, reactionArrowBox);
             var currPositionPointCoord = {};
             currPositionPointCoord.x = (ops.reactionBoxXAlignment === XA.LEFT)? totalContainerBox.x1:
                 (ops.reactionBoxXAlignment === XA.RIGHT)? totalContainerBox.x2:
