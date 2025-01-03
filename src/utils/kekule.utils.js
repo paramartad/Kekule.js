@@ -303,7 +303,7 @@ Kekule.ObjUtils = {
 			return null;
 	},
 	/**
-	 * Return all name of direct fields of obj. Note that functions will not be included.
+	 * Return all names of direct fields of obj. Note that functions will not be included by default.
 	 * @param {Object} obj
 	 * @param {Bool} includeFuncFields Set to true to include function fields in obj.
 	 * @returns {Array} Array of field names
@@ -315,6 +315,23 @@ Kekule.ObjUtils = {
 		{
 			if (obj.hasOwnProperty(fname) && (includeFuncFields || typeof(obj[fname]) != 'function'))
 				result.push(fname);
+		}
+		return result;
+	},
+	/**
+	 * Return all values of direct fields of obj. Note that functions will not be included by default.
+	 * @param {Object} obj
+	 * @param {Bool} includeFuncFields Set to true to include function fields in obj.
+	 * @returns {Array} Array of field names
+	 */
+	getOwnedFieldValues: function(obj, includeFuncFields)
+	{
+		var keys = Kekule.ObjUtils.getOwnedFieldNames(obj, includeFuncFields);
+		var result = [];
+		for (var i = 0, l = keys.length; i < l; ++i)
+		{
+			var fname = keys[i];
+			result.push(obj[fname]);
 		}
 		return result;
 	},
