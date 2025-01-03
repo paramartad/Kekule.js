@@ -1399,7 +1399,7 @@ Kekule.ReactionExtractionUtils = {
     },
 
     /**
-     * Create {@link Kekule.MultiStepReaction} group from {@link Kekule.ChemDocument} content.
+     * Create {@link Kekule.ConsecutiveReactions} group from {@link Kekule.ChemDocument} content.
      * @param {@link Kekule.ChemDocument} chemDoc
      * @param {Object} options May include fields: {
      *     substanceGapLengthThreshold: max gap between two reactants/products/reagents,
@@ -1411,7 +1411,7 @@ Kekule.ReactionExtractionUtils = {
      *     disableSiblingMerging: Whether merge two sibling chains when the prev one has products and the next one has no reactants or vice versa.
      *     cloneMolecules: whether clone molecules to reaction (rather than move them from chem document). Default value is true.
      * }
-     * @returns {@link Kekule.MultiStepReaction}
+     * @returns {@link Kekule.ConsecutiveReactions}
      */
     extractReactionChainsFromChemDocument: function(chemDoc, options)
     {
@@ -1433,7 +1433,7 @@ Kekule.ReactionExtractionUtils = {
             for (var i = 0, ii = chains.length; i < ii; ++i)
             {
                 var chain = chains[i];
-                var reaction = new Kekule.MultiStepReaction();
+                var reaction = new Kekule.ConsecutiveReactions();
                 var prevReactionInfo = null;
                 var prevReactionStep = null;
                 for (var j = 0, jj = chain.length; j < jj; ++j)
@@ -1521,6 +1521,7 @@ Kekule.ReactionExtractionUtils = {
  * @namespace
  */
 Kekule.ReactionLayoutUtils = {
+    /** @private */
     _prepareReactionLayoutOptions: function(chemDoc, options)
     {
         var globalOps = Kekule.globalOptions.reaction.layout;
@@ -1562,6 +1563,13 @@ Kekule.ReactionLayoutUtils = {
 
         return ops;
     },
+    /**
+     * Auto layout reaction molecules and arrow in chemDoc.
+     * @param {Kekule.ChemDocument} chemDoc
+     * @param {Kekule.ChemReaction} reaction
+     * @param {Hash} baseCoord
+     * @param {Object} options Layout options, see source code of {@link Kekule.ReactionLayoutUtils._prepareReactionLayoutOptions} for details.
+     */
     layoutReactionInChemDoc: function(chemDoc, reaction, baseCoord, options)
     {
         // retrieve layout options
