@@ -46,15 +46,16 @@ Kekule.globalOptions.add('reaction', {
     },
     // options for auto-layout of reaction to chem object
     layout: {
-        substancePrimaryGapLengthRatioToDocRefLength: 0.5,
-        substanceSecondaryGapLengthRatioToDocRefLength: 0.5,
+        reactionGapLengthRatioToDocRefLength: 0.5,     // gap between two reactions
+        substancePrimaryGapLengthRatioToDocRefLength: 0.5,  // gap of substances in primary direction  (e.g. between reactants and roducts)
+        substanceSecondaryGapLengthRatioToDocRefLength: 0.5,  // gap of substances in secondary direction (e.g. between reagents)
         plusSymbolSizeRatioToDocRefLength: 1,
         reactionArrowMinSizeRatioToDocRefLength: 1.5,
         reactionArrowPaddingRatioToDocRefLength: 0.5,  // the reaction arrow should be longer than any of the reagents
         layoutXMode: Kekule.ReactionLayoutXMode.LtoR,
         layoutYMode: Kekule.ReactionLayoutYMode.TtoB,
         primaryAxis: 'x',
-        mainSubstancePrimaryAxisAlignMode: Kekule.ReactionObjectAlign.LEADING,  // reactants and products
+        mainSubstancePrimaryAxisAlignMode: Kekule.ReactionObjectAlign.LEFT,  // reactants and products
         mainSubstanceSecondaryAxisAlignMode: Kekule.ReactionObjectAlign.CENTER,
         // assocSubstancePrimaryAxisAlignMode: Kekule.ReactionObjectAlign.CENTER,
         // assocSubstanceSecondaryAxisAlignMode: Kekule.ReactionObjectAlign.CENTER,
@@ -1530,9 +1531,11 @@ Kekule.ReactionLayoutUtils = {
         if (!ops.docRefLength)
             ops.docRefLength = chemDoc.getDefAutoScaleRefLength(Kekule.CoordMode.COORD2D);
         var docRefLength = ops.docRefLength;
-        if (ops.substanceGapPrimary === undefined || options.substanceGapPrimary === null)
+        if (ops.reactionGap === undefined || ops.reactionGap === null)
+            ops.reactionGap = docRefLength * oneOf(ops.reactionGapLengthRatioToDocRefLength, globalOps.reactionGapLengthRatioToDocRefLength);
+        if (ops.substanceGapPrimary === undefined || ops.substanceGapPrimary === null)
             ops.substanceGapPrimary = docRefLength * oneOf(ops.substancePrimaryGapLengthRatioToDocRefLength, globalOps.substancePrimaryGapLengthRatioToDocRefLength);
-        if (ops.substanceGapSecondary === undefined || options.substanceGapSecondary === null)
+        if (ops.substanceGapSecondary === undefined || ops.substanceGapSecondary === null)
             ops.substanceGapSecondary = docRefLength * oneOf(ops.substanceSecondaryGapLengthRatioToDocRefLength, globalOps.substanceSecondaryGapLengthRatioToDocRefLength);
         if (ops.plusSymbolSize === undefined)
             ops.plusSymbolSize = docRefLength * oneOf(ops.plusSymbolSizeRatioToDocRefLength, globalOps.plusSymbolSizeRatioToDocRefLength);
@@ -1563,17 +1566,11 @@ Kekule.ReactionLayoutUtils = {
 
         return ops;
     },
-    /**
-     * Auto layout reaction molecules and arrow in chemDoc.
-     * @param {Kekule.ChemDocument} chemDoc
-     * @param {Kekule.ChemReaction} reaction
-     * @param {Hash} baseCoord
-     * @param {Object} options Layout options, see source code of {@link Kekule.ReactionLayoutUtils._prepareReactionLayoutOptions} for details.
-     */
-    layoutReactionInChemDoc: function(chemDoc, reaction, baseCoord, options)
+
+    /** @private */
+    _calcReactionLayoutInChemDoc: function(chemDoc, reaction, baseCoord, objGeometryMap, ops)
     {
         // retrieve layout options
-        var ops = RLU._prepareReactionLayoutOptions(chemDoc, options);
         var substanceGapPrimary = ops.substanceGapPrimary;  // (primaryAxis === 'y')? ops.substanceGapY: ops.substanceGapX;  // gap between substances and plus symbol
         var substanceGapSecondary = ops.substanceGapSecondary;  // (secondaryAxis === 'y')? ops.substanceGapY: ops.substanceGapX;
         var primaryAxis = ops.primaryAxis;
@@ -1686,8 +1683,8 @@ Kekule.ReactionLayoutUtils = {
         };
 
         var mainObjectsBox = {}, assocObjectsBox = {}, reactionArrowBox = {};
-        var objGeometryMap = new Kekule.MapEx();
-        try
+        // var objGeometryMap = new Kekule.MapEx();
+        // try
         {
             var mainObjects = [];  // objects in arrow direction, reactants, products and plus symbol, reaction arrow
             var assocObjects = [];    // objects in arrow vertical direction, reagents
@@ -1856,14 +1853,134 @@ Kekule.ReactionLayoutUtils = {
                 var currGeometry = objGeometryMap.get(obj);
                 var currDelta = currGeometry.coordDelta || {x: 0, y: 0};
                 var newDelta = Kekule.CoordUtils.add(currDelta, deltaCoord);
-                var oldCoord = obj.getCoord2D() || {x: 0, y: 0};
-                obj.setCoord2D(Kekule.CoordUtils.add(oldCoord, newDelta));
+                // var oldCoord = obj.getCoord2D() || {x: 0, y: 0};
+                // obj.setCoord2D(Kekule.CoordUtils.add(oldCoord, newDelta));
+                currGeometry.coordDelta = newDelta;
+            }
+
+            var finalContainerBox = Kekule.BoxUtils.transform2D(totalContainerBox, {translateX: deltaCoord.x, translateY: deltaCoord.y});
+            return {
+                objects: allObjects,
+                containerBox: finalContainerBox
+            };
+        }
+        // finally
+        {
+            // objGeometryMap.finalize();
+        }
+    },
+
+    /**
+     * Auto layout molecules and arrows of a series reactions in chemDoc.
+     * By default, each reaction occupies a row.
+     * @param {Kekule.ChemDocument} chemDoc
+     * @param {Kekule.ChemReaction} reaction
+     * @param {Hash} baseCoord
+     * @param {Object} options Layout options, see source code of {@link Kekule.ReactionLayoutUtils._prepareReactionLayoutOptions} for details.
+     * //@returns {Hash} The final container box to render the whole reaction.
+     */
+    layoutReactionsInChemDoc: function(chemDoc, reactions, baseCoord, options)
+    {
+        var XA = Kekule.Render.BoxXAlignment, YA = Kekule.Render.BoxYAlignment;
+        var ROA = Kekule.ReactionObjectAlign;
+
+        var ops = RLU._prepareReactionLayoutOptions(chemDoc, options);
+        var singleReactionOps = Object.create(ops);
+
+        var directionWeight;
+        var secondaryAxis;
+        if (ops.primaryAxis === 'y')
+        {
+            secondaryAxis = 'x';
+            directionWeight = (ops.layoutXMode === Kekule.ReactionLayoutXMode.RtoL)? -1: 1;
+            singleReactionOps.reactionBoxXAlignment = (directionWeight < 0)? XA.RIGHT: XA.LEFT;  // for stacking reactions
+            singleReactionOps.reactionBoxYAlignment = (ops.mainSubstancePrimaryAxisAlignMode === ROA.CENTER)? YA.CENTER:
+                (ops.mainSubstancePrimaryAxisAlignMode === ROA.BOTTOM)? YA.BOTTOM
+                    :YA.TOP;
+        }
+        else
+        {
+            secondaryAxis = 'y';
+            directionWeight = (ops.layoutYMode === Kekule.ReactionLayoutYMode.BtoT)? 1: -1;
+            singleReactionOps.reactionBoxYAlignment = (directionWeight < 0)? YA.TOP: YA.BOTTOM;  // for stacking reactions
+            singleReactionOps.reactionBoxXAlignment = (ops.mainSubstancePrimaryAxisAlignMode === ROA.CENTER)? XA.CENTER:
+                (ops.mainSubstancePrimaryAxisAlignMode === ROA.RIGHT)? XA.RIGHT
+                    :XA.LEFT;
+        }
+
+        var objGeometryMap = new Kekule.MapEx();
+        try
+        {
+            chemDoc.beginUpdate();
+            try
+            {
+                var reactionContainerBoxes = [];  // for debug
+                var totalContainerBox = {};
+                var totalObjects = [];
+                var currCoord = Object.extend({}, baseCoord);
+
+                for (var i = 0, l = reactions.length; i < l; ++i)
+                {
+                    var reaction = reactions[i];
+                    var reactionLayoutResult = RLU._calcReactionLayoutInChemDoc(chemDoc, reaction, currCoord, objGeometryMap, singleReactionOps);
+                    var currContainerBox = reactionLayoutResult.containerBox;
+                    var currContainerBoxSize = {x: currContainerBox.x2 - currContainerBox.x1, y: currContainerBox.y2 - currContainerBox.y1};
+                    reactionContainerBoxes.push(currContainerBox);
+
+                    totalObjects = totalObjects.concat(reactionLayoutResult.objects);
+                    totalContainerBox = Kekule.BoxUtils.getContainerBox(totalContainerBox, currContainerBox);
+
+                    // decide the baseCoord for next reaction
+                    if (i < l - 1)
+                    {
+                        currCoord[secondaryAxis] += (currContainerBoxSize[secondaryAxis] + (ops.reactionGap || 0)) * directionWeight;
+                    }
+                }
+
+                // adjust the position of each object, calculate the delta coord
+
+                var currPositionPointCoord = {};
+                currPositionPointCoord.x = (ops.reactionBoxXAlignment === XA.LEFT)? totalContainerBox.x1:
+                    (ops.reactionBoxXAlignment === XA.RIGHT)? totalContainerBox.x2:
+                        totalContainerBox.x1 + (totalContainerBox.x2 - totalContainerBox.x1)/2;  // (ops.reactionBoxXAlignment === XA.CENTER)
+                currPositionPointCoord.y = (ops.reactionBoxYAlignment === YA.TOP)? totalContainerBox.y2:
+                    (ops.reactionBoxYAlignment === YA.BOTTOM)? totalContainerBox.y1:
+                        totalContainerBox.y1 + (totalContainerBox.y2 - totalContainerBox.y1)/2;
+
+                var deltaCoord = Kekule.CoordUtils.substract(baseCoord, currPositionPointCoord);
+
+                for (var i = 0, l = totalObjects.length; i < l; ++i)
+                {
+                    var obj = totalObjects[i];
+                    var currGeometry = objGeometryMap.get(obj);
+                    var currDelta = currGeometry.coordDelta || {x: 0, y: 0};
+                    var newDelta = Kekule.CoordUtils.add(currDelta, deltaCoord);
+                    var oldCoord = obj.getCoord2D() || {x: 0, y: 0};
+                    obj.setCoord2D(Kekule.CoordUtils.add(oldCoord, newDelta));
+                }
+            }
+            finally
+            {
+                chemDoc.endUpdate();
             }
         }
         finally
         {
             objGeometryMap.finalize();
         }
+    },
+
+    /**
+     * Auto layout reaction molecules and arrow in chemDoc.
+     * @param {Kekule.ChemDocument} chemDoc
+     * @param {Kekule.ChemReaction} reaction
+     * @param {Hash} baseCoord
+     * @param {Object} options Layout options, see source code of {@link Kekule.ReactionLayoutUtils._prepareReactionLayoutOptions} for details.
+     * //@returns {Hash} The final container box to render the whole reaction.
+     */
+    layoutReactionInChemDoc: function(chemDoc, reaction, baseCoord, options)
+    {
+        RLU.layoutReactionsInChemDoc(chemDoc, [reaction], baseCoord, options);
     }
 }
 

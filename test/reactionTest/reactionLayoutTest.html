@@ -194,6 +194,24 @@
             targetViewer.setChemObj(chemDoc);
         }
 
+        function layoutReactionsInChain() {
+            var optionStr = document.getElementById('inputLayoutOptions').value;
+            var options = JSON.parse(optionStr);
+
+            let index = parseInt(document.getElementById('inputReactionIndex').value);
+            let chain = currChains[index];
+            let reactions = chain.getReactions();
+            let targetEditor = Kekule.Widget.getWidgetById('composerLayout');
+            let targetViewer = Kekule.Widget.getWidgetById('viewerLayout');
+            targetEditor.getEditor().newDoc();
+            let chemDoc = targetEditor.getChemObj();
+            // Kekule.ReactionLayoutUtils.layoutReactionInChemDoc(chemDoc, reaction, {x: 0, y: 0}, {});
+            targetEditor.getEditor().beginUpdateObject();
+            Kekule.ReactionLayoutUtils.layoutReactionsInChemDoc(chemDoc, reactions, Kekule.CoordUtils.divide(chemDoc.getSize2D(), 2), options);
+            targetEditor.getEditor().endUpdateObject();
+            targetViewer.setChemObj(chemDoc);
+        }
+
         Kekule.X.domReady(() => {
             initChemDocSelector();
         });
@@ -237,8 +255,11 @@
         }
     </textarea>
     <input type="text" id="inputReactionIndex" value="0" />
+    <!--
     <button onclick="layoutReactionInChain()">Layout</button>
-    <button onclick="extract();layoutReactionInChain();">Do all</button>
+    -->
+    <button onclick="extract();layoutReactionInChain();">Layout single reaction</button>
+    <button onclick="extract();layoutReactionsInChain();">Layout reactions</button>
 </section>
 
 <section id="sectionOutput">
