@@ -42,7 +42,8 @@ Kekule.globalOptions.add('reaction', {
         reactionSortAxisWeightRatioXY: 1/5,
         enableSiblingMerging: true,
         enableMergeSharedProductAndReactant: true,
-        enableMergeOnProductOmission: true
+        enableMergeOnProductOmission: true,
+        insertImplicitIntermediate: false
     },
     // options for auto-layout of reaction to chem object
     layout: {
@@ -1330,6 +1331,8 @@ Kekule.ReactionExtractionUtils = {
             ops.enableMergeSharedProductAndReactant = globalOps.enableMergeSharedProductAndReactant;
         if (ops.enableMergeOnProductOmission === undefined)
             ops.enableMergeOnProductOmission = globalOps.enableMergeOnProductOmission;
+        if (ops.insertImplicitIntermediate === undefined)
+            ops.insertImplicitIntermediate = globalOps.insertImplicitIntermediate;
 
         return ops;
     },
@@ -1410,6 +1413,7 @@ Kekule.ReactionExtractionUtils = {
      *     xSortMode, ySortMode: 1: from left to right, -1: from right to left,
      *     primarySortAxis: 'x' or 'y', the primary axis used to sort the reaction chains,
      *     disableSiblingMerging: Whether merge two sibling chains when the prev one has products and the next one has no reactants or vice versa.
+     *     insertImplicitIntermediate: whether fill an extra implicit intermediate object between two consecutive reactions omitting the common product/reactant.
      *     cloneMolecules: whether clone molecules to reaction (rather than move them from chem document). Default value is true.
      * }
      * @returns {@link Kekule.ConsecutiveReactions}
@@ -1507,6 +1511,32 @@ Kekule.ReactionExtractionUtils = {
                     prevReactionInfo = reactionInfo;
                 }
                 result.push(reaction);
+            }
+
+            // then fill the omitted intermediates
+            if (ops.insertImplicitIntermediate)
+            {
+                var imIndex = 1;
+                for (var i = 0, ii = result.length; i < ii; ++i)
+                {
+                    var consecutiveReaction = result[i];
+                    var reactions = consecutiveReaction.getReactions();
+                    if (reactions.length > 1)
+                    {
+                        for (var j = 1, jj = reactions.length; j < jj; ++j)
+                        {
+                            var prevReaction = reactions[j - 1];
+                            var currReaction = reactions[j];
+                            if (!prevReaction.getProductCount() && !currReaction.getReactantCount())
+                            {
+                                var intermediate = new Kekule.ImplicitReactionIntermediate();
+                                intermediate.setId(intermediate.getAutoIdPrefix() + imIndex);
+                                ++imIndex;
+                                prevReaction.appendProduct(intermediate);
+                            }
+                        }
+                    }
+                }
             }
         }
         finally

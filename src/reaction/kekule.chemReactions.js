@@ -32,6 +32,29 @@ Kekule.ChemReactionDirection = {
     BIDIRECTION: 0
 };
 
+
+/**
+ * Represent an omitted intermediate product of two continuous reactions.
+ * E.g. CH3COOEt (NaOEt) -> * -> (H+) CH3COCH2COOEt, where the salt of ethyl acetoacetate is omitted in the reaction.
+ * @type {Class}
+ */
+Kekule.ImplicitReactionIntermediate = Class.create(Kekule.Molecule,
+/** @lends Kekule.ImplicitReactionIntermediate# */
+{
+	/** @private */
+	CLASS_NAME: 'Kekule.ImplicitReactionIntermediate',
+	/** @private */
+	initialize: function(id)
+	{
+		this.tryApplySuper('initialize', [id, '*']);
+	},
+    /** @private */
+    getAutoIdPrefix: function()
+    {
+        return 'im';
+    }
+});
+
 /**
  * A chemical reaction. Including information on reactants, products, reagents and conditions.
  * @class

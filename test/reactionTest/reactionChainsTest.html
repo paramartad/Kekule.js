@@ -73,15 +73,19 @@
 
         function molToString(mol, useMolSmiles = defUseSmiles) {
             var result;
-            if (useMolSmiles) {
-                if (mol.hasCtab())
-                    result = Kekule.IO.saveFormatData(mol, Kekule.IO.DataFormat.SMILES);
-                else if (mol.hasFormula())
-                    result = mol.getFormula().getText();
-            }
+            if (mol instanceof Kekule.ImplicitReactionIntermediate)
+                result = '*' + mol.getId();  // + Kekule.IO.saveFormatData(mol, Kekule.IO.DataFormat.SMILES);
+            else {
+                if (useMolSmiles) {
+                    if (mol.hasCtab())
+                        result = Kekule.IO.saveFormatData(mol, Kekule.IO.DataFormat.SMILES);
+                    else if (mol.hasFormula())
+                        result = mol.getFormula().getText();
+                }
 
-            if (!result)  // use id
-                result = mol.getId();
+                if (!result)  // use id
+                    result = mol.getId();
+            }
 
             return result;
         }
@@ -165,8 +169,8 @@
 
         function execute() {
             exportSingleReaction();
-            exportReactionChains(document.getElementById('outputChains'));
-            exportReactionChains(document.getElementById('outputChainsUnmerged'), {disableSiblingMerging: true});
+            exportReactionChains(document.getElementById('outputChains'), {insertImplicitIntermediate: true});
+            exportReactionChains(document.getElementById('outputChainsUnmerged'), {disableSiblingMerging: true, insertImplicitIntermediate: true});
         }
 
         Kekule.X.domReady(() => {
