@@ -232,9 +232,10 @@ Kekule.ReactionExtractionUtils = {
         if (substanceType === 'reagent')
         {
             if (neighborDetail)
-                distance = Kekule.CoordUtils.getDistance(currMolDetail.centerCoord, neighborDetail.centerCoord);
+                distance = Math.min(currMolDetail.distanceToArrow, Kekule.CoordUtils.getDistance(currMolDetail.centerCoord, neighborDetail.centerCoord));
             else
-                distance = currMolDetail.distanceToArrowCenter;
+                distance = currMolDetail.distanceToArrow;  //  currMolDetail.distanceToArrowCenter;
+
             /*
             distance = neighborDetail ?
                 (Math.abs(currMolDetail.distance - neighborDetail.distance)) :
@@ -876,10 +877,12 @@ Kekule.ReactionExtractionUtils = {
                 {
                     // only molecule can be reagent, so here we ignores the plus symbol
                     var distanceToArrowCenter = Kekule.CoordUtils.getDistance(objCenterCoord, arrowCenterCoord);
+                    var distanceToArrowLineSegment = Kekule.GeometryUtils.getDistanceFromPointToLine(objCenterCoord, arrowCoords[0], arrowCoords[1], false);
                     reagentDetails.push({
                         'substanceType': 'reagent', 'onTop': crossPointToNormalLineDirection == arrowNormalLineDirection,
                         'containerBox': containerBox, 'centerCoord': objCenterCoord, 'distance': distanceOnNormalLine,
                         'distanceToArrowCenter': distanceToArrowCenter,
+                        'distanceToArrow': distanceToArrowLineSegment,
                         'object': molAndPlusSymbols[i]
                     });
                     if (calcContainerBoxes)
