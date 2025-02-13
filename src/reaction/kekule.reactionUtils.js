@@ -991,9 +991,7 @@ Kekule.ReactionExtractionUtils = {
                 });
             }
         }
-
-        console.log('result', result);
-
+        
         return result;
     },
 
