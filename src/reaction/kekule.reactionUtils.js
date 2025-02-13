@@ -1119,13 +1119,19 @@ Kekule.ReactionExtractionUtils = {
                         {
                             if (reactionRelation === 1)
                             {
-                                // insert after refReactionInfo
-                                chain.splice(j, 0, reactionInfo);
+                                // insert before refReactionInfo, if ref is at the head of chain
+                                if (j === 0)
+                                    chain.splice(j, 0, reactionInfo);
+                                else
+                                    addNewChain(reactionInfo, chains);
                             }
                             else if (reactionRelation === -1)
                             {
-                                // insert before refReactionInfo
-                                chain.splice(j + 1, 0, reactionInfo);
+                                // insert after refReactionInfo, if ref is at the tail of chain
+                                if (j === chain.length - 1)
+                                    chain.splice(j + 1, 0, reactionInfo);
+                                else
+                                    addNewChain(reactionInfo, chains);
                             }
                             else if (reactionRelation === 0) // parrel reaction, need to insert to new chain
                             {
