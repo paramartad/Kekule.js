@@ -33,6 +33,7 @@ Kekule.ReactionObjectAlign = {
 Kekule.globalOptions.add('reaction', {
     // options for extracting reaction (chains) from chem document
     extraction: {
+        ignoredReactionArrowTypes: null,  // default is [Kekule.Glyph.ReactionArrowType.RETROSYNTHESIS], but since Kekule.Glyph.ReactionArrowType is defined after this, we can not use it directly here
         substanceGapLengthThresholdRatioToDocRefLength: 3,
         reactionArrowPerpendicularExpansionRatioToDocRefLength: 1/2,
         reactionArrowHorizontalExpansionRationToDocRefLength: 3,
@@ -72,7 +73,8 @@ Kekule.ReactionExtractionUtils = {
     _getReactionArrowsInDoc: function(chemDoc)
     {
         return chemDoc.filterChildren(function(child) {
-            var ignoredTypes = [Kekule.Glyph.ReactionArrowType.RESONANCE, Kekule.Glyph.ReactionArrowType.RETROSYNTHESIS];
+            // var ignoredTypes = [Kekule.Glyph.ReactionArrowType.RESONANCE, Kekule.Glyph.ReactionArrowType.RETROSYNTHESIS];
+            var ignoredTypes = Kekule.globalOptions.reaction.extraction.ignoredReactionArrowTypes || [Kekule.Glyph.ReactionArrowType.RETROSYNTHESIS];
             return (child instanceof Kekule.Glyph.ReactionArrow) && (ignoredTypes.indexOf(child.getReactionType()) < 0);
         }, true);
     },
@@ -971,7 +973,9 @@ Kekule.ReactionExtractionUtils = {
                     length: arrowLength,
                     direction: arrowDirection,
                     normalLineCoords: arrowNormalLineCoords,
-                    normalLineEquationParams: arrowNormalLineEquationParams
+                    normalLineEquationParams: arrowNormalLineEquationParams,
+
+                    reactionArrowType: reactionArrow.getReactionType()
                 }
             };
             if (calcContainerBoxes) {
@@ -987,6 +991,8 @@ Kekule.ReactionExtractionUtils = {
                 });
             }
         }
+
+        console.log('result', result);
 
         return result;
     },
@@ -1346,6 +1352,13 @@ Kekule.ReactionExtractionUtils = {
         return ops;
     },
 
+    _getReactionDirectionFromArrowType: function(arrowType) {
+        var result = (arrowType === Kekule.Glyph.ReactionArrowType.RESONANCE)? Kekule.ChemReactionDirection.RESONANCE:
+            (arrowType === Kekule.Glyph.ReactionArrowType.REVERSIBLE)? Kekule.ChemReactionDirection.BIDIRECTION:
+                Kekule.ChemReactionDirection.FORWARD;
+        return result;
+    },
+
     /**
      * Create a single step {@link Kekule.ChemReaction} from {@link Kekule.ChemDocument} content.
      * @param {@link Kekule.ChemDocument} chemDoc
@@ -1378,6 +1391,11 @@ Kekule.ReactionExtractionUtils = {
                 var reagentDetails = reactionInfo.reagentDetails;
 
                 var result = new Kekule.ChemReaction();
+                if (reactionInfo.arrowDetails.reactionArrowType !== undefined) {
+                    var reactionDirection = this._getReactionDirectionFromArrowType(reactionInfo.arrowDetails.reactionArrowType);
+                    result.setDirection(reactionDirection);
+                }
+
                 for (var i = 0, l = reactantDetails.length; i < l; ++i)
                 {
                     if (reactantDetails[i].object instanceof Kekule.Molecule)
@@ -1454,6 +1472,11 @@ Kekule.ReactionExtractionUtils = {
                 {
                     var reactionInfo = chain[j];
                     var reactionStep = reaction.newStep();
+                    if (reactionInfo.arrowDetails.reactionArrowType !== undefined) {
+                        var reactionDirection = this._getReactionDirectionFromArrowType(reactionInfo.arrowDetails.reactionArrowType);
+                        reactionStep.setDirection(reactionDirection);
+                    }
+
                     for (var k = 0, kk = reactionInfo.reactantDetails.length; k < kk; ++k)
                     {
                         var obj = reactionInfo.reactantDetails[k].object;
@@ -1802,8 +1825,10 @@ Kekule.ReactionLayoutUtils = {
             });
             chemDoc.appendChild(reactionArrow);
             reactionArrow.setCoord2D(currCoord);
-            if (reaction.getDirection() === Kekule.ReactionDirection.BIDIRECTION)
+            if (reaction.getDirection() === Kekule.ChemReactionDirection.BIDIRECTION)
                 reactionArrow.setReactionType(Kekule.Glyph.ReactionArrowType.REVERSIBLE);
+            else if (reaction.getDirection() === Kekule.ChemReactionDirection.RESONANCE)
+                reactionArrow.setReactionType(Kekule.Glyph.ReactionArrowType.RESONANCE);
             else
                 reactionArrow.setReactionType(Kekule.Glyph.ReactionArrowType.NORMAL);
             reactionArrow.getNodeAt(0).setCoord2D(reactionArrowStartingCoord);

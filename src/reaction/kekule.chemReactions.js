@@ -29,7 +29,10 @@ Kekule.ChemReactionDirection = {
     /** Reaction equilibrium which is (almost) fully on the product side. Often denoted with a forward arrow. */
     FORWARD: 1,
     /** Reaction equilibrium state. Often denoted by a double arrow. */
-    BIDIRECTION: 0
+    BIDIRECTION: 0,
+
+    /** Actually not a real reaction, just mark two resonances. */
+    RESONANCE: 99
 };
 
 
@@ -530,7 +533,7 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
                 for (var i = 0, l = substanceNames.length; i < l; ++i)
                 {
                     var name = substanceNames[i];
-                    var doCompare = oneOf(this._getComparisonOptionFlagValue(options, name), this._getComparisonOptionFlagValue(options, name + 's'));
+                    var doCompare = Kekule.oneOf(this._getComparisonOptionFlagValue(options, name), this._getComparisonOptionFlagValue(options, name + 's'));
                     if (doCompare !== false)
                         result = this._compareChildArrayItems(this.getSubstancesOfType(name), targetObj.getSubstancesOfType(name), options);
                     if (!!result)
