@@ -249,7 +249,7 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
         var result = [];
         var names = this.getChildSubgroupNames();
         for (var i = 0, l = names.length; i < l; ++i) {
-            var list = this.getSubstancesOfType(names[i])
+            var list = this._doGetSubstanceListOfType(names[i], false);
             if (list)
                 result.push(list);
         }
