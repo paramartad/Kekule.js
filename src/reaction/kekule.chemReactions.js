@@ -463,6 +463,77 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
         return this;
     },
 
+    /**
+     * Returns the index of a condition object in condition list of reaction.
+     * @param {Kekule.Scalar} condition
+     */
+    indexOfCondition: function(condition)
+    {
+        var conditions = this.getPropStoreFieldValue('conditions');
+        if (!conditions)
+            return -1;
+        else
+            return conditions.indexOf(condition);
+    },
+    /**
+     * Append a condition to condition list of reaction.
+     * @param {Kekule.Scalar} condition
+     */
+    appendCondition: function(condition)
+    {
+        this.getConditions().push(condition);
+        return this;
+    },
+    /**
+     * Insert a condition to condition list of reaction.
+     * @param {Kekule.Scalar} condition
+     * @param {Int} index
+     */
+    insertConditionAt: function(condition, index)
+    {
+        this.getConditions().splice(index, 0, condition);
+        return this;
+    },
+    /**
+     * Insert a condition to condition list of reaction.
+     * @param {Kekule.Scalar} condition
+     * @param {Kekule.Scalar} refCondition
+     */
+    insertConditionBefore: function(condition, refCondition)
+    {
+        if (!refCondition)
+            return this.appendCondition(condition);
+        else
+        {
+            var refIndex = this.indexOfCondition(refCondition);
+            return (refIndex >= 0)? this.insertConditionAt(condition, refIndex): this.appendCondition(condition);
+        }
+    },
+    /**
+     * Remove a condition at the index of condition list.
+     * @param {Int} index
+     */
+    removeConditionAt: function(index)
+    {
+        var conditions = this.getPropStoreFieldValue('conditions');
+        if (conditions)
+        {
+            conditions.splice(index, 1);
+        }
+        return this;
+    },
+    /**
+     * Remove a condition from condition list.
+     * @param {Kekule.Scalar} condition
+     */
+    removeCondition: function(condition)
+    {
+        var index = this.indexOfCondition(condition);
+        if (index >= 0)
+            this.removeConditionAt(index);
+        return this;
+    },
+
     // method for comparing two reaction
     /** @private */
     _getComparisonOptionFlagValue: function(options, flagName)
