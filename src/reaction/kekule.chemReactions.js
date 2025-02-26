@@ -551,16 +551,17 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
         if (!result)
         {
             var a1 = Kekule.ArrayUtils.clone(arr1);
-            var a2 = Kekule.ArrayUtils.clone(arr1);
+            var a2 = Kekule.ArrayUtils.clone(arr2);
             var self = this;
             // sort these two arrays, then begin the comparison
             a1.sort(function (item1, item2) {
-                return Kekule.ObjComparer._compareValue(item1, item2, options);
+                return Kekule.ObjComparer.compare(item1, item2, options);
             });
             a2.sort(function (item1, item2) {
-                return Kekule.ObjComparer._compareValue(item1, item2, options);
+                return Kekule.ObjComparer.compare(item1, item2, options);
             });
-            result = Kekule.ObjComparer._compareValue(a1, a2, options);
+            result = Kekule.ObjComparer.compare(a1, a2, options);
+            // console.log('compare', a1, a2, result);
         }
         return result;
     },
@@ -606,6 +607,7 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
                     var name = substanceNames[i];
                     var doCompare = Kekule.oneOf(this._getComparisonOptionFlagValue(options, name), this._getComparisonOptionFlagValue(options, name + 's'));
                     if (doCompare !== false)
+                        // result = Kekule.ObjComparer._compareValue(this.getSubstancesOfType(name), targetObj.getSubstancesOfType(name), options);
                         result = this._compareChildArrayItems(this.getSubstancesOfType(name), targetObj.getSubstancesOfType(name), options);
                     if (!!result)
                         break;
@@ -613,7 +615,30 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
             }
         }
         return result;
-    }
+    },
+
+    /**
+     * Explicit set compare method to chem structure and compare to target reaction.
+     * @param {Kekule.ChemObject} targetObj
+     * @param {Hash} options
+     * @returns {Int}
+     */
+    compareStructure: function(targetObj, options)
+    {
+        var ops = Object.create(options || {});
+        ops.method = Kekule.ComparisonMethod.CHEM_STRUCTURE;
+        return this.compare(targetObj, ops);
+    },
+    /**
+     * Check if this reaction and target reaction are same with chem structure.
+     * @param {Kekule.ChemObject} targetObj
+     * @param {Hash} options
+     * @returns {Bool}
+     */
+    equalStructure: function(targetObj, options)
+    {
+        return this.compareStructure(targetObj, options) === 0;
+    },
 });
 
 /**
@@ -774,7 +799,7 @@ Kekule.EmbeddedReaction = Class.create(Kekule.ChemReaction,
     doGetActualCompareOptions: function(options)
     {
         var result = this.tryApplySuper('doGetActualCompareOptions', [options]);
-        result = Object.extends({
+        result = Object.extend({
             'compareExplicitReactants': true
         }, result);
         return result;

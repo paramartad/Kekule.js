@@ -324,7 +324,7 @@ describe('Test of reaction extraction from chem doc', function(){
             Kekule.ReactionLayoutUtils.layoutReactionInChemDoc(newChemDoc, srcReaction, {x: 10, y: 10}, testCase.options);
             var newReaction = Kekule.ReactionExtractionUtils.extractReactionFromChemDocument(newChemDoc, testCase.options);
 
-            expect(newReaction.compare(srcReaction)).toEqual(0);
+            expect(newReaction.compare(srcReaction, {method: Kekule.ComparisonMethod.CHEM_STRUCTURE})).toEqual(0);
 
             // console.log('src reaction', reactionToString(srcReaction, true));
             // console.log('new reaction', reactionToString(newReaction, true));

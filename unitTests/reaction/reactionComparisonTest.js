@@ -15,8 +15,8 @@ describe('Test of reaction comparison', function(){
         var reaction1 = Kekule.IO.loadFormatData(srcReactionData, Kekule.IO.DataFormat.KEKULE_JSON);
         var reaction2 = Kekule.IO.loadFormatData(srcReactionData, Kekule.IO.DataFormat.KEKULE_JSON);
 
-        expect(reaction1.compare(reaction2)).toEqual(0);
-        expect(reaction1.compare(reaction2, {compareInputsOutputs: true})).toEqual(0);
+        expect(reaction1.compare(reaction2, {method: Kekule.ComparisonMethod.CHEM_STRUCTURE})).toEqual(0);
+        expect(reaction1.compare(reaction2, {method: Kekule.ComparisonMethod.CHEM_STRUCTURE, compareInputsOutputs: true})).toEqual(0);
 
         expect(getSubstanceIds(reaction1.getReactants())).toEqual(getSubstanceIds(reaction2.getReactants()));
         // console.log(reaction1.getReactants());
@@ -29,41 +29,48 @@ describe('Test of reaction comparison', function(){
         randomizeArray(reaction2.getProducts());
         randomizeArray(reaction2.getReagents());
         // expect(reaction1.getReactants()).not.toEqual(reaction2.getReactants());
-        expect(getSubstanceIds(reaction1.getReactants())).not.toEqual(getSubstanceIds(reaction2.getReactants()));
-        expect(getSubstanceIds(reaction1.getProducts())).not.toEqual(getSubstanceIds(reaction2.getProducts()));
-        expect(getSubstanceIds(reaction1.getReagents())).not.toEqual(getSubstanceIds(reaction2.getReagents()));
-        expect(reaction1.compare(reaction2)).toEqual(0);
-        expect(reaction1.compare(reaction2, {compareInputsOutputs: true})).toEqual(0);
+        // expect(getSubstanceIds(reaction1.getReactants())).not.toEqual(getSubstanceIds(reaction2.getReactants()));
+        // expect(getSubstanceIds(reaction1.getProducts())).not.toEqual(getSubstanceIds(reaction2.getProducts()));
+        // expect(getSubstanceIds(reaction1.getReagents())).not.toEqual(getSubstanceIds(reaction2.getReagents()));
+        expect(reaction1.compare(reaction2, {method: Kekule.ComparisonMethod.CHEM_STRUCTURE})).toEqual(0);
+        expect(reaction1.compare(reaction2, {method: Kekule.ComparisonMethod.CHEM_STRUCTURE, compareInputsOutputs: true})).toEqual(0);
 
         reaction2.removeReagentAt(1);
         expect(reaction1.compare(reaction2)).not.toEqual(0);
-        expect(reaction1.compare(reaction2, {compareReagent: false})).toEqual(0);
-        expect(reaction1.compare(reaction2, {compareSubstances: false})).toEqual(0);
+        expect(reaction1.compare(reaction2, {method: Kekule.ComparisonMethod.CHEM_STRUCTURE, compareReagent: false})).toEqual(0);
+        expect(reaction1.compare(reaction2, {method: Kekule.ComparisonMethod.CHEM_STRUCTURE, compareSubstances: false})).toEqual(0);
 
         var reaction3 = Kekule.IO.loadFormatData(srcReactionData, Kekule.IO.DataFormat.KEKULE_JSON);
         reaction3.setDirection(Kekule.ChemReactionDirection.BIDIRECTION);
-        expect(reaction1.compare(reaction3, {compareDirection: true})).not.toEqual(0);
-        expect(reaction1.compare(reaction3, {compareDirection: false})).toEqual(0);
+        expect(reaction1.compare(reaction3, {method: Kekule.ComparisonMethod.CHEM_STRUCTURE, compareDirection: true})).not.toEqual(0);
+        expect(reaction1.compare(reaction3, {method: Kekule.ComparisonMethod.CHEM_STRUCTURE, compareDirection: false})).toEqual(0);
+
+        var reaction4 = Kekule.IO.loadFormatData(srcReactionData, Kekule.IO.DataFormat.KEKULE_JSON);
+        var reaction5 = Kekule.IO.loadFormatData(srcReactionData, Kekule.IO.DataFormat.KEKULE_JSON);
+        expect(reaction5.compare(reaction4, {method: Kekule.ComparisonMethod.CHEM_STRUCTURE})).toEqual(0);
+        var mol = reaction4.getReactantAt(2);
+        mol.getConnectorAt(0).setBondOrder(4);
+        expect(reaction5.compare(reaction4, {method: Kekule.ComparisonMethod.CHEM_STRUCTURE})).not.toEqual(0);
     });
 
     it('Multistep Reaction comparison test', function() {
         var chain1 = Kekule.IO.loadFormatData(srcReactionChainData, Kekule.IO.DataFormat.KEKULE_JSON);
         var chain2 = Kekule.IO.loadFormatData(srcReactionChainData, Kekule.IO.DataFormat.KEKULE_JSON);
 
-        expect(chain1.compare(chain2)).toEqual(0);
+        expect(chain1.compare(chain2, {method: Kekule.ComparisonMethod.CHEM_STRUCTURE})).toEqual(0);
 
         var substance1 = chain2.getStepAt(0).getReagentAt(0);
         chain2.getStepAt(0).removeReagentAt(0);
-        expect(chain1.compare(chain2)).not.toEqual(0);
-        expect(chain1.compare(chain2, {compareReagents: false})).toEqual(0);
+        expect(chain1.compare(chain2, {method: Kekule.ComparisonMethod.CHEM_STRUCTURE})).not.toEqual(0);
+        expect(chain1.compare(chain2, {method: Kekule.ComparisonMethod.CHEM_STRUCTURE, compareReagents: false})).toEqual(0);
 
         chain2.getStepAt(0).appendReactant(substance1);
-        expect(chain1.compare(chain2, {compareReagents: false})).not.toEqual(0);
-        expect(chain1.compare(chain2, {compareInputsOutputs: true})).toEqual(0);
+        expect(chain1.compare(chain2, {method: Kekule.ComparisonMethod.CHEM_STRUCTURE, compareReagents: false})).not.toEqual(0);
+        expect(chain1.compare(chain2, {method: Kekule.ComparisonMethod.CHEM_STRUCTURE, compareInputsOutputs: true})).toEqual(0);
 
         chain2.getStepAt(1).appendExplicitReactant(substance1);
         expect(chain1.compare(chain2)).not.toEqual(0);
-        expect(chain1.compare(chain2, {compareInputsOutputs: true})).not.toEqual(0);
-        expect(chain1.compare(chain2, {compareReactants: false, compareExplicitReactants: false, compareReagents: false})).toEqual(0);
+        expect(chain1.compare(chain2, {method: Kekule.ComparisonMethod.CHEM_STRUCTURE, compareInputsOutputs: true})).not.toEqual(0);
+        expect(chain1.compare(chain2, {method: Kekule.ComparisonMethod.CHEM_STRUCTURE, compareReactants: false, compareExplicitReactants: false, compareReagents: false})).toEqual(0);
     });
 });
