@@ -17,7 +17,9 @@
  * Root object of I/O default options
  * @object
  */
-Kekule.globalOptions.add('IO', {});
+Kekule.globalOptions.add('IO', {
+	readReactionAsChemReactionInstance: false    // if true, the new ChemReaction object (instead of the deprecated Reaction object) will be created from reaction data source
+});
 
 /**
  * Name space for IO package of Kekule.

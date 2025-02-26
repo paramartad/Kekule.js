@@ -476,7 +476,7 @@ Kekule.IO.CmlUtils = {
 		{
 			case 'reagent': return R.REAGENT;
 			case 'catalyst': return R.CATALYST;
-			case 'solvent': return R.CATALYST;
+			case 'solvent': return R.SOLVENT;
 			default: return cmlRole;
 		}
 	},
@@ -1721,7 +1721,7 @@ Kekule.IO.CmlElementWriter = Class.create(Kekule.IO.CmlElementHandler,
 	/** @private */
 	doWriteObjInfoValueItem: function(key, value, obj, parentListElem, options)
 	{
-		return this.writeObjMetaValueToListElem(obj, key, null, value, parentListElem);
+		return this.writeObjMetaValueToListElem(obj, key, value, null, parentListElem);
 	},
 	/** @private */
 	writeObjMetaValueToListElem: function(obj, key, value, metadataType, metaListElem, metaElemTagName, options)
@@ -4321,8 +4321,21 @@ Kekule.IO.CmlReactionReader = Class.create(Kekule.IO.CmlElementReader,
 	/** @private */
 	CLASS_NAME: 'Kekule.IO.CmlReactionReader',
 	/** @private */
+	initProperties: function()
+	{
+		// private property
+		this.defineProp('useChemReaction', {
+			'dataType': DataType.BOOL,
+			'serializable': false,
+			'setter': null
+		});
+	},
+
+	/** @private */
 	doReadElement: function(elem, parentObj, parentReader, options)
 	{
+		var useChemReaction = (options && options.useChemReaction) || Kekule.globalOptions.IO.readReactionAsChemReactionInstance;
+		this.setPropStoreFieldValue('useChemReaction', useChemReaction);
 		return this.readReaction(elem, this.getDomHelper());
 	},
 	/**
@@ -4334,12 +4347,21 @@ Kekule.IO.CmlReactionReader = Class.create(Kekule.IO.CmlElementReader,
 	 */
 	readReaction: function(elem, domHelper)
 	{
-		var result = new Kekule.Reaction();
+		var useChemReaction = this.getUseChemReaction();
+		var result = useChemReaction?
+			new Kekule.ChemReaction():
+			new Kekule.Reaction();
 		var children = Kekule.DomUtils.getDirectChildElems(elem, null, null, this.getCoreNamespaceURI());
+
 		for (var i = 0, l = children.length; i < l; ++i)
 		{
 			if (this.isComponentListElem(children[i]))
-				this.readComponentList(result, children[i], domHelper);
+			{
+				if (useChemReaction)
+					this.readComponentListForChemReaction(result, children[i], domHelper);
+				else
+					this.readComponentList(result, children[i], domHelper);
+			}
 			else  // other normal children
 				this.readChildElement(children[i], result);
 		}
@@ -4393,6 +4415,38 @@ Kekule.IO.CmlReactionReader = Class.create(Kekule.IO.CmlElementReader,
 		}
 	},
 	/**
+	 * Read <reactantList>/<productList>/<substanceList>/<conditionList>
+	 * @param {Kekule.ChemReaction} reaction
+	 * @param {Object} elem
+	 * @param {Object} domHelper
+	 * @private
+	 */
+	readComponentListForChemReaction: function(reaction, elem, domHelper)
+	{
+		// get direct children of elem and analysis
+		var elemTagName = Kekule.DomUtils.getLocalName(elem);
+		var roughCompName = this.getListElemComponentNameForChemReaction(elemTagName);
+		var isCondition = roughCompName === 'condition';
+		var children = Kekule.DomUtils.getDirectChildElems(elem, null, null, this.getCoreNamespaceURI());
+		for (var i = 0, l = children.length; i < l; ++i)
+		{
+			// childObj is generally objects returned by CmlReactionReagentReader, but condition list be contains objects directly
+			var childObj = this.readChildElement(children[i], null /*reaction compArray*/);
+			if (childObj)
+			{
+				if (isCondition && (childObj instanceof ObjectEx)) // not returned by CmlReactionReagentReader
+					reaction.appendCondition(childObj);
+				else
+				{
+					var concreteCompName = this.getListElemComponentNameForChemReaction(elemTagName, childObj.role);
+					var mol = childObj.item;
+					reaction.appendSubstance(concreteCompName, mol);
+					// console.log('read childobj', childObj, elemTagName, concreteCompName, elemTagName);
+				}
+			}
+		}
+	},
+	/**
 	 * Check if element is <reactantList>/<productList>/<substanceList>/<conditionList>
 	 * @param {Object} elem
 	 * @returns {Bool}
@@ -4419,6 +4473,32 @@ Kekule.IO.CmlReactionReader = Class.create(Kekule.IO.CmlElementReader,
 			default:
 				return Kekule.ReactionComponent.SUBSTANCE;
 		}
+	},
+
+	getListElemComponentNameForChemReaction: function(listElemTagName, childObjRole) {
+		var tagName = listElemTagName;
+		var role = childObjRole;
+
+		if (tagName === 'reactantList')
+		{
+			return (role === 'reagent')? Kekule.ChemReactionComponent.REAGENT: Kekule.ChemReactionComponent.REACTANT;
+		}
+		else if (tagName === 'productList')
+		{
+			return Kekule.ChemReactionComponent.PRODUCT;
+		}
+		else if (tagName === 'substanceList')
+		{
+			return (role === 'catalyst')? Kekule.ChemReactionComponent.CATALYST:
+				(role === 'solvent')? Kekule.ChemReactionComponent.SOLVENT:
+				Kekule.ChemReactionComponent.REAGENT;
+		}
+		else if (tagName === 'conditionList')
+		{
+			return 'condition';  // special flag for condition
+		}
+		else
+			return null;
 	}
 });
 
@@ -4440,11 +4520,67 @@ Kekule.IO.CmlReactionWriter = Class.create(Kekule.IO.CmlElementWriter,
 	/** @private */
 	doWriteObject: function(obj, targetElem, options)
 	{
-		return this.writeReaction(obj, targetElem, options);
+		if (obj instanceof Kekule.ChemReaction)
+			return this.writeChemReaction(obj, targetElem, options);
+		else if (obj instanceof Kekule.ConsecutiveReactions)
+			return this.writeChemReaction(obj.getStepAt(0), targetElem, options);
+		else if (obj instanceof Kekule.Reaction)
+			return this.writeReaction(obj, targetElem, options);
+		else  // do nothing
+			return null;
+	},
+	/** @private */
+	writeChemReaction: function(chemReaction, targetElem, options)
+	{
+		if (!chemReaction)
+			return null;
+
+		var reactionCompNames = [
+			Kekule.ChemReactionComponent.REACTANT,
+			Kekule.ChemReactionComponent.PRODUCT,
+			Kekule.ChemReactionComponent.CATALYST,
+			Kekule.ChemReactionComponent.SOLVENT,
+			Kekule.ChemReactionComponent.REAGENT
+		];
+		var substanceMap = {};
+		for (var i = 0, l = reactionCompNames.length; i < l; ++i)
+		{
+			var compName = reactionCompNames[i];
+			var mols = chemReaction.getSubstancesOfType(compName);
+
+			var cmlTagAndRoleInfo = this.getChemReactionComponentCmlNameAndRole(compName);
+			var cmlTagName = cmlTagAndRoleInfo.tag;
+			var cmlRole = cmlTagAndRoleInfo.role;
+
+			for (var j = 0, jj = mols.length; j < jj; ++j)
+			{
+				if (!substanceMap[cmlTagName])
+					substanceMap[cmlTagName] = [];
+				substanceMap[cmlTagName].push({
+					'item': mols[j],
+					'role': cmlRole
+				});
+			}
+		}
+
+		var substanceMapKeys = Kekule.ObjUtils.getOwnedFieldNames(substanceMap);
+		for (var i = 0, l = substanceMapKeys.length; i < l; ++i)
+		{
+			var cmlTagName = substanceMapKeys[i];
+			var molItems = substanceMap[cmlTagName];
+			this.writeChemReactionCompList(chemReaction, molItems, cmlTagName, targetElem, options);
+		}
+
+		this.writeChemReactionConditionList(chemReaction, targetElem, options);
+		this.writeReactionAttribs(chemReaction, targetElem, options);
+		return targetElem;
 	},
 	/** @private */
 	writeReaction: function(reaction, targetElem, options)
 	{
+		if (!reaction)
+			return null;
+
 		var reactionCompNames = [
 			Kekule.ReactionComponent.REACTANT,
 			Kekule.ReactionComponent.PRODUCT,
@@ -4526,6 +4662,70 @@ Kekule.IO.CmlReactionWriter = Class.create(Kekule.IO.CmlElementWriter,
 			}
 		}
 	},
+	/** @private */
+	writeChemReactionCompList(chemReaction, molItems, cmlTagName, targetElem, options)
+	{
+		if (molItems.length <= 0)  // no component inside, skip
+			return null;
+		else // really has component inside
+		{
+			// create list element
+			var listElem = this.createChildElem(cmlTagName + 'List', targetElem);
+			// write each molecule
+			for (var i = 0, l = molItems.length; i < l; ++i)
+			{
+				var item = molItems[i];
+				if (item)
+				{
+					var cmlRole = item.role;
+					var mol = item.item;
+
+					var elem;
+					// conditionList do not need child <condition> element,
+					// while reactant, product and substance do need them
+					{
+						elem = this.createChildElem(cmlTagName, listElem);
+						// and need to set amount / role attribs as well
+						// TODO: substance amount need to implemented
+						/*
+						if (!Kekule.ObjUtils.isUnset(compMap.amount))
+							Kekule.IO.CmlDomUtils.setCmlElemAttribute(elem, 'amount', compMap.amount, this.getDomHelper());
+						*/
+						if (cmlRole)
+							Kekule.IO.CmlDomUtils.setCmlElemAttribute(elem, 'role', cmlRole, this.getDomHelper());
+					}
+					//var writer = Kekule.IO.CmlElementWriterFactory.getWriter(obj);
+					var writer = this.doGetChildObjectWriter(mol);
+					if (writer)
+					{
+						//this.copySettingsToChildHandler(writer);
+						writer.writeObject(mol, elem, options);
+					}
+				}
+			}
+		}
+	},
+	writeChemReactionConditionList(reaction, targetElem, options)
+	{
+		var conditions = reaction.getConditions();
+		if (conditions && conditions.length)
+		{
+			var listElem = this.createChildElem('conditionList', targetElem);
+			for (var i = 0, l = conditions.length; i < l; ++i)
+			{
+				var condition = conditions[i];
+				if (condition)
+				{
+					var writer = this.doGetChildObjectWriter(condition);
+					if (writer)
+					{
+						//this.copySettingsToChildHandler(writer);
+						writer.writeObject(condition, listElem, options);
+					}
+				}
+			}
+		}
+	},
 
 	/**
 	 * Find out the CML tagName corresponding to certain component in reaction.
@@ -4543,6 +4743,26 @@ Kekule.IO.CmlReactionWriter = Class.create(Kekule.IO.CmlElementWriter,
 			//case Kekule.ReactionComponent.SUBSTANCE:
 			default:
 				return 'substance';
+		}
+	},
+
+	/**
+	 * Find out the CML tagName and role corresponding to certain component in chem reaction.
+	 * @param {String} compName
+	 * @returns {Hash} A {tag, role} object.
+	 * @private
+	 */
+	getChemReactionComponentCmlNameAndRole: function(compName) {
+		switch (compName)
+		{
+			case Kekule.ChemReactionComponent.REACTANT: return {tag: 'reactant'};
+			case Kekule.ChemReactionComponent.PRODUCT: return {tag: 'product'};
+			case Kekule.ChemReactionComponent.CATALYST: return {tag: 'substance', role: 'catalyst'};
+			case Kekule.ChemReactionComponent.SOLVENT: return {tag: 'substance', role: 'solvent'};
+			case Kekule.ChemReactionComponent.REAGENT: return {tag: 'reactant', role: 'reagent'};
+
+			default:
+				return {tag: 'substance'};
 		}
 	}
 });
@@ -5046,7 +5266,7 @@ Kekule.IO.CmlWriter = Class.create(Kekule.IO.ChemDataWriter,
 	WF.register('Kekule.Scalar', Kekule.IO.CmlScalarWriter);
 	WF.register('Kekule.MolecularFormula', Kekule.IO.CmlFormulaWriter);
 	WF.register(['Kekule.ChemStructureFragment', 'Kekule.Molecule', 'Kekule.CompositeMolecule'], Kekule.IO.CmlMoleculeWriter);
-	WF.register('Kekule.Reaction', Kekule.IO.CmlReactionWriter);
+	WF.register(['Kekule.Reaction', 'Kekule.ChemReaction', 'Kekule.ConsecutiveReactions'], Kekule.IO.CmlReactionWriter);
 	WF.register(['Kekule.ChemObjList', 'Kekule.ChemStructureObjectGroup'/*, 'Kekule.ChemSpaceElement', 'Kekule.ChemSpace'*/], Kekule.IO.CmlListWriter);
 	WF.register(['Kekule.ChemSpaceElement', 'Kekule.ChemSpace'], Kekule.IO.CmlTransparentListWriter);
 	WF.register('Kekule.ChemDocument', Kekule.IO.CmlRootWriter);
@@ -5076,6 +5296,7 @@ Kekule.IO.CmlWriter = Class.create(Kekule.IO.ChemDataWriter,
 	Kekule.IO.ChemDataReaderManager.register('cml', Kekule.IO.CmlReader, [cmdFmtId]);
 	Kekule.IO.ChemDataWriterManager.register('cml', Kekule.IO.CmlWriter,
 		[Kekule.Scalar, Kekule.StructureFragment, Kekule.Reaction,
+			Kekule.ChemReaction, Kekule.ConsecutiveReactions,
 			Kekule.ChemObjList, Kekule.ChemSpace],
 		[cmdFmtId]);
 })();

@@ -11,6 +11,7 @@
  * requires /core/kekule.electrons.js
  * requires /core/kekule.structures.js
  * requires /core/kekule.reactions.js
+ * requires /reaction/kekule.chemReactions.js
  * requires /utils/kekule.textHelper.js
  * requires /io/kekule.io.js
  * requires /io/mdl/kekule.io.mdlBase.js
@@ -697,6 +698,23 @@ Kekule.IO.MdlBaseReactionReader = Class.create(Kekule.IO.MdlBlockReader,
 {
 	/** @private */
 	CLASS_NAME: 'Kekule.IO.MdlBaseReactionReader',
+	/** @constructs */
+	initialize: function(options)
+	{
+		this.tryApplySuper('initialize');
+		var useChemReaction = (options && options.useChemReaction) || Kekule.globalOptions.IO.readReactionAsChemReactionInstance;
+		this.setPropStoreFieldValue('useChemReaction', useChemReaction);
+	},
+	/** @private */
+	initProperties: function()
+	{
+		// private property
+		this.defineProp('useChemReaction', {
+			'dataType': DataType.BOOL,
+			'serializable': false,
+			'setter': null
+		});
+	},
 	/**
 	 * Read header block (first 4 lines) of a RXN file.
 	 * @param {Kekule.TextLinesBuffer} textBuffer
@@ -781,7 +799,10 @@ Kekule.IO.MdlBaseReactionReader = Class.create(Kekule.IO.MdlBlockReader,
 		var headerInfo = this.readHeaderBlock(textBuffer, null);
 		// read header info success, this is a legal RXN file, do other jobs
 		var substanceInfo = this.readSubstanceCountLine(textBuffer.readLine());
-		var result = new Kekule.Reaction();
+		var useChemReaction = this.getUseChemReaction();
+		var result = useChemReaction?
+			new Kekule.ChemReaction():
+			new Kekule.Reaction();
 		// then MOL blocks
 		var line = '';
 		/*
@@ -982,7 +1003,7 @@ Kekule.IO.MdlReactionWriter = Class.create(Kekule.IO.MdlBlockWriter,
 	},
 	/**
 	 * Write header block (first 4 lines) of a RXN file.
-	 * @param {Kekule.Reaction} reaction
+	 * @param {Variant} reaction Instance of {@link Kekule.ChemReaction} or {@link Kekule.Reaction}.
 	 * @param {Kekule.TextLinesBuffer} textBuffer
 	 * @private
 	 */
@@ -1016,16 +1037,30 @@ Kekule.IO.MdlReactionWriter = Class.create(Kekule.IO.MdlBlockWriter,
 	},
 	/**
 	 * Get reactant and product count line.
-	 * @param {Kekule.Reaction} reaction
+	 * @param {Variant} reaction Instance of {@link Kekule.Reaction} or {@link Kekule.ChemReaction}.
 	 * @private
 	 */
 	generateSubstanceCountLine: function(reaction)
 	{
+		var reactantCount, productCount;
+
+		// TODO: maybe we should filter out the molecules without ctab?
+		if (reaction instanceof Kekule.ChemReaction)
+		{
+			reactantCount = reaction.getInputs().length;
+			productCount = reaction.getProductCount();
+		}
+		else // if (reaction instanceof Kekule.Reaction)
+		{
+			reactantCount = reaction.getReactantCount();
+			productCount = reaction.getProductCount();
+		}
+
 		// 3k:  M  V30 COUNTS rcount pcount
 		if (this.getMdlVersion() == Kekule.IO.MdlVersion.V3000)
-			return 'M  V30 COUNTS ' + Kekule.IO.Mdl3kValueUtils.mergeValues([reaction.getReactantCount(), reaction.getProductCount()]);
+			return 'M  V30 COUNTS ' + Kekule.IO.Mdl3kValueUtils.mergeValues([reactantCount, productCount]);
 		// 2k:  rrrppp
-			return reaction.getReactantCount().toString().lpad(3) + reaction.getProductCount().toString().lpad(3);
+			return reactantCount.toString().lpad(3) + productCount.toString().lpad(3);
 	},
 	/**
 	 * Write delimiter between molecules.
@@ -1056,6 +1091,9 @@ Kekule.IO.MdlReactionWriter = Class.create(Kekule.IO.MdlBlockWriter,
 	/** @private */
 	doWriteBlock: function(/*$super, */reaction, textBuffer, options)
 	{
+		if (reaction instanceof Kekule.ConsecutiveReactions)
+			reaction = reaction.getStepAt(0);
+
 		var is3kMode = this.getMdlVersion() == Kekule.IO.MdlVersion.V3000;
 		  // if in 3k mode, reactant and products should be surrounded by block begin/end tag
 		// header
@@ -1065,10 +1103,23 @@ Kekule.IO.MdlReactionWriter = Class.create(Kekule.IO.MdlBlockWriter,
 		// then MOL blocks
 		if (is3kMode)
 			textBuffer.writeLine('M  V30 ' + Kekule.IO.Mdl3kUtils.get3kBlockStartTag('REACTANT'));
-		for (var i = 0; i < reaction.getReactantCount(); ++i)
+
+		if (reaction instanceof Kekule.ChemReaction)
 		{
-			this.writeMolDelimiterLine(textBuffer);
-			this.writeMolBlock(reaction.getReactantAt(i), textBuffer, options);
+			var inputs = reaction.getInputs();
+			for (var i = 0; i < inputs.length; ++i)
+			{
+				this.writeMolDelimiterLine(textBuffer);
+				this.writeMolBlock(inputs[i], textBuffer, options);
+			}
+		}
+		else // if (reaction instanceof Kekule.Reaction)
+		{
+			for (var i = 0; i < reaction.getReactantCount(); ++i)
+			{
+				this.writeMolDelimiterLine(textBuffer);
+				this.writeMolBlock(reaction.getReactantAt(i), textBuffer, options);
+			}
 		}
 		if (is3kMode)
 			textBuffer.writeLine('M  V30 ' + Kekule.IO.Mdl3kUtils.get3kBlockEndTag('REACTANT'));
@@ -1376,7 +1427,7 @@ Kekule.IO.MdlWriter = Class.create(Kekule.IO.ChemDataWriter,
 	doWriteData: function(obj, dataType, format, options)
 	{
 		var writer;
-		if (obj instanceof Kekule.Reaction)
+		if (obj instanceof Kekule.Reaction || obj instanceof Kekule.ChemReaction || obj instanceof Kekule.ConsecutiveReactions)
 			writer = new Kekule.IO.MdlRxnWriter(this.getMdlVersion(), this.getCoordMode());
 		else if (obj instanceof Kekule.StructureFragment)
 			writer = new Kekule.IO.MdlMolWriter(this.getMdlVersion(), this.getCoordMode());
@@ -1445,9 +1496,9 @@ Kekule.IO.MdlWriter = Class.create(Kekule.IO.ChemDataWriter,
 
 	Kekule.IO.ChemDataWriterManager.register('MDL-mol', Kekule.IO.MdlMolWriter, /*[Kekule.StructureFragment]*/suitableClasses, molFmtId);
 	Kekule.IO.ChemDataWriterManager.register('MDL-mol3k', Kekule.IO.MdlMolWriter, /*[Kekule.StructureFragment]*/suitableClasses, mol3kFmtId, {'createOptions': {'mdlVersion': Kekule.IO.MdlVersion.V3000}});
-	Kekule.IO.ChemDataWriterManager.register('MDL-rxn', Kekule.IO.MdlRxnWriter, [Kekule.Reaction], rxnFmtId);
-	Kekule.IO.ChemDataWriterManager.register('MDL-rxn3k', Kekule.IO.MdlRxnWriter, [Kekule.Reaction], rxn3kFmtId);
-	//Kekule.IO.ChemDataWriterManager.register('MDL-general', Kekule.IO.MdlWriter, [Kekule.StructureFragment, Kekule.Reaction], [molFmtId, mol3kFmtId, rxnFmtId, rxn3kFmtId]);
+	Kekule.IO.ChemDataWriterManager.register('MDL-rxn', Kekule.IO.MdlRxnWriter, [Kekule.Reaction, Kekule.ChemReaction, Kekule.ConsecutiveReactions], rxnFmtId);
+	Kekule.IO.ChemDataWriterManager.register('MDL-rxn3k', Kekule.IO.MdlRxnWriter, [Kekule.Reaction, Kekule.ChemReaction, Kekule.ConsecutiveReactions], rxn3kFmtId, {'createOptions': {'mdlVersion': Kekule.IO.MdlVersion.V3000}});
+	//Kekule.IO.ChemDataWriterManager.register('MDL-general', Kekule.IO.MdlWriter, [Kekule.StructureFragment, Kekule.Reaction, Kekule.ChemReaction], [molFmtId, mol3kFmtId, rxnFmtId, rxn3kFmtId]);
 	Kekule.IO.ChemDataWriterManager.register('MDL-sd', Kekule.IO.MdlSdWriter, suitableClasses, sdFmtId);
 
 	/*
