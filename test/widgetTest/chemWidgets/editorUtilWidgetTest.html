@@ -7,7 +7,8 @@
   <link rel="stylesheet" type="text/css" href="../../../src/widgets/themes/default/kekule.css" />
   <script>
     var objInspector, nodeSelectPanel, nodeSetter, bondSelectPanel, bondSelectPanelAdv, chargeSelectPanel,
-      glyphArrowPanel, glyphLinePanel, glyphSettingPanel, reactionArrowSettingPanel, glyphMultiPathSettingPanel, multiElectronPushingArrowSettingPanel;
+      glyphArrowPanel, glyphLinePanel, glyphSettingPanel, reactionArrowSettingPanel, glyphMultiPathSettingPanel, multiElectronPushingArrowSettingPanel,
+      textStyleSettingPanel;
 
     function refreshWidgetList()
     {
@@ -124,14 +125,19 @@
         console.log('charge selected', e.value);
       });
 
-	    glyphArrowPanel = Kekule.Widget.getWidgetById('glyphArrowPanel');
-	    glyphLinePanel = Kekule.Widget.getWidgetById('glyphLinePanel');
-	    glyphSettingPanel = Kekule.Widget.getWidgetById('glyphSettingPanel');
-	    reactionArrowSettingPanel = Kekule.Widget.getWidgetById('reactionArrowSettingPanel');
+      glyphArrowPanel = Kekule.Widget.getWidgetById('glyphArrowPanel');
+      glyphLinePanel = Kekule.Widget.getWidgetById('glyphLinePanel');
+      glyphSettingPanel = Kekule.Widget.getWidgetById('glyphSettingPanel');
+      reactionArrowSettingPanel = Kekule.Widget.getWidgetById('reactionArrowSettingPanel');
 
-	    glyphMultiPathSettingPanel = Kekule.Widget.getWidgetById('glyphMultiPathSettingPanel');
+      glyphMultiPathSettingPanel = Kekule.Widget.getWidgetById('glyphMultiPathSettingPanel');
 
-	    multiElectronPushingArrowSettingPanel = Kekule.Widget.getWidgetById('multiElectronPushingArrowSettingPanel');
+      multiElectronPushingArrowSettingPanel = Kekule.Widget.getWidgetById('multiElectronPushingArrowSettingPanel');
+
+      var editorConfigs = Kekule.Editor.ChemSpaceEditorConfigs.getInstance();
+      textStyleSettingPanel = Kekule.Widget.getWidgetById('textStyleSettingPanel');
+      textStyleSettingPanel.setSelectableFontNames(editorConfigs.getStyleSetterConfigs().getListedFontNames());
+      textStyleSettingPanel.setSelectableFontSizes(editorConfigs.getStyleSetterConfigs().getListedFontSizes());
 
       objInspector = Kekule.Widget.getWidgetById('objInspector'); // new Kekule.Widget.ObjectInspector();
       objInspector.setObjects(nodeSetter);
@@ -170,6 +176,9 @@
     <div id="reactionArrowSettingPanel" data-widget="Kekule.ChemWidget.GlyphReactionArrowPathSettingPanel" style="vertical-align:middle"></div>
     <div id="electronPushingArrowSettingPanel" data-widget="Kekule.ChemWidget.GlyphElectronPushingArrowSettingPanel" style="vertical-align:middle"></div>
     <div id="multiElectronPushingArrowSettingPanel" data-widget="Kekule.ChemWidget.GlyphMultiElectronPushingArrowSettingPanel" style="vertical-align:middle"></div>
+  </div>
+  <div>
+    <div id="textStyleSettingPanel" data-widget="Kekule.ChemWidget.TextStyleSettingPanel" style="vertical-align:middle"></div>
   </div>
 </body>
 </html>

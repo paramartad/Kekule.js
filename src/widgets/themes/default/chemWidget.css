@@ -657,6 +657,27 @@
     float: left;
     clear: left;
 }
+
+.K-Text-Style-SettingPanel .K-Text-Style-SettingPanel-FontName-Box
+{
+    width: 13em;
+}
+.K-Text-Style-SettingPanel .K-Text-Style-SettingPanel-FontSize-Box
+{
+    width: 6em;
+}
+
+.K-Text-Style-SettingPanel .K-Text-Style-SettingPanel-Group .K-Text-Style-SettingPanel-Group-LabelCell
+{
+    text-align: right;
+}
+.K-Text-Style-SettingPanel .K-Text-Style-SettingPanel-Group .K-Text-Style-SettingPanel-Group-CtrlCell
+{
+    text-align: left;
+}
+
+
+
 .K-Chem-Editor
 {
     overflow: auto;

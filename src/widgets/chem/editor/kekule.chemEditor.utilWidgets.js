@@ -21,6 +21,9 @@
 
 var OU = Kekule.ObjUtils;
 var AU = Kekule.ArrayUtils;
+var DU = Kekule.DomUtils;
+var SU = Kekule.StyleUtils;
+var BNS = Kekule.ChemWidget.ComponentWidgetNames;
 var CNS = Kekule.Widget.HtmlClassNames;
 var CCNS = Kekule.ChemWidget.HtmlClassNames;
 
@@ -66,7 +69,19 @@ Kekule.ChemWidget.HtmlClassNames = Object.extend(Kekule.ChemWidget.HtmlClassName
 	GLYPH_ARC_PATH_SETTING_PANEL: 'K-Chem-ArcPath-SettingPanel',
 	GLYPH_MULTIARC_PATH_SETTING_PANEL: 'K-Chem-MultiArcPath-SettingPanel',
 	GLYPH_ELECTRON_PUSHING_ARROW_SETTING_PANEL: 'K-Chem-ElectronPusingArrow-SettingPanel',
-	GLYPH_MULTI_ELECTRON_PUSHING_ARROW_SETTING_PANEL: 'K-Chem-MultiElectronPusingArrow-SettingPanel'
+	GLYPH_MULTI_ELECTRON_PUSHING_ARROW_SETTING_PANEL: 'K-Chem-MultiElectronPusingArrow-SettingPanel',
+
+	TEXT_STYLE_SETTING_PANEL: 'K-Text-Style-SettingPanel',
+	TEXT_STYLE_SETTING_PANEL_FONTNAME_BOX: 'K-Text-Style-SettingPanel-FontName-Box',
+	TEXT_STYLE_SETTING_PANEL_FONTSIZE_BOX: 'K-Text-Style-SettingPanel-FontSize-Box',
+	TEXT_STYLE_SETTING_PANEL_TEXTDIRECTION_BOX: 'K-Text-Style-SettingPanel-TextDirection-Box',
+	TEXT_STYLE_SETTING_PANEL_TEXTALIGN_BOX: 'K-Text-Style-SettingPanel-TextAlign-Box',
+	TEXT_STYLE_SETTING_PANEL_NODEDISPLAYMODE_BOX: 'K-Text-Style-SettingPanel-NodeDisplayMode-Box',
+
+	TEXT_STYLE_SETTING_PANEL_GROUP: 'K-Text-Style-SettingPanel-Group',
+	TEXT_STYLE_SETTING_PANEL_GROUP_LABELCELL: 'K-Text-Style-SettingPanel-Group-LabelCell',
+	TEXT_STYLE_SETTING_PANEL_GROUP_CTRLCELL: 'K-Text-Style-SettingPanel-Group-CtrlCell',
+	TEXT_STYLE_SETTING_PANEL_GROUP_LABEL: 'K-Text-Style-SettingPanel-Group-Label',
 });
 
 /**
@@ -3624,6 +3639,346 @@ Kekule.ChemWidget.GlyphMultiElectronPushingArrowSettingPanel_OLD = Class.create(
 		else
 			sides = [ASide.BOTH, ASide.SINGLE, ASide.REVERSED];
 		setter.setAllowedArrowSides(sides);
+	}
+});
+
+/**
+ * An panel to set the styles of rich text in object.
+ * @class
+ * @augments Kekule.Widget.Panel
+ *
+ * @property {Array} components Visible components in panel.
+ */
+/**
+ * Invoked when the new style has been set.
+ *   event param of it has field: {style: {key: value}}
+ * @name Kekule.ChemWidget.TextStyleSettingPanel#valueChange
+ * @event
+ */
+Kekule.ChemWidget.TextStyleSettingPanel = Class.create(Kekule.Widget.Panel,
+/** @lends Kekule.ChemWidget.TextStyleSettingPanel# */
+{
+	/** @private */
+	CLASS_NAME: 'Kekule.ChemWidget.TextStyleSettingPanel',
+	/** @private */
+	DEF_COMPONENTS: [BNS.fontName,
+		BNS.fontSize,
+		BNS.textDirection,
+		BNS.textAlign,
+		BNS.nodeDisplayMode
+	],
+	/** @construct */
+	initialize: function(parentOrElementOrDocument)
+	{
+		this._subGroups = [];
+		this._subSettingWidgets = [];
+		this.tryApplySuper('initialize', [parentOrElementOrDocument]);
+	},
+	/** @private */
+	initProperties: function()
+	{
+		this.defineProp('value', {
+			'dataType': DataType.NUMBER,
+			'scope': Class.PropertyScope.PUBLIC,
+			'getter': function()
+			{
+				return {
+					'fontFamily': this.getFontNameBox().getValue(),
+					'fontSize': this.getFontSizeBox().getValue(),
+					'charDirection': this.getTextDirectionBox().getValue(),
+					'horizontalAlign': this.getTextHorizontalAlignBox().getValue(),
+					'verticalAlign': this.getTextVerticalAlignBox().getValue(),
+					'nodeDisplayMode': this.getNodeLabelDisplayModeBox().getValue()
+				}
+			},
+			'setter': function(value)
+			{
+				// if (value && value.fontFamily)
+					this.getFontNameBox().setValue(value && value.fontFamily)
+				// if (value && value.fontSize)
+					this.getFontSizeBox().setValue(value && value.fontSize)
+				// if (value && value.charDirection)
+					this.getTextDirectionBox().setValue(value && value.charDirection)
+				// if (value && value.horizontalAlign)
+					this.getTextHorizontalAlignBox().setValue(value && value.horizontalAlign)
+				// if (value && value.verticalAlign)
+					this.getTextVerticalAlignBox().setValue(value && value.verticalAlign)
+				// if (value && value.nodeDisplayMode)
+					this.getNodeLabelDisplayModeBox().setValue(value && value.nodeDisplayMode)
+			}
+		});
+
+		this.defineProp('components', {'dataType': DataType.ARRAY});
+		this.defineProp('selectableFontSizes', {'dataType': DataType.ARRAY,
+			'setter': function(value) {
+				this.fillFontSizeBox(this.getFontSizeBox(), value);
+			}
+		});
+		this.defineProp('selectableFontFamilies', {'dataType': DataType.ARRAY,
+			'setter': function(value) {
+				this.fillFontNameBox(this.getFontNameBox(), value);
+			}
+		});
+
+		this.defineProp('fontNameBox', {
+			'dataType': 'Kekule.Widget.BaseWidget', 'serializable': false, 'setter': null
+		});
+		this.defineProp('fontSizeBox', {
+			'dataType': 'Kekule.Widget.BaseWidget', 'serializable': false, 'setter': null
+		});
+		this.defineProp('textDirectionBox', {
+			'dataType': 'Kekule.Widget.BaseWidget', 'serializable': false, 'setter': null
+		});
+		this.defineProp('textHorizontalAlignBox', {
+			'dataType': 'Kekule.Widget.BaseWidget', 'serializable': false, 'setter': null
+		});
+		this.defineProp('textVerticalAlignBox', {
+			'dataType': 'Kekule.Widget.BaseWidget', 'serializable': false, 'setter': null
+		});
+		this.defineProp('nodeLabelDisplayModeBox', {
+			'dataType': 'Kekule.Widget.BaseWidget', 'serializable': false, 'setter': null
+		});
+	},
+	/** @ignore */
+	doGetWidgetClassName: function()
+	{
+		return this.tryApplySuper('doGetWidgetClassName') + ' ' + CCNS.TEXT_STYLE_SETTING_PANEL;
+	},
+	/** @ignore */
+	doObjectChange: function(modifiedPropNames)
+	{
+		if (modifiedPropNames.indexOf('components') >= 0)
+			this.updateDisplayedComponents();
+		return this.tryApplySuper('doObjectChange', [modifiedPropNames]);
+	},
+
+	/** @ignore */
+	doCreateSubElements: function(doc, rootElem)
+	{
+		var result = this.tryApplySuper('doCreateSubElements', [doc, rootElem]);
+
+		this.doReleaseSubWidgets();
+		this.doRecreateSubWigets(doc, rootElem);
+
+		return result;
+	},
+
+	doReleaseSubWidgets: function()
+	{
+		for (var i = 0, l = this._subSettingWidgets.length; i < l; ++i)
+		{
+			var w = this._subSettingWidgets[i];
+			if (w)
+				w.finalize();
+		}
+		if (this._subWidgetRootElem)
+			this._subWidgetRootElem.remove();
+	},
+	doRecreateSubWigets: function(doc, parentElem)
+	{
+		var comboBox, selBox;
+
+		this._subGroups = [];
+		this._subSettingWidgets = [];
+
+		var rootElem = doc.createElement('table');
+		this._subWidgetRootElem = rootElem;
+		// if (compNames.indexOf(BNS.fontName) >= 0)
+		{
+			// font name
+			var comboBox = new Kekule.Widget.ComboBox(this);
+			this.fillFontNameBox(comboBox);
+			comboBox.addClassName(CCNS.TEXT_STYLE_SETTING_PANEL_FONTNAME_BOX);
+			comboBox.setHint(Kekule.$L('ChemWidgetTexts.HINT_FONTNAME'));
+			comboBox.addEventListener('valueChange', function(e)
+			{
+				this.notifyStyleChange('fontFamily', this.getFontNameBox().getValue());
+			}, this);
+			this.setPropStoreFieldValue('fontNameBox', comboBox);
+			this._fontNameGroup = this._createCtrlGroup(doc, rootElem, Kekule.$L('ChemWidgetTexts.CAPTION_FONTNAME'), comboBox);
+		}
+		// if (compNames.indexOf(BNS.fontSize) >= 0)
+		{
+			// font size
+			comboBox = new Kekule.Widget.ComboBox(this);
+			this.fillFontSizeBox(comboBox);
+			comboBox.addClassName(CCNS.TEXT_STYLE_SETTING_PANEL_FONTSIZE_BOX);
+			comboBox.setHint(Kekule.$L('ChemWidgetTexts.HINT_FONTSIZE'));
+			comboBox.addEventListener('valueChange', function(e)
+			{
+				this.notifyStyleChange('fontSize', this.getFontSizeBox().getValue());
+			}, this);
+			this.setPropStoreFieldValue('fontSizeBox', comboBox);
+			this._fontSizeGroup = this._createCtrlGroup(doc, rootElem, Kekule.$L('ChemWidgetTexts.CAPTION_FONTSIZE'), comboBox);
+		}
+		// if (compNames.indexOf(BNS.textDirection) >= 0)
+		{
+			// text direction
+			selBox = new Kekule.Widget.SelectBox(this);
+			var TD = Kekule.Render.TextDirection;
+			var items = [
+				{'value': TD.DEFAULT, 'text': Kekule.$L('ChemWidgetTexts.CAPTION_TEXT_DIRECTION_DEFAULT')},
+				{'value': TD.LTR, 'text': Kekule.$L('ChemWidgetTexts.CAPTION_TEXT_DIRECTION_LTR')},
+				{'value': TD.RTL, 'text': Kekule.$L('ChemWidgetTexts.CAPTION_TEXT_DIRECTION_RTL')},
+				{'value': TD.TTB, 'text': Kekule.$L('ChemWidgetTexts.CAPTION_TEXT_DIRECTION_TTB')},
+				{'value': TD.BTT, 'text': Kekule.$L('ChemWidgetTexts.CAPTION_TEXT_DIRECTION_BTT')}
+			];
+			selBox.setItems(items);
+			comboBox.addClassName(CCNS.TEXT_STYLE_SETTING_PANEL_TEXTDIRECTION_BOX);
+			selBox.setHint(Kekule.$L('ChemWidgetTexts.HINT_TEXT_DIRECTION'));
+			selBox.addEventListener('valueChange', function(e)
+			{
+				this.notifyStyleChange('charDirection', this.getTextDirectionBox().getValue());
+			}, this);
+			this.setPropStoreFieldValue('textDirectionBox', selBox);
+			this._textDirectionGroup = this._createCtrlGroup(doc, rootElem, Kekule.$L('ChemWidgetTexts.CAPTION_TEXT_DIRECTION'), selBox);
+		}
+		// if (compNames.indexOf(BNS.textAlign) >= 0)
+		{
+			// horizontal align
+			selBox = new Kekule.Widget.SelectBox(this);
+			var TA = Kekule.Render.TextAlign;
+			var items = [
+				{'value': TA.DEFAULT, 'text': Kekule.$L('ChemWidgetTexts.CAPTION_TEXT_ALIGN_DEFAULT')},
+				{'value': TA.LEADING, 'text': Kekule.$L('ChemWidgetTexts.CAPTION_TEXT_ALIGN_LEADING')},
+				{'value': TA.TRAILING, 'text': Kekule.$L('ChemWidgetTexts.CAPTION_TEXT_ALIGN_TRAILING')},
+				{'value': TA.CENTER, 'text': Kekule.$L('ChemWidgetTexts.CAPTION_TEXT_ALIGN_CENTER')},
+				{'value': TA.LEFT, 'text': Kekule.$L('ChemWidgetTexts.CAPTION_TEXT_ALIGN_LEFT')},
+				{'value': TA.RIGHT, 'text': Kekule.$L('ChemWidgetTexts.CAPTION_TEXT_ALIGN_RIGHT')}
+			];
+			selBox.setItems(items);
+			comboBox.addClassName(CCNS.TEXT_STYLE_SETTING_PANEL_TEXTALIGN_BOX);
+			selBox.setHint(Kekule.$L('ChemWidgetTexts.HINT_TEXT_HORIZONTAL_ALIGN'));
+			selBox.addEventListener('valueChange', function(e)
+			{
+				this.notifyStyleChange('horizontalAlign', this.getTextHorizontalAlignBox().getValue());
+			}, this);
+			this.setPropStoreFieldValue('textHorizontalAlignBox', selBox);
+			this._textHorizontalAlignGroup = this._createCtrlGroup(doc, rootElem, Kekule.$L('ChemWidgetTexts.CAPTION_TEXT_HORIZONTAL_ALIGN'), selBox);
+
+			// vertical align
+			selBox = new Kekule.Widget.SelectBox(this);
+			var TA = Kekule.Render.TextAlign;
+			var items = [
+				{'value': TA.DEFAULT, 'text': Kekule.$L('ChemWidgetTexts.CAPTION_TEXT_ALIGN_DEFAULT')},
+				{'value': TA.LEADING, 'text': Kekule.$L('ChemWidgetTexts.CAPTION_TEXT_ALIGN_LEADING')},
+				{'value': TA.TRAILING, 'text': Kekule.$L('ChemWidgetTexts.CAPTION_TEXT_ALIGN_TRAILING')},
+				{'value': TA.CENTER, 'text': Kekule.$L('ChemWidgetTexts.CAPTION_TEXT_ALIGN_CENTER')},
+				{'value': TA.TOP, 'text': Kekule.$L('ChemWidgetTexts.CAPTION_TEXT_ALIGN_TOP')},
+				{'value': TA.BOTTOM, 'text': Kekule.$L('ChemWidgetTexts.CAPTION_TEXT_ALIGN_BOTTOM')}
+			];
+			selBox.setItems(items);
+			comboBox.addClassName(CCNS.TEXT_STYLE_SETTING_PANEL_TEXTALIGN_BOX);
+			selBox.setHint(Kekule.$L('ChemWidgetTexts.HINT_TEXT_VERTICAL_ALIGN'));
+			selBox.addEventListener('valueChange', function(e)
+			{
+				this.notifyStyleChange('verticalAlign', this.getTextVerticalAlignBox().getValue());
+				// this.getEditor().modifyObjectsRenderOptions(this.getTargetObjs(), {'verticalAlign': this.getTextVerticalAlignBox().getValue()}, false, true);
+			}, this);
+			this.setPropStoreFieldValue('textVerticalAlignBox', selBox);
+			this._textVerticalAlignGroup = this._createCtrlGroup(doc, rootElem, Kekule.$L('ChemWidgetTexts.CAPTION_TEXT_VERTICAL_ALIGN'), selBox);
+		}
+
+		// if (compNames.indexOf(BNS.nodeDisplayMode) >= 0)
+		{
+			var comboBox = new Kekule.Widget.SelectBox(this);
+			this.fillNodeDisplayModeBox(comboBox);
+			comboBox.addClassName(CCNS.TEXT_STYLE_SETTING_PANEL_NODEDISPLAYMODE_BOX);
+			comboBox.setHint(Kekule.$L('ChemWidgetTexts.HINT_NODE_LABEL_DISPLAY_MODE'));
+			comboBox.addEventListener('valueChange', function(e)
+			{
+				this.notifyStyleChange('nodeDisplayMode', this.getNodeLabelDisplayModeBox().getValue());
+			}, this);
+			this.setPropStoreFieldValue('nodeLabelDisplayModeBox', comboBox);
+			this._nodeLabelDisplayModeGroup = this._createCtrlGroup(doc, rootElem, Kekule.$L('ChemWidgetTexts.CAPTION_NODE_LABEL_DISPLAY_MODE'), comboBox);
+		}
+
+		this.updateDisplayedComponents();
+		parentElem.appendChild(rootElem);
+	},
+
+	updateDisplayedComponents: function()
+	{
+		var components = this.getComponents() || this.DEF_COMPONENTS;
+		SU.setDisplay(this._fontNameGroup, components.indexOf(BNS.fontName) >= 0);
+		SU.setDisplay(this._fontSizeGroup, components.indexOf(BNS.fontSize) >= 0);
+		SU.setDisplay(this._textDirectionGroup, components.indexOf(BNS.textDirection) >= 0);
+		SU.setDisplay(this._textHorizontalAlignGroup, components.indexOf(BNS.textAlign) >= 0);
+		SU.setDisplay(this._textVerticalAlignGroup, components.indexOf(BNS.textAlign) >= 0);
+		SU.setDisplay(this._nodeLabelDisplayModeGroup, components.indexOf(BNS.nodeDisplayMode) >= 0);
+	},
+
+	/** @private */
+	fillFontSizeBox: function(sizeComboBox, fontSizes)
+	{
+		var listedSizes = fontSizes || this.getSelectableFontSizes() || []; // this.getEditorConfigs().getStyleSetterConfigs().getListedFontSizes();
+		var boxItems = [{'text': Kekule.$L('ChemWidgetTexts.S_VALUE_DEFAULT'), 'value': undefined}];
+		for (var i = 0, l = listedSizes.length; i < l; ++i)
+		{
+			boxItems.push({'text': listedSizes[i] + ' px', 'value': listedSizes[i]});
+		}
+		sizeComboBox.setItems(boxItems);
+	},
+	/** @private */
+	fillFontNameBox: function(fontComboBox, fontNames)
+	{
+		var listedNames = fontNames || this.getSelectableFontFamilies() || []; // this.getEditorConfigs().getStyleSetterConfigs().getListedFontNames();
+		var boxItems = [{'text': Kekule.$L('ChemWidgetTexts.S_VALUE_DEFAULT'), 'value': ''}];
+		for (var i = 0, l = listedNames.length; i < l; ++i)
+		{
+			boxItems.push({'text': listedNames[i], 'value': listedNames[i]});
+		}
+		fontComboBox.setItems(boxItems);
+	},
+	/** @private */
+	fillNodeDisplayModeBox: function(nodeDisplayModeComboBox)
+	{
+		var M = Kekule.Render.NodeLabelDisplayMode;
+		var boxItems = [
+			{'text': Kekule.$L('ChemWidgetTexts.CAPTION_NODE_LABEL_DISPLAY_MODE_DEFAULT'), 'value': M.DEFAULT},
+			{'text': Kekule.$L('ChemWidgetTexts.CAPTION_NODE_LABEL_DISPLAY_MODE_SHOWN'), 'value': M.SHOWN},
+			{'text': Kekule.$L('ChemWidgetTexts.CAPTION_NODE_LABEL_DISPLAY_MODE_HIDDEN'), 'value': M.HIDDEN},
+			{'text': Kekule.$L('ChemWidgetTexts.CAPTION_NODE_LABEL_DISPLAY_MODE_SMART'), 'value': M.SMART}
+		];
+		nodeDisplayModeComboBox.setItems(boxItems);
+	},
+
+	/** @private */
+	_createCtrlGroup: function(doc, parentElem, labelText, widget)
+	{
+		var result = doc.createElement('tr');
+		result.className = CCNS.TEXT_STYLE_SETTING_PANEL_GROUP;
+
+		var cellElem = doc.createElement('td');
+		cellElem.className = CCNS.TEXT_STYLE_SETTING_PANEL_GROUP_LABELCELL;
+		var labelElem = doc.createElement('label');
+		labelElem.className = CCNS.COMPOSER_MODIFIER_RICHTEXT_PANEL_GROUPLABEL;
+		DU.setElementText(labelElem, labelText);
+		cellElem.appendChild(labelElem);
+		result.appendChild(cellElem);
+
+		var cellElem = doc.createElement('td');
+		cellElem.className = CCNS.TEXT_STYLE_SETTING_PANEL_GROUP_CTRLCELL;
+		widget.appendToElem(cellElem);
+		result.appendChild(cellElem);
+
+		parentElem.appendChild(result);
+
+		this._subSettingWidgets.push(widget);
+		this._subGroups.push(result);
+
+		return result;
+	},
+
+	/**
+	 * Notify the new bond props value has been setted.
+	 * @private
+	 */
+	notifyStyleChange: function(styleName, value)
+	{
+		var data = {style: {}, 'styleName': styleName, 'styleValue': value};
+		data.style[styleName] = value;
+		this.invokeEvent('valueChange', data);
 	}
 });
 
