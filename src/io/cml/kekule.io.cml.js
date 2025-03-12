@@ -498,6 +498,40 @@ Kekule.IO.CmlUtils = {
 		}
 	},
 
+	cmlConditionDictRefToKekuleConditionComp: function(cmlDictRefValue)
+	{
+		var CC = Kekule.ReactionConditionComponent;
+		var result;
+		if (cmlDictRefValue.indexOf('temperature') >= 0 || cmlDictRefValue.indexOf('temp') >= 0)
+			result = CC.TEMPERATURE;
+		else if (cmlDictRefValue.indexOf('vol') >= 0)
+			result = CC.VOLUME;
+		else if (cmlDictRefValue.indexOf('time') >= 0)
+			result = CC.TIME
+		else if (cmlDictRefValue.indexOf('press') >= 0)
+			result = CC.PRESSURE;
+		else
+			result = Kekule.IO.CmlUtils.getCmlNsValueLocalPart(cmlDictRefValue);
+		return result;
+	},
+
+	kekuleConditionCompToCmlDictRef: function(kekuleConditionComp)
+	{
+		var CC = Kekule.ReactionConditionComponent;
+		var result;
+		if (kekuleConditionComp === CC.TEMPERATURE)
+			result = 'cml:temp';
+		else if (kekuleConditionComp === CC.TIME)
+			result = 'cml:timeDuration';
+		else if (kekuleConditionComp === CC.VOLUME)
+			result = 'cml:vol';
+		else if (kekuleConditionComp === CC.PRESSURE)
+			result = 'cml:press';
+		else
+			result = kekuleConditionComp;
+		return result;
+	},
+
 	/**
 	 * Check if an element type is standing for a dummy atom.
 	 * @param {String} value
@@ -2242,7 +2276,11 @@ Kekule.IO.CmlScalarWriter = Class.create(Kekule.IO.CmlElementWriter,
 			Kekule.DomUtils.setElementText(targetElem, obj.getValue());
 			sValueType = DataType.getType(obj.getValue());
 		}
-		if (obj.getName())
+
+		var dictRef = obj.getInfoValue('dictRef');
+		if (dictRef)
+			Kekule.IO.CmlDomUtils.setCmlElemAttribute(targetElem, 'dictRef', dictRef, this.getDomHelper());
+		else if (obj.getName())
 			Kekule.IO.CmlDomUtils.setCmlElemAttribute(targetElem, 'dictRef', Kekule.IO.CmlUtils.kekuleNsTokenToCml(obj.getName()), this.getDomHelper());
 		if (obj.getErrorValue())
 			Kekule.IO.CmlDomUtils.setCmlElemAttribute(targetElem, 'errorValue', obj.getErrorValue(), this.getDomHelper());
@@ -4435,7 +4473,8 @@ Kekule.IO.CmlReactionReader = Class.create(Kekule.IO.CmlElementReader,
 			if (childObj)
 			{
 				if (isCondition && (childObj instanceof ObjectEx)) // not returned by CmlReactionReagentReader
-					reaction.appendCondition(childObj);
+					this.appendReactionCondition(reaction, childObj);
+					// reaction.appendCondition(childObj);
 				else
 				{
 					var concreteCompName = this.getListElemComponentNameForChemReaction(elemTagName, childObj.role);
@@ -4499,6 +4538,20 @@ Kekule.IO.CmlReactionReader = Class.create(Kekule.IO.CmlElementReader,
 		}
 		else
 			return null;
+	},
+
+	/** @private */
+	appendReactionCondition: function(reaction, scalar)
+	{
+		var dictRef = scalar.getInfoValue('dictRef');
+		if (dictRef)
+		{
+			var conditionComp = Kekule.IO.CmlUtils.cmlConditionDictRefToKekuleConditionComp(dictRef);
+			if (conditionComp)
+			{
+				reaction.setCondition(conditionComp, scalar)
+			}
+		}
 	}
 });
 
@@ -4707,18 +4760,26 @@ Kekule.IO.CmlReactionWriter = Class.create(Kekule.IO.CmlElementWriter,
 	},
 	writeChemReactionConditionList(reaction, targetElem, options)
 	{
-		var conditions = reaction.getConditions();
-		if (conditions && conditions.length)
+		var conditionComps = reaction.getConditionComponents();
+		if (conditionComps.length)
 		{
 			var listElem = this.createChildElem('conditionList', targetElem);
-			for (var i = 0, l = conditions.length; i < l; ++i)
+			for (var i = 0, l = conditionComps.length; i < l; ++i)
 			{
-				var condition = conditions[i];
-				if (condition)
+				var conditionComp = conditionComps[i];
+				var condition = reaction.getCondition(conditionComp);
+				if (condition && condition instanceof Kekule.Scalar)
 				{
 					var writer = this.doGetChildObjectWriter(condition);
 					if (writer)
 					{
+						var dictRef = Kekule.IO.CmlUtils.kekuleConditionCompToCmlDictRef(conditionComp);
+						if (dictRef)
+						{
+							// append dictRef info to scalar
+							condition = condition.clone();
+							condition.setInfoValue('dictRef', dictRef);
+						}
 						//this.copySettingsToChildHandler(writer);
 						writer.writeObject(condition, listElem, options);
 					}

@@ -35,6 +35,30 @@ Kekule.ChemReactionDirection = {
     RESONANCE: 99
 };
 
+/**
+ * Enumeration of reaction condition component.
+ * @enum
+ */
+Kekule.ReactionConditionComponent = {
+    TEMPERATURE: 'temperature',
+    PRESSURE: 'pressure',
+    TIME: 'time',
+    VOLUME: 'volume',
+    OTHER: 'other'
+}
+
+/**
+ * Enumeration of reaction qualitative conditions.
+ * @enum
+ */
+Kekule.ReactionQualitativeCondition = {
+    HEAT: 'heat',
+    HIGH_TEMP: 'hitemp',
+    LOW_TEMP: 'lowtemp',
+    PRESSURE: 'pressure',
+    LIGHT: 'light',
+    MICROWAVE: 'microwave'
+};
 
 /**
  * Represent an omitted intermediate product of two continuous reactions.
@@ -67,8 +91,6 @@ Kekule.ImplicitReactionIntermediate = Class.create(Kekule.Molecule,
  * @property {String} title Title of reaction.
  * @property {String} reactionType Type of reaction.
  * @property {Float} yield Yield of reaction. 0 <= Value <= 1.
- * @property {Array} conditions Conditions of reaction, e.g. temperature, pressure.
- *   Each item should be a {@link Kekule.Scalar} (with both value and units).
  * @property {Kekule.Molecule[]} reactants Reactants of reaction.
  * @property {Kekule.Molecule[]} products Products of reaction.
  * @property {Kekule.Molecule[]} catalysts Catalysts of reaction.
@@ -109,21 +131,6 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
         this.defineProp('direction', {
             'dataType': DataType.INT, 'defaultValue': Kekule.ChemReactionDirection.FORWARD,
             'enumSource': Kekule.ChemReactionDirection
-        });
-
-        this.defineProp('conditions', {
-            'dataType': DataType.ARRAY,
-            'setter': null,
-			'getter': function()
-				{
-					var r = this.getPropStoreFieldValue('conditions');
-					if (!r)
-					{
-						r = [];
-						this.setPropStoreFieldValue('conditions', r);
-					}
-					return r;
-				}
         });
 
         this.defineProp('reactants', {
@@ -207,6 +214,21 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
                     }
                     return r;
                 }
+        });
+        // conditions map of reaction
+        this.defineProp('conditions', {
+            'dataType': DataType.ARRAY,
+            'setter': null,
+            'getter': function(canCreate)
+            {
+                var r = this.getPropStoreFieldValue('conditions');
+                if (!r && canCreate)
+                {
+                    r = {};
+                    this.setPropStoreFieldValue('conditions', r);
+                }
+                return r;
+            }
         });
     },
     /** @ignore */
@@ -464,75 +486,125 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
     },
 
     /**
-     * Returns the index of a condition object in condition list of reaction.
-     * @param {Kekule.Scalar} condition
+     * Returns the explicitly set condition components of reaction.
+     * @returns {Array}
      */
-    indexOfCondition: function(condition)
+    getConditionComponents: function()
     {
-        var conditions = this.getPropStoreFieldValue('conditions');
-        if (!conditions)
-            return -1;
-        else
-            return conditions.indexOf(condition);
+        var conditions = this.getConditions(false);
+        return Kekule.ObjUtils.getOwnedFieldNames(conditions);
     },
     /**
-     * Append a condition to condition list of reaction.
-     * @param {Kekule.Scalar} condition
+     * Get the value of a condition.
+     * @param {String} name Condition name.
+     * @returns {Variant} Usually a {Kekule.Scalar}, but other objects are also allowed.
      */
-    appendCondition: function(condition)
+    getCondition: function(name)
     {
-        this.getConditions().push(condition);
+        var conditions = this.getConditions(false);
+        return conditions && conditions[name];
+    },
+    /**
+     * Set the value of a condition.
+     * @param {String} name Condition name.
+     * @param {Variant} value Usually a {Kekule.Scalar}, but other objects are also allowed.
+     */
+    setCondition: function(name, value)
+    {
+        var conditions = this.getConditions(true);
+        conditions[name] = value;
         return this;
     },
     /**
-     * Insert a condition to condition list of reaction.
-     * @param {Kekule.Scalar} condition
-     * @param {Int} index
+     * Unset a condition.
+     * @param {String} name Condition name.
      */
-    insertConditionAt: function(condition, index)
+    unsetCondition: function(name)
     {
-        this.getConditions().splice(index, 0, condition);
+        var conditions = this.getConditions(false);
+        if (conditions && conditions[name])
+            delete conditions[name];
         return this;
     },
     /**
-     * Insert a condition to condition list of reaction.
-     * @param {Kekule.Scalar} condition
-     * @param {Kekule.Scalar} refCondition
+     * Clear all conditions of reaction.
      */
-    insertConditionBefore: function(condition, refCondition)
+    clearConditions: function()
     {
-        if (!refCondition)
-            return this.appendCondition(condition);
-        else
-        {
-            var refIndex = this.indexOfCondition(refCondition);
-            return (refIndex >= 0)? this.insertConditionAt(condition, refIndex): this.appendCondition(condition);
-        }
-    },
-    /**
-     * Remove a condition at the index of condition list.
-     * @param {Int} index
-     */
-    removeConditionAt: function(index)
-    {
-        var conditions = this.getPropStoreFieldValue('conditions');
-        if (conditions)
-        {
-            conditions.splice(index, 1);
-        }
+        this.setPropStoreFieldValue('conditions', null);
         return this;
     },
-    /**
-     * Remove a condition from condition list.
-     * @param {Kekule.Scalar} condition
-     */
-    removeCondition: function(condition)
-    {
-        var index = this.indexOfCondition(condition);
-        if (index >= 0)
-            this.removeConditionAt(index);
-        return this;
-    },
+
+    // /**
+    //  * Returns the index of a condition object in condition list of reaction.
+    //  * @param {Kekule.Scalar} condition
+    //  */
+    // indexOfCondition: function(condition)
+    // {
+    //     var conditions = this.getPropStoreFieldValue('conditions');
+    //     if (!conditions)
+    //         return -1;
+    //     else
+    //         return conditions.indexOf(condition);
+    // },
+    // /**
+    //  * Append a condition to condition list of reaction.
+    //  * @param {Kekule.Scalar} condition
+    //  */
+    // appendCondition: function(condition)
+    // {
+    //     this.getConditions().push(condition);
+    //     return this;
+    // },
+    // /**
+    //  * Insert a condition to condition list of reaction.
+    //  * @param {Kekule.Scalar} condition
+    //  * @param {Int} index
+    //  */
+    // insertConditionAt: function(condition, index)
+    // {
+    //     this.getConditions().splice(index, 0, condition);
+    //     return this;
+    // },
+    // /**
+    //  * Insert a condition to condition list of reaction.
+    //  * @param {Kekule.Scalar} condition
+    //  * @param {Kekule.Scalar} refCondition
+    //  */
+    // insertConditionBefore: function(condition, refCondition)
+    // {
+    //     if (!refCondition)
+    //         return this.appendCondition(condition);
+    //     else
+    //     {
+    //         var refIndex = this.indexOfCondition(refCondition);
+    //         return (refIndex >= 0)? this.insertConditionAt(condition, refIndex): this.appendCondition(condition);
+    //     }
+    // },
+    // /**
+    //  * Remove a condition at the index of condition list.
+    //  * @param {Int} index
+    //  */
+    // removeConditionAt: function(index)
+    // {
+    //     var conditions = this.getPropStoreFieldValue('conditions');
+    //     if (conditions)
+    //     {
+    //         conditions.splice(index, 1);
+    //     }
+    //     return this;
+    // },
+    // /**
+    //  * Remove a condition from condition list.
+    //  * @param {Kekule.Scalar} condition
+    //  */
+    // removeCondition: function(condition)
+    // {
+    //     var index = this.indexOfCondition(condition);
+    //     if (index >= 0)
+    //         this.removeConditionAt(index);
+    //     return this;
+    // },
 
     // method for comparing two reaction
     /** @private */
