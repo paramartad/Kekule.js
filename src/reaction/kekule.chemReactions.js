@@ -42,9 +42,10 @@ Kekule.ChemReactionDirection = {
 Kekule.ReactionConditionComponent = {
     TEMPERATURE: 'temperature',
     PRESSURE: 'pressure',
+    WAVELENGTH: 'wavelength',
     TIME: 'time',
-    VOLUME: 'volume',
-    OTHER: 'other'
+    VOLUME: 'volume'
+    // OTHER: 'other'
 }
 
 /**
@@ -532,6 +533,18 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
     clearConditions: function()
     {
         this.setPropStoreFieldValue('conditions', null);
+        return this;
+    },
+    setQualitativeCondition: function(qualitiveCondition)
+    {
+        var QC = Kekule.ReactionQualitativeCondition;
+        var CC = Kekule.ReactionConditionComponent;
+        if (qualitiveCondition === QC.HEAT || qualitiveCondition === QC.LOW_TEMP || qualitiveCondition === QC.HIGH_TEMP)
+            this.setCondition(CC.TEMPERATURE, qualitiveCondition);
+        else if (qualitiveCondition === QC.PRESSURE)
+            this.setCondition(CC.PRESSURE, qualitiveCondition);
+        else if (qualitiveCondition === QC.LIGHT || qualitiveCondition === QC.MICROWAVE)
+            this.setCondition(CC.WAVELENGTH, qualitiveCondition);
         return this;
     },
 
