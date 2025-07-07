@@ -34,7 +34,12 @@ Kekule.Widget.HtmlClassNames = Object.extend(Kekule.Widget.HtmlClassNames, {
 	SELECTBOX: 'K-SelectBox',
 	COMBOBOX: 'K-ComboBox',
 	COMBOBOX_TEXTWRAPPER: 'K-ComboBox-TextWrapper',
-	NUMINPUT: 'K-NumInput'
+	NUMINPUT: 'K-NumInput',
+	INPUTTABLE: 'K-InputTable',
+	INPUTTABLE_ROW: 'K-InputTable-Row',
+	INPUTTABLE_CELL: 'K-InputTable-Cell',
+	INPUTTABLE_CELL_LABEL: 'K-InputTable-Cell-Label',
+	INPUTTABLE_CELL_WIDGET: 'K-InputTable-Cell-Widhet',
 });
 
 /**
@@ -1650,6 +1655,163 @@ Kekule.Widget.NumInput = Class.create(Kekule.Widget.FormWidget,
 	{
 		this.tryApplySuper('doBindElement', [element])  /* $super(element) */;
 		element.setAttribute('type', 'range');
+	}
+});
+
+/** @private */
+Kekule.Widget.InputTableRow = Class.create(Kekule.Widget.BaseWidget,
+/** @lends Kekule.Widget.InputTableRow# */
+{
+	/** @private */
+	CLASS_NAME: 'Kekule.Widget.InputTableRow',
+	/** @private */
+	BINDABLE_TAG_NAMES: ['tr'],
+	/** @constructs */
+	initialize: function(parentOrElementOrDocument, label, widget)
+	{
+		this.setPropStoreFieldValue('label', label || '');
+		this.setPropStoreFieldValue('widget', widget);
+		this.tryApplySuper('initialize', [parentOrElementOrDocument]);
+	},
+	/** @private */
+	initProperties: function()
+	{
+		this.defineProp('label', {
+			'dataType': DataType.STRING,
+			'setter': function(value) {
+				if (this._labelElem)
+					this._labelElem.innerHTML = value || '';
+				this.setPropStoreFieldValue('label', value);
+			}
+		});
+		this.defineProp('widget', {
+			'dataType': 'Kekule.Widget.BaseWigget', 'serializable': false,
+			'setter': function(value) {
+				var old = this.getWidget();
+				if (value !== old) {
+					if (old)
+						old.finalize();
+					if (value && this._widgetCell)
+						value.appendToElem(this._widgetCell);
+				}
+			}
+		});
+	},
+
+	/** @ignore */
+	doGetWidgetClassName: function()
+	{
+		return this.tryApplySuper('doGetWidgetClassName') + ' ' + CNS.INPUTTABLE_ROW;
+	},
+	/** @ignore */
+	doCreateRootElement: function(doc)
+	{
+		var result = doc.createElement('tr');
+		return result;
+	},
+	/** @ignore */
+	doCreateSubElements: function(doc, rootElem)
+	{
+		var result = this.tryApplySuper('doCreateSubElements', [doc, rootElem])  /* $super(doc, rootElem) */;
+
+		// label cell
+		var labelCell = doc.createElement('td');
+		labelCell.className = CNS.INPUTTABLE_CELL + ' ' + CNS.INPUTTABLE_CELL_LABEL;
+		var labelElem = doc.createElement('label');
+		labelElem.innerHTML = this.getLabel();
+		labelCell.appendChild(labelElem);
+		rootElem.appendChild(labelCell);
+		result.push(labelCell);
+		this._labelElem = labelElem;
+
+		// widget cell
+		var widgetCell = doc.createElement('td');
+		widgetCell.className = CNS.INPUTTABLE_CELL + ' ' + CNS.INPUTTABLE_CELL_WIDGET;
+		var widget = this.getWidget();
+		if (widget)
+			widget.appendToElem(widgetCell);
+		rootElem.appendChild(widgetCell);
+		result.push(widgetCell);
+		this._widgetCell = widgetCell;
+
+		return result;
+	},
+});
+
+/**
+ * A special widget, organize a group of input controls in a table form.
+ * @class
+ * @augments Kekule.Widget.Container
+ *
+ * @property {Array} rows
+ */
+Kekule.Widget.InputTable = Class.create(Kekule.Widget.Container,
+/** @lends Kekule.Widget.InputTable# */
+{
+	/** @private */
+	CLASS_NAME: 'Kekule.Widget.InputTable',
+	/** @private */
+	BINDABLE_TAG_NAMES: ['table'],
+	/** @constructs */
+	initialize: function(parentOrElementOrDocument)
+	{
+		this.tryApplySuper('initialize', [parentOrElementOrDocument]);
+	},
+	/** @private */
+	initProperties: function()
+	{
+		this.defineProp('rows', {
+			'dataType': DataType.ARRAY,
+			'serializable': false,
+			'getter': function() {
+				return this.getChildWidgets();
+			}
+		});
+	},
+	/** @ignore */
+	doGetWidgetClassName: function()
+	{
+		return this.tryApplySuper('doGetWidgetClassName') + ' ' + CNS.INPUTTABLE;
+	},
+	/** @ignore */
+	doCreateRootElement: function(doc)
+	{
+		var result = doc.createElement('table');
+		return result;
+	},
+
+	/**
+	 * Create a new row in table.
+	 * @param {String} label
+	 * @param {Kekule.Widget.BaseWidget} widget
+	 * @returns {Kekule.Widget.InputTableRow} Newly created row widget.
+	 */
+	createRow: function(label, widget)
+	{
+		var row = new Kekule.Widget.InputTableRow(this, label, widget);
+		this.appendWidget(row);
+		return row;
+	},
+	/**
+	 * Insert a new row in table before the refRow.
+	 * @param {String} label
+	 * @param {Kekule.Widget.BaseWidget} widget
+	 * @param {Kekule.Widget.InputTableRow} refRow
+	 * @returns {Kekule.Widget.InputTableRow} Newly created row widget.
+	 */
+	insertRow: function(label, widget, refRow)
+	{
+		var row = new Kekule.Widget.InputTableRow(this, label, widget);
+		this.insertWidgetBefore(row, refRow);
+		return row;
+	},
+	/**
+	 * Delete a row in table.
+	 * @param {Kekule.Widget.InputTableRow} row
+	 */
+	deleteRow: function(row)
+	{
+		this.removeWidget(row);
 	}
 });
 

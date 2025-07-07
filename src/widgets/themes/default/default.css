@@ -577,6 +577,21 @@ table.K-Widget
     min-height: 1em;
 }
 
+/* Input table */
+.K-Widget.K-InputTable {
+    display: table;
+}
+.K-Widget.K-InputTable .K-Widget.K-InputTable-Row {
+    display: table-row;
+}
+.K-Widget.K-InputTable-Row td {
+    display: table-cell;
+}
+.K-Widget.K-InputTable-Row .K-InputTable-Cell-Label {
+    text-align: end;
+}
+
+
 /* Tab Button Group */
 .K-TabButtonGroup
 {
