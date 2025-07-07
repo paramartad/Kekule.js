@@ -1692,7 +1692,10 @@ Kekule.Widget.InputTableRow = Class.create(Kekule.Widget.BaseWidget,
 					if (old)
 						old.finalize();
 					if (value && this._widgetCell)
+					{
+						value.setParent(this);
 						value.appendToElem(this._widgetCell);
+					}
 				}
 			}
 		});
@@ -1729,7 +1732,10 @@ Kekule.Widget.InputTableRow = Class.create(Kekule.Widget.BaseWidget,
 		widgetCell.className = CNS.INPUTTABLE_CELL + ' ' + CNS.INPUTTABLE_CELL_WIDGET;
 		var widget = this.getWidget();
 		if (widget)
+		{
+			widget.setParent(this);
 			widget.appendToElem(widgetCell);
+		}
 		rootElem.appendChild(widgetCell);
 		result.push(widgetCell);
 		this._widgetCell = widgetCell;
