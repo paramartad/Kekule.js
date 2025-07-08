@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Widget Container Test</title>
+  <link rel="stylesheet" type="text/css" href="../../../src/widgets/themes/default/default.css" />
+  <link rel="stylesheet" type="text/css" href="../../../src/widgets/themes/default/defaultColor.css" />
+  <script src="../../../src/kekule.js?min=false"></script>
+  <script>
+    function $(id)
+    {
+      return document.getElementById(id);
+    }
+
+    var table1;
+    function testInputTable()
+    {
+      var doc = document;
+
+      table1 = new Kekule.Widget.InputTable(document);
+      table1.appendToElem($('container1'));
+
+      var row0 = table1.createRow('row0 - button', new Kekule.Widget.Button(doc, 'button0'));
+      var row1 = table1.createRow('row1 - button', new Kekule.Widget.Button(doc, 'button1'));
+      table1.createRow('row2 - text box', new Kekule.Widget.TextBox(doc, 'textbox1'));
+      table1.createRow('row3 - textarea', new Kekule.Widget.TextArea(doc, 'textarea1'));
+
+      table1.insertRow('rowBefore0', new Kekule.Widget.Button(doc, 'buttonIns'), row0);
+
+      table1.deleteRow(row1);
+    }
+
+    function init()
+    {
+      testInputTable();
+    }
+
+    Kekule.X.domReady(init);
+  </script>
+</head>
+<body>
+  <div id="container1"></div>
+</body>
+</html>
