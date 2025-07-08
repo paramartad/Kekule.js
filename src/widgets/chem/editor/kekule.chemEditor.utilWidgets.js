@@ -82,6 +82,12 @@ Kekule.ChemWidget.HtmlClassNames = Object.extend(Kekule.ChemWidget.HtmlClassName
 	TEXT_STYLE_SETTING_PANEL_GROUP_LABELCELL: 'K-Text-Style-SettingPanel-Group-LabelCell',
 	TEXT_STYLE_SETTING_PANEL_GROUP_CTRLCELL: 'K-Text-Style-SettingPanel-Group-CtrlCell',
 	TEXT_STYLE_SETTING_PANEL_GROUP_LABEL: 'K-Text-Style-SettingPanel-Group-Label',
+
+	REACTION_CONDITION_SETTING_PANEL: 'K-Reaction-Condition-SettingPanel',
+	REACTION_CONDITION_SETTING_PANEL_CONDITION_BOX: 'K-Reaction-Condition-SettingPanel-Condition-Box',
+	REACTION_CONDITION_SETTING_PANEL_CUSTOM_CONDITION_BOX: 'K-Reaction-Condition-SettingPanel-CustomCondition-Box',
+	REACTION_CONDITION_SETTING_PANEL_SIZE_INPUT: 'K-Reaction-Condition-SettingPanel-Size-Input',
+	REACTION_CONDITION_SETTING_PANEL_DISPLAY_SYMBOL_CHECK_BOX: 'K-Reaction-Condition-SettingPanel-DisplaySymbol-Checkbox',
 });
 
 /**
@@ -3013,10 +3019,10 @@ Kekule.ChemWidget.GlyphMultiPathSettingPanel = Class.create(Kekule.Widget.Panel,
 /**
  * An panel to set the properties of a reaction arrow glyph.
  * @class
- * @augments Kekule.ChemWidget.GlyphPathSettingPanel
+ * @augments Kekule.ChemWidget.Panel
  *
- * @property {Hash} value Path params, including fields {start/endArrowType, start/endArrowSide, start/endArrowWidth, start/endArrowLength, lineCount, lineGap}.
- * @property {Array} components Visible components in panel. The default value is ['startingArrow', 'endingArrow', 'line'].
+ * @property {Hash} value
+ * @property {Array} components Visible components in panel.
  */
 /**
  * Invoked when the params has been set.
@@ -3030,7 +3036,7 @@ Kekule.ChemWidget.GlyphReactionArrowPathSettingPanel = Class.create(Kekule.ChemW
 	/** @private */
 	CLASS_NAME: 'Kekule.ChemWidget.GlyphReactionArrowPathSettingPanel',
 	/** @ignore */
-	doGetValue: function(/*$super*/)
+	doGetValue: function()
 	{
 		var result = this.tryApplySuper('doGetValue')  /* $super() */ || {};
 		if (this._reactionArrowPresetSelector)
@@ -3643,11 +3649,16 @@ Kekule.ChemWidget.GlyphMultiElectronPushingArrowSettingPanel_OLD = Class.create(
 });
 
 /**
- * An panel to set the styles of rich text in object.
+ * A panel to set the styles of rich text in object.
  * @class
  * @augments Kekule.Widget.Panel
  *
  * @property {Array} components Visible components in panel.
+ * @property {Object} value Value of this setting panel.
+ *   The value is a object of key: value pairs.
+ * @property {Array} selectableFontSizes
+ * @property {Array} selectableFontFamilies
+ *
  */
 /**
  * Invoked when the new style has been set.
@@ -3711,11 +3722,13 @@ Kekule.ChemWidget.TextStyleSettingPanel = Class.create(Kekule.Widget.Panel,
 		this.defineProp('components', {'dataType': DataType.ARRAY});
 		this.defineProp('selectableFontSizes', {'dataType': DataType.ARRAY,
 			'setter': function(value) {
+				this.setPropStoreFieldValue('selectableFontSizes', value);
 				this.fillFontSizeBox(this.getFontSizeBox(), value);
 			}
 		});
 		this.defineProp('selectableFontFamilies', {'dataType': DataType.ARRAY,
 			'setter': function(value) {
+				this.setPropStoreFieldValue('selectableFontFamilies', value);
 				this.fillFontNameBox(this.getFontNameBox(), value);
 			}
 		});
@@ -3758,7 +3771,7 @@ Kekule.ChemWidget.TextStyleSettingPanel = Class.create(Kekule.Widget.Panel,
 		var result = this.tryApplySuper('doCreateSubElements', [doc, rootElem]);
 
 		this.doReleaseSubWidgets();
-		this.doRecreateSubWigets(doc, rootElem);
+		this.doRecreateSubWidgets(doc, rootElem);
 
 		return result;
 	},
@@ -3774,15 +3787,24 @@ Kekule.ChemWidget.TextStyleSettingPanel = Class.create(Kekule.Widget.Panel,
 		if (this._subWidgetRootElem)
 			this._subWidgetRootElem.remove();
 	},
-	doRecreateSubWigets: function(doc, parentElem)
+	doRecreateSubWidgets: function(doc, parentElem)
+	{
+		var rootElem = doc.createElement('table');
+		this._subWidgetRootElem = rootElem;
+
+		this.doCreateSubWidgetRows(doc, rootElem);
+		this.updateDisplayedComponents();
+
+		parentElem.appendChild(rootElem);
+	},
+	doCreateSubWidgetRows: function(doc, parentElem)
 	{
 		var comboBox, selBox;
 
 		this._subGroups = [];
 		this._subSettingWidgets = [];
 
-		var rootElem = doc.createElement('table');
-		this._subWidgetRootElem = rootElem;
+		var rootElem = parentElem;
 		// if (compNames.indexOf(BNS.fontName) >= 0)
 		{
 			// font name
@@ -3792,7 +3814,7 @@ Kekule.ChemWidget.TextStyleSettingPanel = Class.create(Kekule.Widget.Panel,
 			comboBox.setHint(Kekule.$L('ChemWidgetTexts.HINT_FONTNAME'));
 			comboBox.addEventListener('valueChange', function(e)
 			{
-				this.notifyStyleChange('fontFamily', this.getFontNameBox().getValue());
+				this.notifyInputValueChange('fontFamily', this.getFontNameBox().getValue());
 			}, this);
 			this.setPropStoreFieldValue('fontNameBox', comboBox);
 			this._fontNameGroup = this._createCtrlGroup(doc, rootElem, Kekule.$L('ChemWidgetTexts.CAPTION_FONTNAME'), comboBox);
@@ -3806,7 +3828,7 @@ Kekule.ChemWidget.TextStyleSettingPanel = Class.create(Kekule.Widget.Panel,
 			comboBox.setHint(Kekule.$L('ChemWidgetTexts.HINT_FONTSIZE'));
 			comboBox.addEventListener('valueChange', function(e)
 			{
-				this.notifyStyleChange('fontSize', this.getFontSizeBox().getValue());
+				this.notifyInputValueChange('fontSize', this.getFontSizeBox().getValue());
 			}, this);
 			this.setPropStoreFieldValue('fontSizeBox', comboBox);
 			this._fontSizeGroup = this._createCtrlGroup(doc, rootElem, Kekule.$L('ChemWidgetTexts.CAPTION_FONTSIZE'), comboBox);
@@ -3828,7 +3850,7 @@ Kekule.ChemWidget.TextStyleSettingPanel = Class.create(Kekule.Widget.Panel,
 			selBox.setHint(Kekule.$L('ChemWidgetTexts.HINT_TEXT_DIRECTION'));
 			selBox.addEventListener('valueChange', function(e)
 			{
-				this.notifyStyleChange('charDirection', this.getTextDirectionBox().getValue());
+				this.notifyInputValueChange('charDirection', this.getTextDirectionBox().getValue());
 			}, this);
 			this.setPropStoreFieldValue('textDirectionBox', selBox);
 			this._textDirectionGroup = this._createCtrlGroup(doc, rootElem, Kekule.$L('ChemWidgetTexts.CAPTION_TEXT_DIRECTION'), selBox);
@@ -3851,7 +3873,7 @@ Kekule.ChemWidget.TextStyleSettingPanel = Class.create(Kekule.Widget.Panel,
 			selBox.setHint(Kekule.$L('ChemWidgetTexts.HINT_TEXT_HORIZONTAL_ALIGN'));
 			selBox.addEventListener('valueChange', function(e)
 			{
-				this.notifyStyleChange('horizontalAlign', this.getTextHorizontalAlignBox().getValue());
+				this.notifyInputValueChange('horizontalAlign', this.getTextHorizontalAlignBox().getValue());
 			}, this);
 			this.setPropStoreFieldValue('textHorizontalAlignBox', selBox);
 			this._textHorizontalAlignGroup = this._createCtrlGroup(doc, rootElem, Kekule.$L('ChemWidgetTexts.CAPTION_TEXT_HORIZONTAL_ALIGN'), selBox);
@@ -3872,7 +3894,7 @@ Kekule.ChemWidget.TextStyleSettingPanel = Class.create(Kekule.Widget.Panel,
 			selBox.setHint(Kekule.$L('ChemWidgetTexts.HINT_TEXT_VERTICAL_ALIGN'));
 			selBox.addEventListener('valueChange', function(e)
 			{
-				this.notifyStyleChange('verticalAlign', this.getTextVerticalAlignBox().getValue());
+				this.notifyInputValueChange('verticalAlign', this.getTextVerticalAlignBox().getValue());
 				// this.getEditor().modifyObjectsRenderOptions(this.getTargetObjs(), {'verticalAlign': this.getTextVerticalAlignBox().getValue()}, false, true);
 			}, this);
 			this.setPropStoreFieldValue('textVerticalAlignBox', selBox);
@@ -3887,14 +3909,11 @@ Kekule.ChemWidget.TextStyleSettingPanel = Class.create(Kekule.Widget.Panel,
 			comboBox.setHint(Kekule.$L('ChemWidgetTexts.HINT_NODE_LABEL_DISPLAY_MODE'));
 			comboBox.addEventListener('valueChange', function(e)
 			{
-				this.notifyStyleChange('nodeDisplayMode', this.getNodeLabelDisplayModeBox().getValue());
+				this.notifyInputValueChange('nodeDisplayMode', this.getNodeLabelDisplayModeBox().getValue());
 			}, this);
 			this.setPropStoreFieldValue('nodeLabelDisplayModeBox', comboBox);
 			this._nodeLabelDisplayModeGroup = this._createCtrlGroup(doc, rootElem, Kekule.$L('ChemWidgetTexts.CAPTION_NODE_LABEL_DISPLAY_MODE'), comboBox);
 		}
-
-		this.updateDisplayedComponents();
-		parentElem.appendChild(rootElem);
 	},
 
 	updateDisplayedComponents: function()
@@ -3971,13 +3990,271 @@ Kekule.ChemWidget.TextStyleSettingPanel = Class.create(Kekule.Widget.Panel,
 	},
 
 	/**
-	 * Notify the new bond props value has been setted.
+	 * Notify the new props value has been set.
 	 * @private
 	 */
-	notifyStyleChange: function(styleName, value)
+	notifyInputValueChange: function(styleName, value)
 	{
 		var data = {style: {}, 'styleName': styleName, 'styleValue': value};
 		data.style[styleName] = value;
+		this.invokeEvent('valueChange', data);
+	}
+});
+
+/**
+ * A panel to set the condition of a reaction.
+ * @class
+ * @augments Kekule.Widget.Panel
+ *
+ * @property {Array} components Visible components in panel.
+ * @property {Object} value Value of this setting panel.
+ *   The value is an object of key: value pairs.
+ * @property {Array} selectableReactionConditions
+ * @property {Array} selectableFontSizes
+ * @property {Array} selectableFontFamilies
+ *
+ */
+Kekule.ChemWidget.ReactionConditionSettingPanel = Class.create(Kekule.Widget.Panel,  /*Kekule.ChemWidget.TextStyleSettingPanel,*/
+/** @lends Kekule.ChemWidget.ReactionConditionSettingPanel# */
+{
+	/** @private */
+	CLASS_NAME: 'Kekule.ChemWidget.ReactionConditionSettingPanel',
+	/** @private */
+	DEF_COMPONENTS: [
+		BNS.reactionCondition,
+		BNS.reactionConditionDisplaySymbol,
+		BNS.reactionConditionGlyphSize
+	],
+	/** @construct */
+	initialize: function(parentOrElementOrDocument)
+	{
+		this._subGroups = [];
+		this._subSettingWidgets = [];
+		this.tryApplySuper('initialize', [parentOrElementOrDocument]);
+		this.updateDisplayedComponents();
+	},
+	/** @private */
+	initProperties: function()
+	{
+		this.defineProp('components', {'dataType': DataType.ARRAY});
+		this.defineProp('value', {
+			'dataType': DataType.NUMBER,
+			'scope': Class.PropertyScope.PUBLIC
+		});
+
+		this.defineProp('selectableReactionConditions', {'dataType': DataType.ARRAY,
+			'setter': function(value) {
+				this.setPropStoreFieldValue('selectableReactionConditions', value);
+				this.fillReactionConditionBox(this.getReactionConditionBox(), value);
+				this.updateDisplayedComponents();
+			}
+		});
+		this.defineProp('conditionGlyphSizeMin', {'dataType': DataType.NUMBER,
+			'setter': function(value) {
+				this.setPropStoreFieldValue('conditionGlyphSizeMin', value);
+				this.getReactionConditionGlyphSizeInputter().setMinValue(value);
+			}
+		});
+		this.defineProp('conditionGlyphSizeMax', {'dataType': DataType.NUMBER,
+			'setter': function(value) {
+				this.setPropStoreFieldValue('conditionGlyphSizeMin', value);
+				this.getReactionConditionGlyphSizeInputter().setMaxValue(value);
+			}
+		});
+		this.defineProp('conditionGlyphSizeStep', {'dataType': DataType.NUMBER,
+			'setter': function(value) {
+				this.setPropStoreFieldValue('conditionGlyphSizeStep', value);
+				this.getReactionConditionGlyphSizeInputter().setStep(value || 1);
+			}
+		});
+
+		this.defineProp('reactionConditionBox', {
+			'dataType': 'Kekule.Widget.BaseWidget', 'serializable': false, 'setter': null
+		});
+		this.defineProp('reactionCustomConditionBox', {
+			'dataType': 'Kekule.Widget.BaseWidget', 'serializable': false, 'setter': null
+		});
+		this.defineProp('reactionConditionDisplaySymbolCheckBox', {
+			'dataType': 'Kekule.Widget.BaseWidget', 'serializable': false, 'setter': null
+		});
+		this.defineProp('reactionConditionGlyphSizeInputter', {
+			'dataType': 'Kekule.Widget.BaseWidget', 'serializable': false, 'setter': null
+		});
+	},
+
+	/** @ignore */
+	doGetWidgetClassName: function()
+	{
+		return this.tryApplySuper('doGetWidgetClassName') + ' ' + CCNS.REACTION_CONDITION_SETTING_PANEL;
+	},
+
+	/** @ignore */
+	doObjectChange: function(modifiedPropNames)
+	{
+		if (modifiedPropNames.indexOf('components') >= 0)
+			this.updateDisplayedComponents();
+		return this.tryApplySuper('doObjectChange', [modifiedPropNames]);
+	},
+
+	/** @ignore */
+	doGetValue: function()
+	{
+		return {
+			'condition': this._getConcreteReactionCondition(),
+			'size': this.getReactionConditionGlyphSizeInputter().getValue(),
+			'displaySymbol': this.getReactionConditionDisplaySymbolCheckBox().getValue()
+		}
+	},
+	/** @ignore */
+	doSetValue: function(value)
+	{
+		// condition
+		var condition = value && value.condition;
+		this.getReactionConditionBox().setValue(condition || '');
+		/*
+		if (condition)
+		{
+			var selectableConditions = this.getSelectableReactionConditions() || [];
+			var selectableValues = selectableConditions.map(item => item.value);
+			if (selectableValues.indexOf(condition) >= 0)
+				this.getReactionConditionBox().setValue(condition);
+			else {
+				this.getReactionCustomConditionBox().setValue('');  // custom
+				this.getReactionCustomConditionBox().setValue(condition);
+			}
+		}
+		*/
+
+		var displaySymbol = value && value.displaySymbol;
+		this.getReactionConditionDisplaySymbolCheckBox().setChecked(displaySymbol || false);
+
+		var size = value && value.size;
+		if (typeof(size) === 'number')
+		{
+			this.getReactionConditionGlyphSizeInputter().setValue(size);
+		}
+		this.updateDisplayedComponents();
+	},
+
+	/** @ignore */
+	doCreateSubElements: function(doc, rootElem)
+	{
+		var result = this.tryApplySuper('doCreateSubElements', [doc, rootElem]);
+
+		var inputTable = new Kekule.Widget.InputTable(this);
+
+		// reaction condition selector
+		var conditionInputter = new Kekule.Widget.ComboBox(this.getDocument());
+		this.fillReactionConditionBox(conditionInputter, this.getSelectableReactionConditions());
+		conditionInputter.addClassName(CCNS.REACTION_CONDITION_SETTING_PANEL_CONDITION_BOX);
+		conditionInputter.setHint(Kekule.$L('ChemWidgetTexts.HINT_REACTION_CONDITION'));
+		conditionInputter.addEventListener('valueChange', function(e)
+		{
+			// this.updateDisplayedComponents();
+			this.notifyInputValueChange('condition', this._getConcreteReactionCondition());
+		}, this);
+		this.setPropStoreFieldValue('reactionConditionBox', conditionInputter);
+		this._reactionConditionRow = inputTable.createRow(Kekule.$L('ChemWidgetTexts.CAPTION_CONDITION'), conditionInputter);
+
+		/*
+		// custom reaction condition inputter
+		var customConditionInputter = new Kekule.Widget.TextBox(this.getDocument());
+		customConditionInputter.addClassName(CCNS.REACTION_CONDITION_SETTING_PANEL_CUSTOM_CONDITION_BOX);
+		customConditionInputter.setHint(Kekule.$L('ChemWidgetTexts.HINT_REACTION_CUSTOM_CONDITION'));
+		customConditionInputter.addEventListener('valueChange', function(e)
+		{
+			this.updateDisplayedComponents();
+			this.notifyInputValueChange('condition', this._getConcreteReactionCondition());
+		}, this);
+		this.setPropStoreFieldValue('reactionCustomConditionBox', customConditionInputter);
+		this._reactionCustomConditionRow = inputTable.createRow(Kekule.$L('ChemWidgetTexts.CAPTION_CUSTOM_CONDITION'), customConditionInputter);
+		*/
+
+		// use symbol checkbox
+		var symbolCheckbox = new Kekule.Widget.CheckBox(this.getDocument());
+		symbolCheckbox.addClassName(CCNS.REACTION_CONDITION_SETTING_PANEL_DISPLAY_SYMBOL_CHECK_BOX);
+		symbolCheckbox.setHint(Kekule.$L('ChemWidgetTexts.HINT_REACTION_CONDITION_DISPLAY_SYMBOL'));
+		symbolCheckbox.addEventListener('valueChange', function(e)
+		{
+			// this.updateDisplayedComponents();
+			this.notifyInputValueChange('displaySymbol', symbolCheckbox.getChecked());
+		}, this);
+		this.setPropStoreFieldValue('reactionConditionDisplaySymbolCheckBox', symbolCheckbox);
+		this._reactionConditionDisplaySymbolRow = inputTable.createRow(Kekule.$L('ChemWidgetTexts.CAPTION_REACTION_CONDITION_DISPLAY_SYMBOL'), symbolCheckbox);
+
+		// symbol size
+		/*
+		var sizeInputter = new Kekule.Widget.NumInput(this.getDocument());
+		sizeInputter.addClassName(CCNS.REACTION_CONDITION_SETTING_PANEL_SIZE_INPUT);
+		sizeInputter.setHint(Kekule.$L('ChemWidgetTexts.HINT_REACTION_CONDITION_GLYPH_SIZE'));
+		sizeInputter.addEventListener('valueChange', function(e)
+		{
+			this.notifyInputValueChange('size', sizeInputter.getValue());
+		}, this);
+		this.setPropStoreFieldValue('reactionConditionGlyphSizeInputter', sizeInputter);
+		this._reactionConditionGlyphSizeRow = inputTable.createRow(Kekule.$L('ChemWidgetTexts.CAPTION_REACTION_CONDITION_GLYPH_SIZE'), sizeInputter);
+		*/
+
+		return result;
+	},
+
+	updateDisplayedComponents: function()
+	{
+		var components = this.getComponents() || this.DEF_COMPONENTS;
+		// var diplayCustomConditionInputter = this._useCustomReactionCondition();
+		SU.setDisplay(this._reactionConditionRow, components.indexOf(BNS.reactionCondition) >= 0);
+		// SU.setDisplay(this._reactionCustomConditionRow, components.indexOf(BNS.reactionCondition) >= 0 && diplayCustomConditionInputter);
+		SU.setDisplay(this._reactionConditionDisplaySymbolRow, components.indexOf(BNS.reactionConditionDisplaySymbol) >= 0);
+		// SU.setDisplay(this._reactionConditionGlyphSizeRow, components.indexOf(BNS.reactionConditionGlyphSize) >= 0);
+	},
+
+	/** @private */
+	/*
+	_useCustomReactionCondition() {
+		var cond = this.getReactionConditionBox().getValue();
+		return !cond;
+	},
+	*/
+	/** @private */
+	_getConcreteReactionCondition() {
+		var result = this.getReactionConditionBox().getValue();
+		/*
+		if (!result)  // custom condition
+		{
+			result = this.getReactionCustomConditionBox().getValue();
+		}
+		*/
+		return result;
+	},
+
+	/** @private */
+	fillReactionConditionBox: function(box, conditions)
+	{
+		if (box)
+		{
+			box.setItems(conditions);
+			/*
+			var map = Kekule.Glyph.ChemConditionSymbol._getDefaultLabelTextAndStyleMap();
+			var boxItems = []; // [{'text': Kekule.$L('ChemWidgetTexts.S_VALUE_DEFAULT'), 'value': undefined}];
+			for (var i = 0, l = conditions.length; i < l; ++i)
+			{
+				var item = map[conditions[i]];
+				if (item)
+					boxItems.push({'text': item.symbol, 'value': conditions[i], 'hint': item.text});
+			}
+			box.setItems(boxItems);
+			*/
+		}
+	},
+
+	/**
+	 * Notify the new props value has been set.
+	 * @private
+	 */
+	notifyInputValueChange: function(name, value)
+	{
+		var data = {values: {}, 'modifiedName': name, 'modifiedValue': value};
+		data.values[name] = value;
 		this.invokeEvent('valueChange', data);
 	}
 });

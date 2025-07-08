@@ -36,6 +36,7 @@ var DU = Kekule.DomUtils;
 var EU = Kekule.HtmlElementUtils;
 var CNS = Kekule.Widget.HtmlClassNames;
 var CCNS = Kekule.ChemWidget.HtmlClassNames;
+var BNS = Kekule.ChemWidget.ComponentWidgetNames;
 
 Kekule.ChemWidget.HtmlClassNames = Object.extend(Kekule.ChemWidget.HtmlClassNames, {
 	COMPOSER_GLYPH_PATH_MODIFIER_BUTTON: 'K-Chem-Composer-GlyphPathModifier-Button',
@@ -44,7 +45,15 @@ Kekule.ChemWidget.HtmlClassNames = Object.extend(Kekule.ChemWidget.HtmlClassName
 	COMPOSER_GLYPH_ARC_PATH_MODIFIER_BUTTON: 'K-Chem-Composer-ArcPathModifier-Button',
 	COMPOSER_GLYPH_MULTI_ARC_PATH_MODIFIER_BUTTON: 'K-Chem-Composer-MultiArcPathModifier-Button',
 	COMPOSER_GLYPH_ELECTRON_PUSHING_ARROW_MODIFIER_BUTTON: 'K-Chem-Composer-ElectronPushingArrowModifier-Button',
-	COMPOSER_GLYPH_BOND_FORMING_ELECTRON_PUSHING_ARROW_MODIFIER_BUTTON: 'K-Chem-Composer-BondFormingElectronPushingArrowModifier-Button',
+	COMPOSER_GLYPH_BOND_FORMING_ELECTRON_PUSHING_ARROW_MODIFIER_BUTTON: 'K-Chem-Composer-BondFormingElectronPushingArrowModifier-Button'
+});
+
+Kekule.globalOptions.add('chemWidget.composer.objModifier.reactionCondition', {
+	componentNames:	[
+		BNS.reactionCondition,
+		BNS.reactionConditionDisplaySymbol,
+		BNS.reactionConditionGlyphSize
+	]
 });
 
 /**
@@ -1386,11 +1395,240 @@ Kekule.Editor.ObjModifier.BondFormingElectronPushingArrow = Class.create(Kekule.
 	}
 });
 
+/**
+ * A modifier to change the label of a label glyph.
+ * @class
+ * @augments Kekule.Editor.ObjModifier.RichText
+ */
+Kekule.Editor.ObjModifier.GlyphLabel = Class.create(Kekule.Editor.ObjModifier.RichText,
+/** @lends Kekule.Editor.ObjModifier.GlyphLabel# */
+{
+	/** @private */
+	CLASS_NAME: 'Kekule.Editor.ObjModifier.GlyphLabel',
+	/** @construct */
+	initialize: function(editor)
+	{
+		this.tryApplySuper('initialize', [editor]);
+	},
+	/** @private */
+	initProperties: function()
+	{
+		// private
+		// this.defineProp('labelParamSetter', {
+		// 	'dataType': 'Kekule.Widget.BaseWidget', 'serializable': false, 'setter': null
+		// });
+	},
+
+	// /** @ignore */
+	// getModifierCaption: function()
+	// {
+	// 	return Kekule.$L('ChemWidgetTexts.CAPTION_TEXT_FORMAT');
+	// },
+	// /** @ignore */
+	// getModifierHint: function()
+	// {
+	// 	return Kekule.$L('ChemWidgetTexts.HINT_TEXT_FORMAT');
+	// },
+	// /** @ignore */
+	// getModifierClassName: function()
+	// {
+	// 	return this.tryApplySuper('getModifierClassName');
+	// },
+
+	// /** @ignore */
+	/*
+	doCreateWidget: function()
+	{
+		var result = new Kekule.Widget.DropDownButton(this.getEditor());
+		result.setHint(this.getModifierHint());
+		result.setText(this.getModifierCaption());
+		result.setShowText(true);
+		result.setButtonKind(Kekule.Widget.Button.Kinds.DROPDOWN);
+		result.addClassName(CCNS.COMPOSER_GLYPH_PATH_MODIFIER_BUTTON + ' ' + this.getModifierClassName());
+
+		//var atomSetter = this._createAtomSetter(this.getEditor());
+		//result.setDropDownWidget(atomSetter);
+		result.setDropDownWidgetGetter(this._createPathParamSetter.bind(this));
+
+		return result;
+	}
+	*/
+});
+
+/**
+ * A modifier to change the reaction condition glyph.
+ * @class
+ * @augments Kekule.Editor.ObjModifier.GlyphLabel
+ */
+Kekule.Editor.ObjModifier.ReactionCondition = Class.create(Kekule.Editor.ObjModifier.GlyphLabel,
+/** @lends Kekule.Editor.ObjModifier.ReactionCondition# */
+{
+	/** @private */
+	CLASS_NAME: 'Kekule.Editor.ObjModifier.ReactionCondition',
+
+	/** @ignore */
+	getModifierCaption: function()
+	{
+		return Kekule.$L('ChemWidgetTexts.CAPTION_REACTION_CONDITION_MODIFIER');
+	},
+	/** @ignore */
+	getModifierHint: function()
+	{
+		return Kekule.$L('ChemWidgetTexts.HINT_REACTION_CONDITION_MODIFIER');
+	},
+	/** @ignore */
+	getModifierClassName: function()
+	{
+		return this.tryApplySuper('getModifierClassName') + ' ' + CCNS.COMPOSER_REACTION_CONDITION_BUTTON;
+	},
+
+	/** @ignore */
+	doLoadFromTargets: function(editor, targets)
+	{
+		if (targets && targets.length)
+		{
+			var valueStorage = this._valueStorage;
+
+			// retrieve current condition value
+			var currCondition, currText, currDisplaySymbol;
+			for (var i = 0, ii = targets.length; i < ii; ++i)
+			{
+				var obj = targets[i];
+				if (obj instanceof Kekule.Glyph.ChemConditionSymbol)
+				{
+					/*
+					if (currCondition === undefined)
+						currCondition = obj.getCondition();
+					else if (currCondition !== obj.getCondition())
+						currCondition = null;  // null means mixed value
+					*/
+					if (currText === undefined)
+						currText = obj.getText();
+					else if (currText !== obj.getText())
+						currText = null;    // null means mixed value
+
+					if (currDisplaySymbol === undefined)
+						currDisplaySymbol = obj.getDisplaySymbol();
+					else if (obj.getDisplaySymbol() && currDisplaySymbol !== obj.getDisplaySymbol())
+						currDisplaySymbol = null;
+				}
+			}
+			// valueStorage.condition = currCondition;
+			valueStorage.condition = currText;
+			valueStorage.displaySymbol = currDisplaySymbol;
+
+			if (this.getSettingsPanel())
+			{
+				this._updateUiValuesFromStorage(valueStorage);
+			}
+		}
+	},
+
+	/** @private */
+	_updateUiValuesFromStorage: function(valueStorage)
+	{
+		if (this.getSettingsPanel())
+		{
+			this.getSettingsPanel().setValue(valueStorage);
+		}
+	},
+
+	/** @private */
+	_getDropDownPanelComponents: function()
+	{
+		var compNames = Kekule.globalOptions.chemWidget.composer.objModifier.reactionCondition.componentNames;
+		return compNames;
+	},
+
+	/** @private */
+	_doCreateDropDownPanel: function()
+	{
+		var compNames = this._getDropDownPanelComponents();
+		var configs = this.getEditorConfigs().getReactionConditionSetterConfigs();
+
+		var panel = this._doCreateSettingsPanelInstance(this.getEditor());
+
+		this.setPropStoreFieldValue('settingsPanel', panel);
+		panel.setComponents(compNames)
+			.setCaption(this.getModifierCaption());
+
+		panel.setSelectableReactionConditions(
+			configs.getListedReactionConditions()
+		);
+
+		panel.setConditionGlyphSizeMin(configs.getConditionGlyphFontSizeMin())
+			.setConditionGlyphSizeMax(configs.getConditionGlyphFontSizeMax())
+			.setConditionGlyphSizeStep(configs.getConditionGlyphFontSizeStep());
+
+		panel.addEventListener('valueChange', function(e) {
+			if (e.target === panel)
+			{
+				var modifiedValue = {};
+				if (e.modifiedName === 'condition')
+				{
+					modifiedValue.text = e.modifiedValue;  // use text property of condition glyph to do modification
+				}
+				/*
+				else if (e.modifiedName === 'customCondition')
+				{
+					modifiedValue.condition = e.modifiedValue;
+				}
+				*/
+				else if (e.modifiedName === 'displaySymbol')
+				{
+					modifiedValue.displaySymbol = e.modifiedValue;  // use text property of condition glyph to do modification
+				}
+				else if (e.modifiedName === 'size')
+				{
+					console.log('Change size to', e.modifiedValue);
+				}
+				// console.log('changed', modifiedValue, e);
+				this.getEditor().modifyObjects(this.getTargetObjs(), modifiedValue, true);
+			}
+		}, this);
+
+		// set stored field values
+		var valueStorage = this._valueStorage;
+		if (valueStorage)
+		{
+			this._updateUiValuesFromStorage(valueStorage);
+		}
+
+		return panel;
+	},
+
+	/** @ignore */
+	_doCreateSettingsPanelInstance: function(targetEditor)
+	{
+		var result = new Kekule.ChemWidget.ReactionConditionSettingPanel(targetEditor);
+		return result;
+
+	},
+
+	/** @ignore */
+	/*
+	doCreateWidget: function()
+	{
+		var result = new Kekule.Widget.DropDownButton(this.getEditor());
+		result.setHint(this.getModifierHint());
+		result.setText(this.getModifierCaption());
+		result.setShowText(false);
+		result.setButtonKind(Kekule.Widget.Button.Kinds.DROPDOWN);
+		if (this.getModifierClassName())
+			result.addClassName(this.getModifierClassName());
+
+		result.setDropDownWidgetGetter(this._doCreateSettingsPanelInstance.bind(this));
+		return result;
+	}
+	*/
+});
+
 var OMM = Kekule.Editor.ObjModifierManager;
 OMM.register([Kekule.Glyph.StraightLine, Kekule.Glyph.PathGlyphConnector], [Kekule.Editor.ObjModifier.ReactionArrowAndSegmentPath]);
 OMM.register([Kekule.Glyph.Arc], [Kekule.Editor.ObjModifier.ArcPath]);
 OMM.register([Kekule.Glyph.TwinArc], [Kekule.Editor.ObjModifier.MultiArcPath]);
 OMM.register([Kekule.Glyph.ElectronPushingArrow], [Kekule.Editor.ObjModifier.ElectronPushingArrow]);
 OMM.register([Kekule.Glyph.BondFormingElectronPushingArrow], [Kekule.Editor.ObjModifier.BondFormingElectronPushingArrow]);
+OMM.register([Kekule.Glyph.ChemConditionSymbol], [Kekule.Editor.ObjModifier.ReactionCondition]);
 
 })();

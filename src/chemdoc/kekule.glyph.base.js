@@ -229,4 +229,58 @@ Kekule.ClassDefineUtils.addStandardCoordSupport(Kekule.Glyph.Base);
 //Kekule.ClassDefineUtils.addStandardSizeSupport(Kekule.Glyph);
 
 
+/**
+ * Represent a glyph represented and rendered by text with specialized font.
+ * @class
+ * @augments Kekule.Glyph.Base
+ * @param {String} id Id of this glyph.
+ * @param {Float} refLength ref length of editor, this value will be used to create suitable glyph size.
+ * @param {Hash} initialParams InitialParams used for creating connector and nodes.
+ *   Can include all the fields in pathParams property of connector.
+ *   Note: in initialParams, length fields(e.g. startArrowLength, endArrowLength) are based on refLength,
+ *   field * refLength will be the actual length passed to connector. In private method createDefaultStructure,
+ *   those length fields will be converted into actual length and passed into doCreateDefaultStructure.
+ * @param {Object} coord2D The 2D coordinates of glyph, {x, y}, can be null.
+ * @param {Object} coord3D The 3D coordinates of glyph, {x, y, z}, can be null.
+ */
+Kekule.Glyph.LabelGlyph = Class.create(Kekule.Glyph.Base,
+/** @lends Kekule.Glyph.LabelGlyph# */
+{
+	/** @private */
+	CLASS_NAME: 'Kekule.Glyph.LabelGlyph',
+	/** @constructs */
+	initialize: function(id, refLength, initialParams, coord2D, coord3D)
+	{
+        this.tryApplySuper('initialize', [id, coord2D, coord3D]);
+	},
+	/** @private */
+	initProperties: function()
+	{
+		// special property, indicate whether the block has been changed and
+		// the size should be recalculated
+		this.defineProp('needRecalcSize', {'dataType': DataType.BOOL, 'scope': Class.PropertyScope.PUBLIC});
+    },
+
+	/**
+	 * A method to notify the content (label, font, etc.) has changed and the glyph size and outlook is changed.
+	 * @private
+	 */
+	notifyContentChanged: function()
+	{
+		this.setNeedRecalcSize(true);
+	},
+
+	/**
+	 * Returns label rich text of this glyph.
+	 * Descendants should override this method.
+	 * @returns {Kekule.Render.RichText}
+	 * @private
+	 */
+	getLabel: function() {
+		return null;
+	}
+});
+Kekule.ClassDefineUtils.addStandardSizeSupport(Kekule.Glyph.LabelGlyph);
+
+
 })();

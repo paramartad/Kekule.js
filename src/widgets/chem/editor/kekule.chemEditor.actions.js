@@ -111,6 +111,7 @@ Object.extend(Kekule.ChemWidget.ComponentWidgetNames, {
 	glyphRepSingleSideOpenArrowArc: 'repSingleSideOpenArrowArc',
 	glyphRepHeatSymbol: 'repHeatSymbol',
 	glyphRepAddSymbol: 'repAddSymbol',
+	glyphRepChemConditionSymbol: 'repChemConditionSymbol',
 	glyphElectronPushingArrow: 'repElectronPushingArrow',
 	glyphElectronPushingArrowDouble: 'repElectronPushingArrowDouble',
 	glyphElectronPushingArrowSingle: 'repElectronPushingArrowSingle',
@@ -2892,6 +2893,21 @@ Kekule.Editor.ActionComposerSetRepositoryAddSymbolController = Kekule.Editor.cre
 	null, null,
 	BNS.glyphRepAddSymbol
 );
+Kekule.Editor.ActionComposerSetRepositoryChemConditionSymbolController = Kekule.Editor.createComposerIaControllerActionClass(
+	'Kekule.Editor.ActionComposerSetRepositoryChemConditionSymbolController',
+	Kekule.$L('ChemWidgetTexts.CAPTION_REPOSITORY_CHEM_CONDITION'), //Kekule.ChemWidgetTexts.CAPTION_REPOSITORY_HEAT_SYMBOL,
+	Kekule.$L('ChemWidgetTexts.HINT_REPOSITORY_CHEM_CONDITION'), //Kekule.ChemWidgetTexts.HINT_REPOSITORY_HEAT_SYMBOL,
+	'ArrowLineIaController',
+	'ArrowGlyphIaController-ChemCondition',
+	{
+		'glyphClass': Kekule.Glyph.ChemConditionSymbol,
+		'glyphInitialParams': {
+			'condition': Kekule.ReactionQualitativeCondition.HEAT
+		}
+	},
+	null, null,
+	BNS.glyphRepChemConditionSymbol
+);
 
 Kekule.Editor.ActionComposerSetRepositoryLineSegmentController = Kekule.Editor.createComposerIaControllerActionClass(
 	'Kekule.Editor.ActionComposerSetRepositoryLineSegmentController',
@@ -3088,7 +3104,8 @@ Kekule.Editor.ActionComposerSetRepositoryGlyphController = Kekule.Editor.createC
 		Kekule.Editor.ActionComposerSetRepositorySingleElectronPushingArrowController,
 		Kekule.Editor.ActionComposerSetRepositoryBondFormingElectronPushingArrowController,
 		Kekule.Editor.ActionComposerSetRepositoryHeatSymbolController,
-		Kekule.Editor.ActionComposerSetRepositoryAddSymbolController
+		Kekule.Editor.ActionComposerSetRepositoryAddSymbolController,
+		Kekule.Editor.ActionComposerSetRepositoryChemConditionSymbolController
 	],
 	null,
 	BNS.glyph

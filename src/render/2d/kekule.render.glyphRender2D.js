@@ -893,4 +893,57 @@ Kekule.Render.PathGlyph2DRenderer = Class.create(Kekule.Render.BaseGlyph2DRender
 });
 Kekule.Render.Renderer2DFactory.register(Kekule.Glyph.PathGlyph, Kekule.Render.PathGlyph2DRenderer);
 
+
+/**
+ * Class to render a {@link Kekule.Glyph.LabelGlyph}.
+ * @class
+ * @augments Kekule.Render.RichTextBased2DRenderer
+ */
+Kekule.Render.LabelGlyph2DRenderer = Class.create(Kekule.Render.RichTextBased2DRenderer,
+/** @lends Kekule.Render.LabelGlyph2DRenderer# */
+{
+	/** @private */
+	CLASS_NAME: 'Kekule.Render.LabelGlyph2DRenderer',
+	/** @constructs */
+	initialize: function(chemObj, drawBridge, parent)
+	{
+		this.tryApplySuper('initialize', [chemObj, drawBridge, parent]);
+	},
+	finalize: function()
+	{
+		this.tryApplySuper('finalize');
+	},
+
+	/** @ignore */
+	getRichText: function(chemObj, drawOptions)
+	{
+		return chemObj.getLabel();
+	},
+
+	/** @ignore */
+	doEstimateSelfObjBox: function(context, options, allowCoordBorrow)
+	{
+		return this.getChemObj().getBox2D(allowCoordBorrow);
+	},
+
+	/** private */
+	extractRichTextDrawOptions: function(options)
+	{
+		var initialStyle = this.getChemObj().getInitialLabelStyle() || {};
+		var initialZoom = initialStyle.initialLabelZoom || 1;
+		var ops = this.tryApplySuper('extractRichTextDrawOptions', [options]);
+		ops.fontSize = oneOf(ops.fontSize, initialStyle.fontSize, ops.labelFontSize) * initialZoom;
+		ops.fontFamily = oneOf(ops.fontFamily, initialStyle.fontFamily, ops.labelFontFamily);
+		ops.fontStyle = oneOf(ops.fontStyle, initialStyle.fontStyle, ops.labelFontStyle);
+
+		ops.color = oneOf(ops.color, initialStyle.color, ops.glyphFillColor, ops.glyphStrokeColor);
+
+		ops.textBoxXAlignment = Kekule.Render.BoxXAlignment.CENTER;
+		ops.textBoxYAlignment = Kekule.Render.BoxYAlignment.CENTER;
+
+		return ops;
+	}
+});
+Kekule.Render.Renderer2DFactory.register(Kekule.Glyph.LabelGlyph, Kekule.Render.LabelGlyph2DRenderer);
+
 })();

@@ -8,7 +8,7 @@
   <script>
     var objInspector, nodeSelectPanel, nodeSetter, bondSelectPanel, bondSelectPanelAdv, chargeSelectPanel,
       glyphArrowPanel, glyphLinePanel, glyphSettingPanel, reactionArrowSettingPanel, glyphMultiPathSettingPanel, multiElectronPushingArrowSettingPanel,
-      textStyleSettingPanel;
+      textStyleSettingPanel, reactionConditionSettingPanel;
 
     function refreshWidgetList()
     {
@@ -136,8 +136,11 @@
 
       var editorConfigs = Kekule.Editor.ChemSpaceEditorConfigs.getInstance();
       textStyleSettingPanel = Kekule.Widget.getWidgetById('textStyleSettingPanel');
-      textStyleSettingPanel.setSelectableFontNames(editorConfigs.getStyleSetterConfigs().getListedFontNames());
+      textStyleSettingPanel.setSelectableFontFamilies(editorConfigs.getStyleSetterConfigs().getListedFontNames());
       textStyleSettingPanel.setSelectableFontSizes(editorConfigs.getStyleSetterConfigs().getListedFontSizes());
+
+      reactionConditionSettingPanel = Kekule.Widget.getWidgetById('reactionConditionSettingPanel');
+      reactionConditionSettingPanel.setSelectableReactionConditions(editorConfigs.getReactionConditionSetterConfigs().getListedReactionConditions());
 
       objInspector = Kekule.Widget.getWidgetById('objInspector'); // new Kekule.Widget.ObjectInspector();
       objInspector.setObjects(nodeSetter);
@@ -179,6 +182,7 @@
   </div>
   <div>
     <div id="textStyleSettingPanel" data-widget="Kekule.ChemWidget.TextStyleSettingPanel" style="vertical-align:middle"></div>
+    <div id="reactionConditionSettingPanel" data-widget="Kekule.ChemWidget.ReactionConditionSettingPanel" style="vertical-align:middle"></div>
   </div>
 </body>
 </html>

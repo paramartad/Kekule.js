@@ -88,7 +88,11 @@ Kekule.ChemWidget.ComponentWidgetNames =
 	textDirection: 'textDirection',
 	textAlign: 'textAlign',
 
-	nodeDisplayMode: 'nodeDisplayMode'
+	nodeDisplayMode: 'nodeDisplayMode',
+
+	reactionCondition: 'reactionCondition',
+	reactionConditionDisplaySymbol: 'reactionConditionDisplaySymbol',
+	reactionConditionGlyphSize: 'reactionSymbolSize'
 };
 
 /** @ignore */

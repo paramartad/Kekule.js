@@ -222,8 +222,10 @@ ClassEx.extend(Kekule.ChemObject,
 		if (this.getSizeOfMode && this.setSizeOfMode)
 		{
 			var size = this.getSizeOfMode(coordMode, allowCoordBorrow);
-			var newSize = Kekule.CoordUtils.multiply(size, scale);
-			this.setSizeOfMode(newSize, coordMode);
+			if (size) {
+				var newSize = Kekule.CoordUtils.multiply(size, scale);
+				this.setSizeOfMode(newSize, coordMode);
+			}
 		}
 		if (this.getChildCount && (cascade || Kekule.ObjUtils.isUnset(cascade)))
 		{

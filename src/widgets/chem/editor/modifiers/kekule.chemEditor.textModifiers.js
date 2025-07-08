@@ -26,6 +26,7 @@ var BNS = Kekule.ChemWidget.ComponentWidgetNames;
 
 Kekule.ChemWidget.HtmlClassNames = Object.extend(Kekule.ChemWidget.HtmlClassNames, {
 	COMPOSER_TEXTFORMAT_BUTTON: 'K-Chem-Composer-TextFormat-Button',
+	COMPOSER_REACTION_CONDITION_BUTTON: 'K-Chem-Composer-Reaction-Condition-Button',
 
 	COMPOSER_MODIFIER_RICHTEXT_PANEL: 'K-Chem-Composer-Modifier-RichText-Panel',
 	COMPOSER_MODIFIER_RICHTEXT_PANEL_GROUP: 'K-Chem-Composer-Modifier-RichText-Panel-Group',
@@ -67,7 +68,7 @@ Kekule.Editor.ObjModifier.RichText = Class.create(Kekule.Editor.ObjModifier.Base
 	initProperties: function()
 	{
 		// private
-		this.defineProp('fontPanel', {
+		this.defineProp('settingsPanel', {
 			'dataType': 'Kekule.Widget.BaseWidget', 'serializable': false, 'setter': null
 		});
 	},
@@ -81,11 +82,12 @@ Kekule.Editor.ObjModifier.RichText = Class.create(Kekule.Editor.ObjModifier.Base
 	_doCreateDropDownPanel: function()
 	{
 		var compNames = this._getDropDownPanelComponents();
-		var panel = new Kekule.ChemWidget.TextStyleSettingPanel(this.getEditor());
-		this.setPropStoreFieldValue('fontPanel', panel);
+		// var panel = new Kekule.ChemWidget.TextStyleSettingPanel(this.getEditor());
+		var panel = this._doCreateSettingsPanelInstance(this.getEditor());
+		this.setPropStoreFieldValue('settingsPanel', panel);
 		panel.addClassName(CCNS.COMPOSER_MODIFIER_RICHTEXT_PANEL)
 			.setComponents(compNames)
-			.setCaption(Kekule.$L('ChemWidgetTexts.CAPTION_TEXT_FORMAT'));
+			.setCaption(this.getModifierCaption());
 		panel.setSelectableFontSizes(this.getEditorConfigs().getStyleSetterConfigs().getListedFontSizes())
 			.setSelectableFontFamilies(this.getEditorConfigs().getStyleSetterConfigs().getListedFontNames());
 		panel.addEventListener('valueChange', function(e) {
@@ -103,15 +105,38 @@ Kekule.Editor.ObjModifier.RichText = Class.create(Kekule.Editor.ObjModifier.Base
 
 		return panel;
 	},
+	/** @private */
+	_doCreateSettingsPanelInstance: function(targetEditor)
+	{
+		return new Kekule.ChemWidget.TextStyleSettingPanel(targetEditor);
+	},
+
+	/** @private */
+	getModifierCaption: function()
+	{
+		return Kekule.$L('ChemWidgetTexts.CAPTION_TEXT_FORMAT');
+	},
+	/** @private */
+	getModifierHint: function()
+	{
+		return Kekule.$L('ChemWidgetTexts.HINT_TEXT_FORMAT');
+	},
+	/** @private */
+	getModifierClassName: function()
+	{
+		return CCNS.COMPOSER_TEXTFORMAT_BUTTON;
+	},
+
 	/** @ignore */
 	doCreateWidget: function()
 	{
 		var result = new Kekule.Widget.DropDownButton(this.getEditor());
-		result.setHint(Kekule.$L('ChemWidgetTexts.HINT_TEXT_FORMAT'));
-		result.setText(Kekule.$L('ChemWidgetTexts.CAPTION_TEXT_FORMAT'));
+		result.setHint(this.getModifierHint());
+		result.setText(this.getModifierCaption());
 		result.setShowText(false);
 		result.setButtonKind(Kekule.Widget.Button.Kinds.DROPDOWN);
-		result.addClassName(CCNS.COMPOSER_TEXTFORMAT_BUTTON);
+		if (this.getModifierClassName())
+			result.addClassName(this.getModifierClassName());
 
 		//var panel = this._doCreateDropDownPanel();
 		//panel.on('valueChange', function(){ this.applyToTargets(); }, this);
@@ -147,9 +172,9 @@ Kekule.Editor.ObjModifier.RichText = Class.create(Kekule.Editor.ObjModifier.Base
 	/** @private */
 	_updateUiValuesFromStorage: function(valueStorage)
 	{
-		if (this.getFontPanel())
+		if (this.getSettingsPanel())
 		{
-			this.getFontPanel().setValue(valueStorage);
+			this.getSettingsPanel().setValue(valueStorage);
 			var compNames = this._getDropDownPanelComponents() || [];
 			if (valueStorage.hasNodeLabelDisplayModeTarget && compNames.indexOf(BNS.nodeDisplayMode) < 0)
 			{
@@ -164,7 +189,7 @@ Kekule.Editor.ObjModifier.RichText = Class.create(Kekule.Editor.ObjModifier.Base
 					compNames.splice(index, 1);
 				}
 			}
-			this.getFontPanel().setComponents(compNames);
+			this.getSettingsPanel().setComponents(compNames);
 		}
 	},
 
@@ -182,7 +207,7 @@ Kekule.Editor.ObjModifier.RichText = Class.create(Kekule.Editor.ObjModifier.Base
 			valueStorage.nodeDisplayMode = this.getRenderOptionValue(this._filterNodeLabelDisplayModeTargets(targets), 'nodeDisplayMode') || Kekule.Render.NodeLabelDisplayMode.DEFAULT;
 			valueStorage.hasNodeLabelDisplayModeTarget = this._hasNodeLabelDisplayModeTarget(targets);
 
-			if (this.getFontPanel())
+			if (this.getSettingsPanel())
 			{
 				this._updateUiValuesFromStorage(valueStorage);
 			}

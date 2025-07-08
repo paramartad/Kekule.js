@@ -272,6 +272,7 @@ Kekule.Localization.addResource('en', 'ChemWidgetTexts', {
 
 	CAPTION_REPOSITORY_HEAT_SYMBOL: 'Heat symbol',
 	CAPTION_REPOSITORY_ADD_SYMBOL: 'Plus symbol',
+	CAPTION_REPOSITORY_CHEM_CONDITION: 'Reaction condition',
 
 	// modifiers
 	CAPTION_TEXT_FORMAT: 'Text format',
@@ -302,6 +303,8 @@ Kekule.Localization.addResource('en', 'ChemWidgetTexts', {
 	CAPTION_NODE_LABEL_DISPLAY_MODE_HIDDEN: 'Hide label',
 	CAPTION_NODE_LABEL_DISPLAY_MODE_SMART: 'Smart',
 
+	CAPTION_REACTION_CONDITION: 'Reaction condition',
+
 	CAPTION_ATOM_MODIFIER: 'Atom',
 	CAPTION_ATOM_MODIFIER_MIXED: '[A]',
 	CAPTION_BOND_MODIFIER: 'Bond',
@@ -312,6 +315,11 @@ Kekule.Localization.addResource('en', 'ChemWidgetTexts', {
 	CAPTION_MULTI_ARC_PATH_MODIFIER: 'Multi-Arc',
 	CAPTION_ELECTRON_PUSHING_ARROW_MODIFIER: 'Electron pushing arrow',
 	CAPTION_BOND_FORMING_ELECTRON_PUSHING_ARROW_MODIFIER: 'Bond forming arrow',
+	CAPTION_REACTION_CONDITION_MODIFIER: 'Reaction condition',
+	CAPTION_CONDITION: 'Condition',
+	CAPTION_CUSTOM_CONDITION: 'Custom condition',
+	CAPTION_REACTION_CONDITION_GLYPH_SIZE: 'Size',
+	CAPTION_REACTION_CONDITION_DISPLAY_SYMBOL: 'Symbol',
 
 	TEXT_CHARGE_POSITIVE: '+',
 	TEXT_CHARGE_NEGATIVE: '-',
@@ -422,6 +430,7 @@ Kekule.Localization.addResource('en', 'ChemWidgetTexts', {
 	HINT_REPOSITORY_GLYPH_SINGLE_SIDE_OPEN_ARROW_ARC: 'Single side open arrow arc',
 	HINT_REPOSITORY_HEAT_SYMBOL: 'Heat symbol',
 	HINT_REPOSITORY_ADD_SYMBOL: 'Plus symbol',
+	HINT_REPOSITORY_CHEM_CONDITION: 'Reaction condition',
 	HINT_ELECTRON_PUSHING_ARROW: 'Electron pushing arrow',
 	/*
 	HINT_REACTION_ARROW_NORMAL: 'Normal reaction arrow',
@@ -432,6 +441,10 @@ Kekule.Localization.addResource('en', 'ChemWidgetTexts', {
 
 	// modifiers
 	HINT_NODE_LABEL_DISPLAY_MODE: 'Atom label display mode',
+	HINT_REACTION_CONDITION: 'Reaction condition',
+	HINT_REACTION_CUSTOM_CONDITION: 'Reaction custom condition',
+	HINT_REACTION_CONDITION_GLYPH_SIZE: 'Reaction condition glyph size',
+	HINT_REACTION_CONDITION_DISPLAY_SYMBOL: 'Try display condition symbol instead of text',
 
 	HINT_TEXT_FORMAT: 'Set text format',
 	HINT_FONTNAME: 'Set font name',
@@ -452,6 +465,7 @@ Kekule.Localization.addResource('en', 'ChemWidgetTexts', {
 	HINT_MULTI_ARC_PATH_MODIFIER: 'Set multi-arc properties',
 	HINT_ELECTRON_PUSHING_ARROW_MODIFIER: 'Set electron pushing arrow properties',
 	HINT_BOND_FORMING_ELECTRON_PUSHING_ARROW_MODIFIER: 'Set bond forming arrow properties',
+	HINT_REACTION_CONDITION_MODIFIER: 'Set reaction condition',
 
 	HINT_USE_ATOM_CUSTOM_COLOR: '(use atom custom color)',
 
@@ -533,6 +547,17 @@ Kekule.Localization.addResource('en', 'ChemWidgetTexts', {
 	HINT_ELECTRON_PUSHING_ARROW_2: 'Double electron pushing arrow',
 	CAPTION_BOND_FORMING_ELECTRON_PUSHING_ARROW_1: 'Bond forming electron pushing arrow',
 	HINT_BOND_FORMING_ELECTRON_PUSHING_ARROW_1: 'Bond forming electron pushing arrow',
+
+	// Reaction condition labels
+	LABEL_REACTION_CONDITION_HEAT: 'heat',
+	LABEL_REACTION_CONDITION_HEAT_SYMBOL: '△',
+	LABEL_REACTION_CONDITION_LIGHT: 'light',
+	LABEL_REACTION_CONDITION_LIGHT_SYMBOL: 'h𝜈',
+	LABEL_REACTION_CONDITION_PRESSURE: 'pressure',
+	LABEL_REACTION_CONDITION_HIGH_TEMP: 'high temp.',
+	LABEL_REACTION_CONDITION_LOW_TEMP: 'low temp.',
+	LABEL_REACTION_CONDITION_MICROWAVE: 'microwave',
+	LABEL_REACTION_CONDITION_CUSTOM: 'custom',
 
 	// Periodic table
 	LEGEND_CAPTION: 'Legend',

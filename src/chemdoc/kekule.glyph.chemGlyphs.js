@@ -8,6 +8,7 @@
  * requires /lan/classes.js
  * requires /core/kekule.common.js
  * requires /core/kekule.structures.js
+ * requires /reactions/kekule.chemReactions.js
  * requires /chemdoc/kekule.glyph.base.js
  * requires /chemdoc/kekule.glyph.pathGlyphs.js
  * requires /chemdoc/kekule.glyph.lines.js
@@ -597,5 +598,258 @@ Kekule.Glyph.BondFormingElectronPushingArrow = Class.create(Kekule.Glyph.BaseTwi
 		return result;
 	},
 });
+
+
+/**
+ * Condition symbol (e.g., heat, hv, etc.) of chemistry reaction.
+ * @class
+ * @augments Kekule.Glyph.LabelGlyph
+ *
+ * @property {Variant} condition Value from {@link Kekule.ReactionQualitativeCondition}. Set this property will also change the text property automatically.
+ * @property {String} text Display text of condition. Set this property will also change the condition property automatically.
+ * @property {Bool} displaySymbol Whether displaying symbol (e.g. △ for heat) instead of text in glyph.
+ */
+Kekule.Glyph.ChemConditionSymbol = Class.create(Kekule.Glyph.LabelGlyph,
+/** @lends Kekule.Glyph.ChemConditionSymbol# */
+{
+	/** @private */
+	CLASS_NAME: 'Kekule.Glyph.ChemConditionSymbol',
+	/** @constructs */
+	initialize: function(id, refLength, initialParams, coord2D, coord3D)
+	{
+		this.setPropStoreFieldValue('displaySymbol', true);
+		this.tryApplySuper('initialize', [id, refLength, initialParams, coord2D, coord3D]);
+		if (initialParams && initialParams.condition)
+			this.setCondition(initialParams.condition);
+			// this.setPropStoreFieldValue('condition', initialParams.condition);
+		if (initialParams && initialParams.text)
+			this.setCondition(initialParams.text);
+	},
+	/** @private */
+	initProperties: function()
+	{
+		this.defineProp('condition', {
+			'dataType': DataType.VARIANT,
+			'scope': Class.PropertyScope.PUBLISHED,
+			'enumSource': Kekule.ReactionQualitativeCondition
+		});
+		this.defineProp('text', {
+			'dataType': DataType.STRING,
+			'scope': Class.PropertyScope.PUBLISHED
+		});
+		this.defineProp('displaySymbol', {'dataType': DataType.BOOL});
+	},
+
+	/** @ignore */
+	doObjectChange: function(modifiedPropNames)
+	{
+		// when condition changed, size may need to be recalculated
+		if (Kekule.ArrayUtils.intersect(['condition', 'displaySymbol', 'text', 'renderOptions'], modifiedPropNames).length)
+		{
+			this.notifyContentChanged();
+		}
+	},
+
+	/** @ignore */
+	doSetCondition: function(value)
+	{
+		this.setPropStoreFieldValue('condition', value);
+		if (value)
+		{
+			var mapItem = this._getDefaultLabelTextAndStyleMap()[value];
+			if (mapItem)
+				this.setPropStoreFieldValue('text', mapItem.text);
+		}
+	},
+	/** @ignore */
+	doSetText: function(value)
+	{
+		this.setPropStoreFieldValue('text', value);
+		if (value)
+		{
+			var mapItems = this._getDefaultLabelTextAndStyleMap();
+			var conds = Object.keys(mapItems);
+			var matchedCond = conds.find(function(cond) {
+				return (mapItems[cond] && (mapItems[cond].text === value || mapItems[cond].symbol === value));
+			});
+			this.setPropStoreFieldValue('condition', matchedCond || null);
+		}
+		else
+		{
+			this.setPropStoreFieldValue('condition', null);
+		}
+	},
+
+
+	/** @ignore */
+	notifyContentChanged: function()
+	{
+		this._cachedLabelAndStyle = null;
+		this.tryApplySuper('notifyContentChanged');
+	},
+
+	/** @private */
+	getConcreteDisplaySymbol: function()
+	{
+		return this.getDisplaySymbol() && this.getCondition();
+	},
+	/** @ignore */
+	getLabel: function()
+	{
+		return this.getLabelAndInitialStyle().richText;
+	},
+	getInitialLabelStyle: function()
+	{
+		return this.getLabelAndInitialStyle().style;
+	},
+	/**
+	 * Returns the label rich text and the initial font styles.
+	 * @returns {object} {text, style}.
+	 */
+	getLabelAndInitialStyle: function()
+	{
+		if (this._cachedLabelAndStyle)
+			return this._cachedLabelAndStyle;
+		else
+		{
+			var RTU = Kekule.Render.RichTextUtils;
+			var result = {
+
+			};
+			var displaySymbol = this.getConcreteDisplaySymbol();
+			var cond = this.getCondition();
+			var condMapItem = cond && this._getDefaultLabelTextAndStyleMap()[cond];
+
+			if (condMapItem && displaySymbol)
+			{
+				result.richText = condMapItem.richSymbol;
+				result.style = condMapItem.symbolStyle;
+			}
+
+			if (!result.richText)
+			{
+				var text = this.getText();
+				result.richText = text? RTU.strToRichText(text): (condMapItem && condMapItem.richText);
+			}
+			if (!result.style)
+			{
+				result.style = condMapItem && condMapItem.style;
+			}
+
+			var defStyle = this._getDefaultLabelStyle();
+			result.style = result.style? Object.extend(defStyle, result.style): defStyle;
+
+			return result;
+
+			/*
+			var result;
+			var cond = this.getCondition() || Kekule.ReactionQualitativeCondition.HEAT;
+			if (cond) {
+				var map = this._getDefaultLabelTextAndStyleMap();
+				var mapItem = map[cond];
+				if (mapItem)
+				{
+					var displaySymbol = this.getDisplaySymbol();
+					if (displaySymbol)
+					{
+						result = {
+							text: mapItem.symbol || mapItem.text,
+							style: mapItem.symbolStyle || mapItem.style
+						};
+					}
+					else
+					{
+						result = {
+							text: mapItem.text,
+							style: mapItem.style
+						};
+					}
+				}
+				if (!result)
+					result = {
+						text: this._createRichText(cond)
+					};
+				var defStyle = this._getDefaultLabelStyle();
+				result.style = result.style? Object.extend(defStyle, result.style): defStyle;
+			}
+			return result;
+			*/
+		}
+	},
+
+	/** @private */
+	_getDefaultLabelStyle: function()
+	{
+		return {
+			fontFamily: 'Georgia, Times New Roman, Times, serif',
+			fontStyle: 'italic',
+			initialLabelZoom: 0.8,
+		};
+	},
+
+	_createRichText: function(text)
+	{
+		var result = Kekule.Render.RichTextUtils.create();
+		Kekule.Render.RichTextUtils.appendText(result, text);
+		return result;
+	},
+
+	_getDefaultLabelTextAndStyleMap: function()
+	{
+		return Kekule.Glyph.ChemConditionSymbol._getDefaultLabelTextAndStyleMap();
+	}
+});
+
+/**
+ * Returns the default text and font styles to render the label glyph.
+ * @ignore
+ */
+Kekule.Glyph.ChemConditionSymbol._getDefaultLabelTextAndStyleMap = function()
+{
+	if (Kekule.Glyph.ChemConditionSymbol._getDefaultLabelTextAndStyleMap._cache)
+		return Kekule.Glyph.ChemConditionSymbol._getDefaultLabelTextAndStyleMap._cache;
+	else
+	{
+		var RTU = Kekule.Render.RichTextUtils;
+		var result = {};
+		var RQC = Kekule.ReactionQualitativeCondition;
+		result[RQC.HEAT] = {
+			text: Kekule.$L('ChemWidgetTexts.LABEL_REACTION_CONDITION_HEAT'),
+			symbol: Kekule.$L('ChemWidgetTexts.LABEL_REACTION_CONDITION_HEAT_SYMBOL'),
+			richText: RTU.strToRichText(Kekule.$L('ChemWidgetTexts.LABEL_REACTION_CONDITION_HEAT')),
+			richSymbol: RTU.strToRichText(Kekule.$L('ChemWidgetTexts.LABEL_REACTION_CONDITION_HEAT_SYMBOL')),
+			symbolStyle: {
+				initialLabelZoom: 1.8,  // the triangle char is smaller than the ordinary texts, we need to enlarge it by default
+				fontFamily: 'Arial, Helvetica, sans-serif',
+				fontStyle: 'normal'
+			}
+		};
+		result[RQC.LIGHT] = {
+			text: Kekule.$L('ChemWidgetTexts.LABEL_REACTION_CONDITION_LIGHT'),
+			symbol: Kekule.$L('ChemWidgetTexts.LABEL_REACTION_CONDITION_LIGHT_SYMBOL'),
+			richText: RTU.strToRichText(Kekule.$L('ChemWidgetTexts.LABEL_REACTION_CONDITION_LIGHT')),
+			richSymbol: RTU.strToRichText(Kekule.$L('ChemWidgetTexts.LABEL_REACTION_CONDITION_LIGHT_SYMBOL'))
+		};
+		result[RQC.HIGH_TEMP] = {
+			text: Kekule.$L('ChemWidgetTexts.LABEL_REACTION_CONDITION_HIGH_TEMP'),
+			richText: RTU.strToRichText(Kekule.$L('ChemWidgetTexts.LABEL_REACTION_CONDITION_HIGH_TEMP'))
+		};
+		result[RQC.LOW_TEMP] = {
+			text: Kekule.$L('ChemWidgetTexts.LABEL_REACTION_CONDITION_LOW_TEMP'),
+			richText: RTU.strToRichText(Kekule.$L('ChemWidgetTexts.LABEL_REACTION_CONDITION_LOW_TEMP'))
+		};
+		result[RQC.PRESSURE] = {
+			text: Kekule.$L('ChemWidgetTexts.LABEL_REACTION_CONDITION_PRESSURE'),
+			richText: RTU.strToRichText(Kekule.$L('ChemWidgetTexts.LABEL_REACTION_CONDITION_PRESSURE'))
+		};
+		result[RQC.MICROWAVE] = {
+			text: Kekule.$L('ChemWidgetTexts.LABEL_REACTION_CONDITION_MICROWAVE'),
+			richText: RTU.strToRichText(Kekule.$L('ChemWidgetTexts.LABEL_REACTION_CONDITION_MICROWAVE'))
+		};
+
+		Kekule.Glyph.ChemConditionSymbol._getDefaultLabelTextAndStyleMap._cache = result;
+		return result;
+	}
+};
 
 })();

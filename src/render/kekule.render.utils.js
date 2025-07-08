@@ -2668,6 +2668,7 @@ Kekule.Render.RenderOptionUtils = {
 			{'name': 'fontSize', dataType: DataType.NUMBER},
 			//{'name': 'atomFontSize', dataType: DataType.NUMBER, 'targetClass': Kekule.ChemStructureObject},
 			{'name': 'fontFamily', dataType: DataType.STRING},
+			{'name': 'fontStyle', dataType: DataType.STRING},
 			//{'name': 'atomFontFamily', dataType: DataType.STRING, 'targetClass': Kekule.ChemStructureObject},
 			{'name': 'supFontSizeRatio', dataType: DataType.FLOAT},
 			{'name': 'subFontSizeRatio', dataType: DataType.FLOAT},
