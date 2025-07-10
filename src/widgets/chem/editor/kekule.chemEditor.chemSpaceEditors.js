@@ -4897,35 +4897,18 @@ Kekule.Editor.MolAtomIaController = Class.create(Kekule.Editor.BaseEditorIaContr
 	/** @private */
 	CLASS_NAME: 'Kekule.Editor.MolAtomIaController',
 	/** @construct */
-	initialize: function(/*$super, */editor)
+	initialize: function(editor)
 	{
-		this.tryApplySuper('initialize', [editor])  /* $super(editor) */;
-		this._createNonAtomLabelInfos();
-		this._setterShown = false;  // user internally
+		this.tryApplySuper('initialize', [editor]);
 	},
 	finalize: function(/*$super*/)
 	{
-		if (this.getAtomSetter())
-			this.getAtomSetter().finalize();
-		this.tryApplySuper('finalize')  /* $super() */;
+		this.tryApplySuper('finalize');
 	},
 	/** @private */
 	initProperties: function()
 	{
-		this.defineProp('currAtom', {'dataType': DataType.OBJECT, 'serializable': false});  // private
-		this.defineProp('nonAtomLabelInfos', {'dataType': DataType.ARRAY, 'serializable': false});  // private
-		this.defineProp('atomSetter', {
-			'dataType': DataType.OBJECT, 'serializable': false,
-			'setter': function(value)
-			{
-				var old = this.getAtomSetter();
-				if (old)
-					this.unbindAtomSetter(old);
-				this.setPropStoreFieldValue('atomSetter', value);
-				if (value)
-					this.bindAtomSetter(value);
-			}
-		});  // private
+
 	},
 
 	/** @private */
@@ -4949,443 +4932,17 @@ Kekule.Editor.MolAtomIaController = Class.create(Kekule.Editor.BaseEditorIaContr
 	},
 
 	/** @private */
-	/*
-	_getVarAtomListLabel: function()
+	getEmbeddedSetter: function()
 	{
-		var labelConfigs = this.getEditor().getRenderConfigs().getDisplayLabelConfigs();
-		return labelConfigs? labelConfigs.getVariableAtom(): Kekule.ChemStructureNodeLabels.VARIABLE_ATOM;
-	},
-	_getVarAtomNotListLabel: function()
-	{
-		var labelConfigs = this.getEditor().getRenderConfigs().getDisplayLabelConfigs();
-		return '~' + (labelConfigs? labelConfigs.getVariableAtom(): Kekule.ChemStructureNodeLabels.VARIABLE_ATOM);
-	},
-	*/
-	/** @private */
-	_createNonAtomLabelInfos: function()
-	{
-		/*
-		var result = [];
-		var labelConfigs = this.getEditor().getRenderConfigs().getDisplayLabelConfigs();
-		// R group
-		result.push({
-			'text': labelConfigs.getRgroup(), 'nodeClass': Kekule.RGroup,
-			'description': Kekule.$L('ChemWidgetTexts.CAPTION_RGROUP') //Kekule.ChemWidgetTexts.CAPTION_RGROUP
-		});
-		// Kekule.Pseudoatom
-		result.push({
-			'text': labelConfigs.getDummyAtom(), 'nodeClass': Kekule.Pseudoatom,
-			'props': {'atomType': Kekule.PseudoatomType.DUMMY},
-			'description': Kekule.$L('ChemWidgetTexts.CAPTION_DUMMY_ATOM') //Kekule.ChemWidgetTexts.CAPTION_DUMMY_ATOM
-		});
-		result.push({
-			'text': labelConfigs.getHeteroAtom(), 'nodeClass': Kekule.Pseudoatom,
-			'props': {'atomType': Kekule.PseudoatomType.HETERO},
-			'description': Kekule.$L('ChemWidgetTexts.CAPTION_HETERO_ATOM') //Kekule.ChemWidgetTexts.CAPTION_HETERO_ATOM
-		});
-		result.push({
-			'text': labelConfigs.getAnyAtom(), 'nodeClass': Kekule.Pseudoatom,
-			'props': {'atomType': Kekule.PseudoatomType.ANY},
-			'description': Kekule.$L('ChemWidgetTexts.CAPTION_ANY_ATOM') //Kekule.ChemWidgetTexts.CAPTION_ANY_ATOM
-		});
-		// Kekule.VariableAtom List and Not List
-		result.push({
-			'text': this._getVarAtomListLabel(), 'nodeClass': Kekule.VariableAtom, 'isVarList': true,
-			'description': Kekule.$L('ChemWidgetTexts.CAPTION_VARIABLE_ATOM') //Kekule.ChemWidgetTexts.CAPTION_VARIABLE_ATOM
-		});
-		result.push({
-			'text': this._getVarAtomNotListLabel(), 'nodeClass': Kekule.VariableAtom, 'isVarNotList': true,
-			'description': Kekule.$L('ChemWidgetTexts.CAPTION_VARIABLE_NOT_ATOM') //Kekule.ChemWidgetTexts.CAPTION_VARIABLE_NOT_ATOM
-		});
-    */
-		var editor = this.getEditor();
-		var result = editor && editor.getEnabledNonAtomInputData && editor.getEnabledNonAtomInputData();
-		this.setNonAtomLabelInfos(result);
-		return result;
-	},
-	/** @private */
-	_indexOfNonAtomLabel: function(nodeLabel)
-	{
-		var infos = this.getNonAtomLabelInfos();
-		for (var i = 0, l = infos.length; i < l; ++i)
-		{
-			var info = infos[i];
-			if (info.nodeLabel === nodeLabel)
-				return i;
-		}
-		return -1;
-	},
-	/** @private */
-	_getNonAtomInfo: function(nodeLabel)
-	{
-		var index = this._indexOfNonAtomLabel(nodeLabel);
-		return (index < 0)? null: this.getNonAtomLabelInfos()[index];
-	},
-
-	/** @private */
-	getAtomSetterWidget: function(canCreate)
-	{
-		var result = this.getAtomSetter();
-		if (!result && canCreate)  // create new one
-		{
-			var parentElem = this.getEditor().getCoreElement();
-			var doc = parentElem.ownerDocument;
-			result = this._createAtomSetterWidget(doc, parentElem);
-			this.setAtomSetter(result);
-		}
-		return result;
-	},
-	/** @private */
-	bindAtomSetter: function(atomSetterWidget)
-	{
-		this._initAtomSetterWidgetSettings(atomSetterWidget);
-		this._setAtomSetterEventListener(atomSetterWidget, true);
-	},
-	/** @private */
-	unbindAtomSetter: function(atomSetterWidget)
-	{
-		this._setAtomSetterEventListener(atomSetterWidget, false);
-	},
-	/** @private */
-	_createAtomSetterWidget: function(doc, parentElem)
-	{
-		var result = new Kekule.ChemWidget.StructureNodeSetter(this.getEditor());
-		result.setUseDropDownSelectPanel(true);
-		//this._initAtomSetterWidgetSettings(result);
-		result.appendToElem(parentElem);
-
-		return result;
-	},
-	/** @private */
-	_initAtomSetterWidgetSettings: function(widget)
-	{
-		widget.addClassName(CCNS.CHEMEDITOR_ATOM_SETTER);
-
-		if (widget.setSelectableInfos)
-		{
-			var listAtoms = AU.clone(this.getEditor().getEditorConfigs().getStructureConfigs().getPrimaryOrgChemAtoms());
-			listAtoms.push('...');  // add periodic table item
-			//result.setSelectableElementSymbols(listAtoms);
-			// non-atom nodes
-			var nonAtomLabelInfos = this.getNonAtomLabelInfos();
-			//result.setSelectableNonElementInfos(nonAtomLabelInfos);
-			// subgroups
-			//result.setSelectableSubGroupRepItems(Kekule.Editor.StoredSubgroupRepositoryItem2D.getAllRepItems());
-
-			widget.setSelectableInfos({
-				'elementSymbols': listAtoms,
-				'nonElementInfos': nonAtomLabelInfos,
-				'subGroupRepItems': Kekule.Editor.StoredSubgroupRepositoryItem2D.getAllRepItems()
-			});
-		}
-	},
-	/** @private */
-	_setAtomSetterEventListener: function(widget, isBind)
-	{
-		// react to value change of setter
-		//var self = this;
-		/*
-        widget.addEventListener('keyup', function(e)
-            {
-                var ev = e.htmlEvent;
-                if (ev.getKeyCode() === Kekule.X.Event.KeyCode.ENTER)
-                {
-                    self.applySetter(widget);
-                    widget.dismiss();  // avoid call apply setter twice
-                }
-            }
-        );
-
-		widget.addEventListener('valueChange', function(e){
-			//var data = e.value;
-			//console.log(e.target, e.currentTarget);
-			if (self.getAtomSetter() && self.getAtomSetter().isShown())
-			{
-				self.applySetter(widget);
-				widget.dismiss();  // avoid call apply setter twice
-			}
-		});
-
-		widget.addEventListener('showStateChange', function(e)
-			{
-				if (e.target === widget && !e.byDomChange)
-				{
-					//console.log('show state change', e);
-					if (!e.isShown && !e.isDismissed)  // widget hidden, feedback the edited value
-					{
-						if (self.getAtomSetter() && self.getAtomSetter().isShown())
-							self.applySetter(widget);
-					}
-				}
-			}
-		);
-		*/
-		if (!isBind)
-		{
-			widget.removeEventListener('valueChange', this._reactAtomSetterValueChange, this);
-			//widget.removeEventListener('showStateChange', this._reactAtomSetterShowStateChange, this);
-		}
-		else
-		{
-			widget.addEventListener('valueChange', this._reactAtomSetterValueChange, this);
-			//widget.addEventListener('showStateChange', this._reactAtomSetterShowStateChange, this);
-		}
-	},
-
-	/** @private */
-	_reactAtomSetterValueChange: function(e)
-	{
-		var widget = this.getAtomSetter();
-		if (widget && widget.isShown())
-		{
-			if (e.value)  // ensure there is actual changes
-				this.applySetter(widget);
-			widget.dismiss();  // avoid call apply setter twice
-		}
-	},
-	/** @private */
-	_reactAtomSetterShowStateChange: function(e)
-	{
-		var widget = this.getAtomSetter();
-		if (e.target === widget && !e.byDomChange)
-		{
-			//console.log('show state change', e);
-			if (!e.isShown && !e.isDismissed)  // widget hidden, feedback the edited value
-			{
-				if (widget && widget.isShown())
-					this.applySetter(widget);
-			}
-		}
-	},
-
-	/** @private */
-	getPeriodicTableDialogWidget: function(canCreate)
-	{
-		var result = this.getPeriodicTableDialog();
-		if (!result && canCreate)  // create new one
-		{
-			var parentElem = this.getEditor().getCoreElement();
-			var doc = parentElem.ownerDocument;
-			result = this._createPeriodicTableDialogWidget(doc, parentElem);
-			this.setPeriodicTableDialog(result);
-		}
-		//console.log(result);
-		return result;
-	},
-	/** @private */
-	_createPeriodicTableDialogWidget: function(doc, parentElem)
-	{
-		var dialog = new Kekule.Widget.Dialog(doc, Kekule.$L('ChemWidgetTexts.CAPTION_PERIODIC_TABLE_DIALOG') /*CWT.CAPTION_PERIODIC_TABLE_DIALOG*/,
-			[Kekule.Widget.DialogButtons.OK, Kekule.Widget.DialogButtons.CANCEL]
-		);
-		var table = new Kekule.ChemWidget.PeriodicTable(doc);
-		table.setUseMiniMode(true);
-		table.setEnableSelect(true);
-		table.appendToElem(dialog.getClientElem());
-		this.setPeriodicTable(table);
-		return dialog;
-	},
-
-	/**
-	 * Open atom edit box for obj in coord.
-	 * @param {Hash} coord
-	 * @param {Object} obj
-	 */
-	openSetterUi: function(coord, obj)
-	{
-		var oldSetter = this.getAtomSetter();  // check if there is old already created setter
-		if (oldSetter && oldSetter.isShown())  // has a old setter
-		{
-			//this.applySetter(oldSetter, this.getCurrAtom());
-			oldSetter.hide();
-			// IMPORTANT: ensure the hide process done quickly
-			// and the unprepare process of popup atom setter do not imfluence the prepare process of it
-			oldSetter._haltPrevShowHideProcess();
-		}
-
-		if (!this.isValidNode(obj))
-			return;
-		this.setCurrAtom(obj);
-
-
-		var fontSize = this.getEditor().getEditorConfigs().getInteractionConfigs().getAtomSetterFontSize() || 0;
-		fontSize *= this.getEditor().getZoom() || 1;
-		var posAdjust = fontSize / 1.5;  // adjust position to align to atom center
-		var setter = this.getAtomSetterWidget(true);
-		//setter.setEditor(this.getEditor());
-		setter.setLabelConfigs(this.getEditor().getRenderConfigs().getDisplayLabelConfigs());
-		setter.setNodes([obj]);
-		var parentElem = this.getEditor().getCoreElement();
-		setter.appendToElem(parentElem);  // ensure setter widget is a child of parentElem, since popup show may change the parent each time
-
-		var inputBox = setter.getNodeInputBox();
-
-		//setter.setIsDirty(false);
-		//setter.setIsPopup(true);
-		var style = setter.getElement().style;
-		style.position = 'absolute';
-		style.left = (coord.x - posAdjust) + 'px';
-		style.top = (coord.y - posAdjust) + 'px';
-		style.opacity = 1;
-		//inputBox.getElement().style.fontSize = fontSize + 'px';
-		if (setter.setNodeInputBoxFontSize)
-			setter.setNodeInputBoxFontSize(fontSize + 'px');
-		/*
-		 style.marginTop = -posAdjust + 'px';
-		 style.marginLeft = -posAdjust + 'px';
-		 */
-		//setter.show();
-		setter._applied = false;
-		setter.setStandaloneOnShowHide(true);
-		setter.show(this.getEditor(), null, Kekule.Widget.ShowHideType.POPUP);
-
-		(function(){
-			inputBox.focus();
-			inputBox.selectAll();
-		}).defer();
-
-		//result.selectAll.bind(result).defer();
-		/*
-		setter.selectAll();
-		setter.focus();
-		*/
-	},
-	/** @private */
-	applySetter: function(setter, atom)
-	{
-		if (setter._applied)  // avoid called twice
-			return;
-		if (!atom)
-			atom = this.getCurrAtom();
-		var newData = setter.getValue();
-		if (!newData)
-			return;
-
-		//console.log('apply setter', newData);
-		/*
-		var nodeClass = newData.nodeClass;
-		var modifiedProps = newData.props;
-		var repItem = newData.repositoryItem;
-		var newNode;
-
-		if (repItem)  // need to apply structure repository item
-		{
-			var repResult = repItem.createObjects(atom) || {};
-			var repObjects = repResult.objects;
-			var transformParams = Kekule.Editor.RepositoryStructureUtils.calcRepObjInitialTransformParams(this.getEditor(), repItem, repResult, atom, null);
-			this.getEditor().transformCoordAndSizeOfObjects(repObjects, transformParams);
-			newNode = repObjects[0];
-			nodeClass = newNode.getClass();
-		}
-
-		if (newData.isUnknownPseudoatom && !this.getEditorConfigs().getInteractionConfigs().getAllowUnknownAtomSymbol())
-			nodeClass = null;
-
-		if (!nodeClass)
-		{
-			Kekule.error(Kekule.$L('ErrorMsg.INVALID_ATOM_SYMBOL'));
-		}
-		else
-		{
-			this.applyModification(atom, newNode, nodeClass, modifiedProps);
-			setter._applied = true;
-		}
-		*/
-		var operation = Kekule.Editor.OperationUtils.createNodeModificationOperationFromData(atom, newData, this.getEditor());
-		if (operation)  // only execute when there is real modification
-		{
-			var editor = this.getEditor();
-			editor.beginManipulateAndUpdateObject();
-			try
-			{
-				operation.execute();
-			}
-			catch (e)
-			{
-				//Kekule.error(/*Kekule.ErrorMsg.NOT_A_VALID_ATOM*/Kekule.$L('ErrorMsg.NOT_A_VALID_ATOM'));
-				throw(e);
-			}
-			finally
-			{
-				editor.endManipulateAndUpdateObject();
-			}
-
-			if (editor && editor.getEnableOperHistory() && operation)
-			{
-				editor.pushOperation(operation);
-			}
-		}
-	},
-
-	/**
-	 * Save changes to current edited node.
-	 * @param node
-	 * @param newNodeClass
-	 * @param modifiedProps
-	 * @private
-	 * @deprecated
-	 */
-	applyModification: function(node, newNode, newNodeClass, modifiedProps)
-	{
-		/*
-		//var newNode;
-		var operGroup, oper;
-		var oldNodeClass = node.getClass();
-		if (newNode && !newNodeClass)
-			newNodeClass = newNode.getClass();
-		if (newNode || newNodeClass !== oldNodeClass)  // need to replace node
-		{
-			operGroup = new Kekule.MacroOperation();
-			if (!newNode)
-				newNode = new newNodeClass();
-			var tempNode = new Kekule.ChemStructureNode();
-			tempNode.assign(node);
-			newNode.assign(tempNode);  // copy some basic info of old node
-			var operReplace = new Kekule.ChemStructOperation.ReplaceNode(node, newNode, null, this.getEditor());
-			operGroup.add(operReplace);
-		}
-		else  // no need to replace
-			newNode = node;
-
-		if (modifiedProps)
-		{
-			oper = new Kekule.ChemObjOperation.Modify(newNode, modifiedProps, this.getEditor());
-			if (operGroup)
-				operGroup.add(oper);
-		}
-		var operation = operGroup || oper;
-		*/
-		var operation = Kekule.Editor.OperationUtils.createNodeModificationOperation(node, newNode, newNodeClass, modifiedProps, this.getEditor());
-
-		if (operation)  // only execute when there is real modification
-		{
-			var editor = this.getEditor();
-			editor.beginManipulateAndUpdateObject();
-			try
-			{
-				operation.execute();
-			}
-			catch (e)
-			{
-				//Kekule.error(/*Kekule.ErrorMsg.NOT_A_VALID_ATOM*/Kekule.$L('ErrorMsg.NOT_A_VALID_ATOM'));
-				throw(e);
-			}
-			finally
-			{
-				editor.endManipulateAndUpdateObject();
-			}
-
-			if (editor && editor.getEnableOperHistory() && operation)
-			{
-				editor.pushOperation(operation);
-			}
-		}
+		if (!this._embeddedSetter)
+			this._embeddedSetter = this.getEditor().getEmbeddedSetter(Kekule.Editor.EmbeddedSetter.MolAtom);
+		return this._embeddedSetter
 	},
 
 	/** @private */
 	react_pointerup: function(e)
 	{
-		if (e.getButton() === Kekule.X.Event.MOUSE_BTN_LEFT)
+		if (e.getButton() === Kekule.X.Event.MouseButton.LEFT)
 		{
 			this.getEditor().setSelection(null);
 			var coord = this._getEventMouseCoord(e);
@@ -5395,16 +4952,16 @@ Kekule.Editor.MolAtomIaController = Class.create(Kekule.Editor.BaseEditorIaContr
 				{
 					//var obj = boundItem.obj;
 					var obj = this.getTopmostInteractableObjAtScreenCoord(coord);
-					//if (this.isValidNode(obj))  // can modify atom of this object
+					if (this.isValidNode(obj))  // can modify atom of this object
 					{
-						var baseCoord = this.getEditor().getObjectScreenCoord(obj);
 						e.preventDefault();
 						e.stopPropagation();
 						// important, prevent event bubble to document, otherwise reactDocumentClick will be evoked
 						//  and the atom setter will be closed immediately.
-						this.openSetterUi(baseCoord, obj);
+
+						this.getEmbeddedSetter().execute([obj], coord);
+
 						this.doneInsertOrModifyBasicObjects([obj]);
-						//this.getEditor().setSelection([obj]);
 					}
 					return true;  // important
 				}
@@ -7141,229 +6698,12 @@ Kekule.Editor.FormulaIaController = Class.create(Kekule.Editor.BaseEditorIaContr
 		return (obj instanceof Kekule.StructureFragment) && obj.hasFormula() && !obj.hasCtab();
 	},
 
-	/**
-	 * Returns plain text of formula that shows in text setter.
-	 * @param {Kekule.StructureFragment} mol
-	 * @returns {String}
-	 * @private
-	 */
-	getFormulaText: function(mol)
-	{
-		return mol.hasFormula()? mol.getFormula().getText(): '';
-	},
-
 	/** @private */
-	createNewMol: function(chemSpace, coord)
+	getEmbeddedSetter: function()
 	{
-		var mol;
-		var editor = this.getEditor();
-		if (!editor.canCreateNewChild())
-		{
-			mol = editor.getOnlyOneBlankStructFragment();
-			if (!mol)
-				return null;
-		}
-
-		editor.beginUpdateObject();
-		try
-		{
-			if (!mol)
-				var mol = new Kekule.Molecule();
-			mol.getFormula(true);  // create a forumla
-			chemSpace.appendChild(mol);
-			editor.setObjectScreenCoord(mol, coord);
-			var addOperation = new Kekule.ChemObjOperation.Add(mol, chemSpace, null, editor);
-			this._operAddBlock = addOperation;
-		}
-		finally
-		{
-			editor.endUpdateObject();
-		}
-		return mol;
-	},
-
-	/** @private */
-	getTextSetterWidget: function(canCreate)
-	{
-		var result = this.getTextSetter();
-		if (!result && canCreate)  // create new one
-		{
-			var parentElem = this.getEditor().getCoreElement();
-			var doc = parentElem.ownerDocument;
-			result = this._createTextSetterWidget(doc, parentElem);
-			this.setTextSetter(result);
-		}
-		return result;
-	},
-	/** @private */
-	_createTextSetterWidget: function(doc, parentElem)
-	{
-		var result = new Kekule.Widget.TextBox(this.getEditor());
-		/*
-		result.setAutoSizeX(true);
-		result.setAutoSizeY(true);
-		*/
-		result.addClassName(CCNS.CHEMEDITOR_FORMULA_SETTER);
-		result.appendToElem(parentElem);
-
-		// event handler
-		var self = this;
-		result.addEventListener('keyup', function(e)
-			{
-				var ev = e.htmlEvent;
-				var keyCode = ev.getKeyCode();
-				if (keyCode === Kekule.X.Event.KeyCode.ENTER)  // ctrl+enter
-				{
-					self.applySetter(result);
-					result.dismiss();  // avoid call apply setter twice
-				}
-				else if (keyCode === Kekule.X.Event.KeyCode.ESC)  // ESC, cancel editor
-				{
-					result.dismiss();
-					self.cancelSetter();
-				}
-			}
-		);
-		result.addEventListener('showStateChange', function(e)
-			{
-				//console.log('show state change', e.isShown, e.isDismissed, e.byDomChange);
-				if (!e.byDomChange)
-				{
-					if (!e.isShown && !e.isDismissed)  // widget hidden, feedback the edited value
-					{
-						self.applySetter(result);
-					}
-					if (e.isShown)  // set applied to false on newly shown widget
-						result._applied = false;
-				}
-			}
-		);
-		return result;
-	},
-	/** @private */
-	cancelSetter: function()
-	{
-		if (this._operAddBlock)  // already created new formula, remove it
-		{
-			this._operAddBlock.reverse();
-			this._operAddBlock = null;
-		}
-	},
-	/** @private */
-	applySetter: function(setter, mol)
-	{
-		if (setter._applied)   // avoid call twice
-			return;
-
-		if (!mol)
-			mol = this.getCurrMol();
-
-		var oper;
-		var text = setter.getText();
-		if (!text)  // no input, delete
-		{
-			if (this._operAddBlock)  // new forumla just added to space
-				this.cancelSetter();
-			else  // old one, delete it
-			{
-				oper = new Kekule.ChemObjOperation.Remove(mol, mol.getParent(), null, this.getEditor());
-			}
-		}
-		else
-		{
-			var oper = new Kekule.ChemObjOperation.Modify(mol.getFormula(), {'text': text}, this.getEditor());
-		}
-
-		var editor = this.getEditor();
-		if (editor && oper)
-		{
-			editor.beginManipulateAndUpdateObject();
-			try
-			{
-				oper.execute();
-				if (editor.getEnableOperHistory())
-				{
-					if (this._operAddBlock)
-					{
-						var group = new Kekule.MacroOperation();
-						group.add(this._operAddBlock);
-						group.add(oper);
-						editor.pushOperation(group);
-						this._operAddBlock = null;
-					}
-					else
-						editor.pushOperation(oper);
-
-					this.doneInsertOrModifyBasicObjects([mol]);
-				}
-			}
-			finally
-			{
-				editor.endManipulateAndUpdateObject();
-			}
-		}
-
-		setter._applied = true;
-	},
-	/**
-	 * Open formula edit box in coord.
-	 * @param {Hash} coord
-	 * @param {Object} mol
-	 * @private
-	 */
-	openSetterUi: function(coord, mol)
-	{
-		var oldSetter = this.getTextSetter();
-		if (oldSetter && oldSetter.isShown())  // has a old setter
-		{
-			this.applySetter(oldSetter, this.getCurrMol());
-			oldSetter.hide();
-			oldSetter._haltPrevShowHideProcess();
-		}
-
-		if (!mol)  // need create new
-			mol = this.createNewMol(this.getEditor().getChemObj(), coord);
-
-		if (!this.isValidMol(mol))
-			return;
-		this.setCurrMol(mol);
-
-		this.getEditor().setSelection([mol]);
-
-		//console.log(block.getCascadedRenderOption('fontSize'));
-
-		var fontSize = mol.getCascadedRenderOption('fontSize') || this.getEditor().getEditorConfigs().getInteractionConfigs().getAtomSetterFontSize();
-		fontSize *= this.getEditor().getZoom() || 1;
-		var fontName = mol.getCascadedRenderOption('fontFamily') || '';
-		//var posAdjust = fontSize / 1.5;  // adjust position to align to atom center
-		var text = this.getFormulaText(mol);
-		var setter = this.getTextSetterWidget(true);
-
-		var parentElem = this.getEditor().getCoreElement();
-		//setter._setEnableShowHideEvents(false);
-		setter.appendToElem(parentElem);  // ensure setter widget is a child of parentElem, since popup show may change the parent each time
-		//setter._setEnableShowHideEvents(true);
-
-		var slabel = text || '';
-		//console.log(block, text, slabel);
-		setter.setValue(slabel);
-		//setter.setValue('hehr');
-		//setter.setIsPopup(true);
-		var style = setter.getElement().style;
-		style.position = 'absolute';
-		style.fontSize = fontSize + 'px';
-		style.left = coord.x + 'px';
-		style.top = coord.y + 'px';
-		style.fontFamily = fontName;
-		/*
-		 style.marginTop = -posAdjust + 'px';
-		 style.marginLeft = -posAdjust + 'px';
-		 */
-		setter._applied = false;
-		setter.setStandaloneOnShowHide(true);
-		setter.show(this.getEditor(), null, Kekule.Widget.ShowHideType.POPUP);
-		setter.selectAll();
-		setter.focus();
+		if (!this._embeddedSetter)
+			this._embeddedSetter = this.getEditor().getEmbeddedSetter(Kekule.Editor.EmbeddedSetter.Formula);
+		return this._embeddedSetter
 	},
 
 	/** @private */
@@ -7415,7 +6755,13 @@ Kekule.Editor.FormulaIaController = Class.create(Kekule.Editor.BaseEditorIaContr
 					e.stopPropagation();
 					// important, prevent event bubble to document, otherwise reactDocumentClick will be evoked
 					//  and the setter will be closed immediately.
-					this.openSetterUi(baseCoord, mol);
+
+					var self = this;
+					this.getEmbeddedSetter().execute(mol, baseCoord, function(applied, modifiedObjs){
+						if (applied)
+							self.doneInsertOrModifyBasicObjects(modifiedObjs);
+					});
+					// this.openSetterUi(baseCoord, mol);
 					//this.getEditor().setSelection([block]);
 					return true;  // important
 				}
@@ -7526,13 +6872,12 @@ Kekule.Editor.TextBlockIaController = Class.create(Kekule.Editor.ContentBlockIaC
 	initialize: function(/*$super, */editor)
 	{
 		this.tryApplySuper('initialize', [editor])  /* $super(editor) */;
-		this._operAddBlock = null;  // private
 	},
 	/** @private */
 	initProperties: function()
 	{
 		//this.defineProp('currBlock', {'dataType': DataType.OBJECT, 'serializable': false});  // private
-		this.defineProp('textSetter', {'dataType': DataType.OBJECT, 'serializable': false});  // private
+		// this.defineProp('textSetter', {'dataType': DataType.OBJECT, 'serializable': false});  // private
 	},
 
 	/** @ignore */
@@ -7541,242 +6886,23 @@ Kekule.Editor.TextBlockIaController = Class.create(Kekule.Editor.ContentBlockIaC
 		return obj instanceof Kekule.TextBlock;
 	},
 
-	/**
-	 * Create new content block on document.
-	 * @private
-	 */
-	createNewBlock: function(chemSpace, coord)
+	/** @private */
+	getEmbeddedSetter: function()
 	{
-		var editor = this.getEditor();
-		if (!editor.canCreateNewChild())
-			return null;
-
-		editor.beginUpdateObject();
-		try
-		{
-			var block = new Kekule.TextBlock();
-			if (block)
-			{
-				chemSpace.appendChild(block);
-				editor.setObjectScreenCoord(block, coord, Kekule.Render.CoordPos.CORNER_TL);
-				//console.log('set text block cord', coord, block.getSize2D());
-				var addOperation = new Kekule.ChemObjOperation.Add(block, chemSpace, null, editor);
-				this._operAddBlock = addOperation;
-			}
-		}
-		finally
-		{
-			editor.endUpdateObject();
-		}
-		return block;
+		if (!this._embeddedSetter)
+			this._embeddedSetter = this.getEditor().getEmbeddedSetter(Kekule.Editor.EmbeddedSetter.TextBlock);
+		return this._embeddedSetter
 	},
-
-	/**
-	 * Returns text that shows in text block.
-	 * @param {Kekule.TextBlock} block
-	 * @returns {String}
-	 * @private
-	 */
-	getBlockText: function(block)
-	{
-		return block.getText();
-	},
-
 	/** @ignore */
 	execute: function(chemSpace, baseCoord, block)
 	{
-		this.openSetterUi(baseCoord, block);
-	},
-
-	/** @private */
-	getTextSetterWidget: function(canCreate)
-	{
-		var result = this.getTextSetter();
-		if (!result && canCreate)  // create new one
-		{
-			var parentElem = this.getEditor().getCoreElement();
-			var doc = parentElem.ownerDocument;
-			result = this._createTextSetterWidget(doc, parentElem);
-			this.setTextSetter(result);
-		}
-		return result;
-	},
-	/** @private */
-	_createTextSetterWidget: function(doc, parentElem)
-	{
-		var result = new Kekule.Widget.TextArea(this.getEditor());
-		result.setAutoSizeX(true);
-		result.setAutoSizeY(true);
-		result.setDisplayed(false);
-		result.addClassName(CCNS.CHEMEDITOR_TEXT_SETTER);
-		result.appendToElem(parentElem);
-
-		// event handler
 		var self = this;
-		result.addEventListener('keyup', function(e)
-			{
-				var ev = e.htmlEvent;
-				var keyCode = ev.getKeyCode();
-				if ((keyCode === Kekule.X.Event.KeyCode.ENTER) && (ev.getCtrlKey()))  // ctrl+enter
-				{
-					self.applySetter(result);
-					result.dismiss();  // avoid call apply setter twice
-				}
-				else if (keyCode === Kekule.X.Event.KeyCode.ESC)  // ESC, cancel editor
-				{
-					result.dismiss();
-					self.cancelSetter();
-				}
-			}
-		);
-		result.addEventListener('showStateChange', function(e)
-			{
-				if (!e.byDomChange)
-				{
-					if (!e.isShown && !e.isDismissed)  // widget hidden, feedback the edited value
-					{
-						self.applySetter(result);
-					}
-					if (e.isShown)  // set applied to false on newly shown widget
-						result._applied = false;
-				}
-			}
-		);
-		return result;
+		this.getEmbeddedSetter().execute(block, baseCoord, function(applied, modifiedObjs) {
+			if (applied)
+				self.doneInsertOrModifyBasicObjects(modifiedObjs);
+		});
+		// this.openSetterUi(baseCoord, block);
 	},
-	/** @private */
-	cancelSetter: function()
-	{
-		if (this._operAddBlock)  // already created new textblock, remove it
-		{
-			this._operAddBlock.reverse();
-			this._operAddBlock = null;
-		}
-	},
-	/** @private */
-	applySetter: function(setter, block)
-	{
-		if (setter._applied)   // avoid call twice
-			return;
-
-		if (!block)
-			block = this.getCurrBlock();
-
-		var text = setter.getText();
-		var oper;
-
-		if (!text)
-		{
-			if (this._operAddBlock)  // just added text block
-				this.cancelSetter();
-			else
-				oper = new Kekule.ChemObjOperation.Remove(block, block.getParent(), null, this.getEditor());
-		}
-		else
-			oper = new Kekule.ChemObjOperation.Modify(block, {'text': text}, this.getEditor());
-
-		var editor = this.getEditor();
-		if (oper && editor)
-		{
-			editor.beginManipulateAndUpdateObject();
-			try
-			{
-				oper.execute();
-
-				if (editor.getEnableOperHistory())
-				{
-					if (this._operAddBlock)
-					{
-						var group = new Kekule.MacroOperation();
-						group.add(this._operAddBlock);
-						group.add(oper);
-						editor.pushOperation(group);
-						this._operAddBlock = null;
-					}
-					else
-						editor.pushOperation(oper);
-				}
-			}
-			finally
-			{
-				editor.endManipulateAndUpdateObject();
-			}
-
-			this.doneInsertOrModifyBasicObjects([block]);
-		}
-
-		setter._applied = true;
-	},
-	/**
-	 * Open edit box for text block in coord.
-	 * @param {Hash} coord
-	 * @param {Object} block
-	 */
-	openSetterUi: function(coord, block)
-	{
-		var oldSetter = this.getTextSetter();
-		if (oldSetter && oldSetter.isShown())  // has a old setter
-		{
-			this.applySetter(oldSetter, this.getCurrBlock());
-			//oldSetter.dismiss();
-			oldSetter._haltPrevShowHideProcess();
-		}
-
-		if (!block)  // need create new
-		{
-			block = this.createNewBlock(this.getEditor().getChemObj(), coord);
-		}
-
-		if (!this.isValidBlock(block))
-			return;
-		this.setCurrBlock(block);
-
-		//this.doneInsertOrModifyBasicObjects([block]);
-		//this.getEditor().setSelection([block]);
-
-		// calculate the top-left position of block
-		var setterCoord = this.getEditor().getObjectScreenCoord(block, Kekule.Render.CoordPos.CORNER_TL);
-
-		//console.log(block.getCascadedRenderOption('fontSize'));
-
-		var fontSize = block.getCascadedRenderOption('fontSize') || this.getEditor().getEditorConfigs().getInteractionConfigs().getAtomSetterFontSize();
-		fontSize *= (this.getEditor().getZoom() || 1);
-		var fontName = block.getCascadedRenderOption('fontFamily') || '';
-		//var posAdjust = fontSize / 1.5;  // adjust position to align to atom center
-		var text = this.getBlockText(block);
-		var setter = this.getTextSetterWidget(true);
-		setter._applied = false;
-
-		//console.log(block, text, slabel);
-		setter.setValue(text);
-		var slabel = text || Kekule.$L('ChemWidgetTexts.CAPTION_TEXTBLOCK_INIT'); //Kekule.ChemWidgetTexts.CAPTION_TEXTBLOCK_INIT;
-		setter.setPlaceholder(slabel);
-
-		var parentElem = this.getEditor().getCoreElement();
-		setter.appendToElem(parentElem);  // ensure setter widget is a child of parentElem, since popup show may change the parent each time
-
-		//setter.setValue('hehr');
-		//setter.setIsPopup(true);
-		var style = setter.getElement().style;
-		style.position = 'absolute';
-		style.fontSize = fontSize + 'px';
-		style.left = setterCoord.x + 'px';
-		style.top = setterCoord.y + 'px';
-		style.fontFamily = fontName;
-		style.opacity = 1;
-		/*
-		style.marginTop = -posAdjust + 'px';
-		style.marginLeft = -posAdjust + 'px';
-		*/
-		setter.setStandaloneOnShowHide(true);
-		setter.show(this.getEditor(), null, Kekule.Widget.ShowHideType.POPUP);
-
-		(function()
-		{
-			setter.selectAll();
-			setter.focus();
-		}).defer();
-	}
 });
 // register
 Kekule.Editor.IaControllerManager.register(Kekule.Editor.TextBlockIaController, Kekule.Editor.ChemSpaceEditor);
@@ -7796,19 +6922,6 @@ Kekule.Editor.ImageBlockIaController = Class.create(Kekule.Editor.ContentBlockIa
 	initialize: function(/*$super, */editor)
 	{
 		this.tryApplySuper('initialize', [editor])  /* $super(editor) */;
-		this._operAddBlock = null;  // private
-		this._imgProbeElem = null;
-		this._actionOpenFile = this.createOpenAction();
-	},
-	doFinalize: function()
-	{
-		if (this._actionOpenFile)
-			this.actionOpenFile.finalize();
-	},
-	/** @private */
-	initProperties: function()
-	{
-		//this.defineProp('currBlock', {'dataType': DataType.OBJECT, 'serializable': false});  // private
 	},
 
 	/**
@@ -7823,149 +6936,21 @@ Kekule.Editor.ImageBlockIaController = Class.create(Kekule.Editor.ContentBlockIa
 	},
 
 	/** @private */
-	createNewBlock: function(chemSpace, coord, size, src)
+	getEmbeddedSetter: function()
 	{
-		var editor = this.getEditor();
-		if (!editor.canCreateNewChild())
-			return null;
-
-		editor.beginUpdateObject();
-		try
-		{
-			var block = new Kekule.ImageBlock();
-			if (src)
-				block.setSrc(src);
-			if (size)
-				block.setSize2D(size);
-			//chemSpace.appendChild(block);
-			editor.setObjectScreenCoord(block, coord, Kekule.Render.CoordPos.CORNER_TL);
-			var addOperation = new Kekule.ChemObjOperation.Add(block, chemSpace, null, editor);
-			this._operAddBlock = addOperation;
-		}
-		finally
-		{
-			editor.endUpdateObject();
-		}
-		return block;
+		if (!this._embeddedSetter)
+			this._embeddedSetter = this.getEditor().getEmbeddedSetter(Kekule.Editor.EmbeddedSetter.ImageBlock);
+		return this._embeddedSetter
 	},
-	/** @private */
-	_getImgFilters: function()
-	{
-		// add png, jpg, gif and svg
-		var result = [
-			{'title': Kekule.$L('WidgetTexts.TITLE_IMG_FORMAT_PNG'), 'filter': '.png'},
-			{'title': Kekule.$L('WidgetTexts.TITLE_IMG_FORMAT_JPG'), 'filter': '.jpg,.jpeg'},
-			{'title': Kekule.$L('WidgetTexts.TITLE_IMG_FORMAT_GIF'), 'filter': '.gif'},
-			{'title': Kekule.$L('WidgetTexts.TITLE_IMG_FORMAT_SVG'), 'filter': '.svg'},
-			Kekule.NativeServices.FILTER_ALL_SUPPORT,
-			Kekule.NativeServices.FILTER_ANY
-		];
-		return result;
-	},
-	/** @private */
-	createOpenAction: function()
-	{
-		var result = new Kekule.ActionFileOpen();
-		result.setFilters(this._getImgFilters());
-		result.on('open', this.reactImageFileOpen, this);
-		return result;
-	},
-	/** @private */
-	reactImageFileOpen: function(e)
-	{
-		var file = e.file;
-		if (file)
-		{
-			var self = this;
-			var reader = new FileReader();
-			reader.addEventListener('load', function(){
-				var imgElem = self._getImageProbeElem();
-				var doc = imgElem.ownerDocument;
-				// hide imgElem and append it to body to calculate size
-				//imgElem.style.display = 'none';
-				//doc.body.appendChild(imgElem);
-				try
-				{
-					// clear img prev width/height
-					delete imgElem.width;
-					delete imgElem.height;
-				}
-				catch(e)
-				{
-
-				}
-				imgElem.src = reader.result;
-				var editor = self.getEditor();
-				//(function(){ console.log(imgElem.width, imgElem.height); }).defer();
-				(function(){
-					var size = {'x': imgElem.width, 'y': imgElem.height};
-					if (size.x <= 0 || size.y <= 0)  // empty image
-					{
-						Kekule.error(Kekule.$L('ErrorMsg.INVALID_OR_EMPTY_IMAGE'));
-						return;
-					}
-					//console.log('imgSize', size);
-					//imgElem.parentNode.removeChild(imgElem);
-					//size = editor.translateCoord(size, Kekule.Editor.CoordSys.SCREEN, Kekule.Editor.CoordSys.CHEM);
-					//console.log('transSize', size);
-					var coord1 = self._currCoord;
-					var contextCoord1 = editor.objCoordToContext(coord1);
-					var contextCoord2 = Kekule.CoordUtils.add(contextCoord1, size);
-					var coord2 = editor.contextCoordToObj(contextCoord2);
-					var size = Kekule.CoordUtils.substract(coord2, coord1);
-					size = Kekule.CoordUtils.absValue(size);
-
-					var currBlock = self.getCurrBlock();
-					var oper;
-					var chemSpace = editor.getChemObj();
-					if (currBlock)  // modify existed
-					{
-						oper = new Kekule.ChemObjOperation.Modify(currBlock, {'src': reader.result, 'size2D': size});
-					}
-					else  // create new
-					{
-						var block = self.createNewBlock(self.getEditor().getChemObj(), self._currCoord, size, reader.result);
-						self.setCurrBlock(block);
-						oper = new Kekule.ChemObjOperation.Add(block, chemSpace, null, editor);
-					}
-					if (oper)
-					{
-						editor.beginManipulateAndUpdateObject();
-						try
-						{
-							oper.execute();
-							if (editor && editor.getEnableOperHistory())
-								editor.pushOperation(oper);
-
-							self.doneInsertOrModifyBasicObjects([self.getCurrBlock()]);
-						}
-						finally
-						{
-							editor.endManipulateAndUpdateObject();
-						}
-					}
-				}).defer();  // execute later, get accurate image size
-			});
-			reader.readAsDataURL(file);
-		}
-	},
-	/** @private */
-	_getImageProbeElem: function()
-	{
-		if (!this._imgProbeElem)
-		{
-			var doc = this.getEditor().getElement().ownerDocument;
-			this._imgProbeElem = doc.createElement('img');
-		}
-		return this._imgProbeElem;
-	},
-
 	/** @private */
 	execute: function(chemSpace, baseCoord, block)
 	{
-		this.setCurrBlock(block);
-		this._currCoord = baseCoord;
-		this._actionOpenFile.execute(this.getEditor());
+		var self = this;
+		this.getEmbeddedSetter()
+			.execute(block, baseCoord, function(applied, modifiedObjs) {
+				if (applied)
+					self.doneInsertOrModifyBasicObjects(modifiedObjs);
+			});
 	}
 });
 // register
