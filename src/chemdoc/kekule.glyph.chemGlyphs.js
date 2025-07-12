@@ -819,8 +819,7 @@ Kekule.Glyph.ChemConditionSymbol._getDefaultLabelTextAndStyleMap = function()
 			richText: RTU.strToRichText(Kekule.$L('ChemWidgetTexts.LABEL_REACTION_CONDITION_HEAT')),
 			richSymbol: RTU.strToRichText(Kekule.$L('ChemWidgetTexts.LABEL_REACTION_CONDITION_HEAT_SYMBOL')),
 			symbolStyle: {
-				initialLabelZoom: 1.8,  // the triangle char is smaller than the ordinary texts, we need to enlarge it by default
-				fontFamily: 'Arial, Helvetica, sans-serif',
+				fontFamily: '"Arial", "Segoe UI Symbol", "Noto Sans", "Symbola", sans-serif',  // containing font support unicode symbols
 				fontStyle: 'normal'
 			}
 		};
