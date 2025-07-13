@@ -1134,17 +1134,16 @@ Kekule.Editor.EmbeddedSetter.Formula = Class.create(Kekule.Editor.EmbeddedSetter
 	/** @ignore */
 	doCreateSetterWidget: function(doc, parentElem, parentWidget)
 	{
-		var result = new Kekule.Widget.TextBox(parentWidget);
-		/*
-		result.setAutoSizeX(true);
-		result.setAutoSizeY(true);
-		*/
+		var result = new Kekule.Widget.Container(this.getEditor());
 		result.addClassName(CCNS.CHEMEDITOR_FORMULA_SETTER);
-		result.appendToElem(parentElem);
+		result.setDisplayed(false);
+		result.appendToElem(parentElem)
+
+		var inputter = new Kekule.Widget.TextBox(result);
 
 		// event handler
 		var self = this;
-		result.addEventListener('keyup', function(e)
+		inputter.addEventListener('keyup', function(e)
 			{
 				var ev = e.htmlEvent;
 				var keyCode = ev.getKeyCode();
@@ -1166,7 +1165,7 @@ Kekule.Editor.EmbeddedSetter.Formula = Class.create(Kekule.Editor.EmbeddedSetter
 	/** @ignore */
 	getSetterWidgetModifiedValues: function(widget)
 	{
-		return {'formulaText': widget.getValue()};
+		return {'formulaText': widget.getChildWidgets()[0].getValue()};
 	},
 
 	/** @ignore */
@@ -1186,7 +1185,7 @@ Kekule.Editor.EmbeddedSetter.Formula = Class.create(Kekule.Editor.EmbeddedSetter
 		var text = this.getFormulaText(mol);
 		var slabel = text || '';
 
-		setterWidget.setValue(slabel);
+		setterWidget.getChildWidgets()[0].setValue(slabel);
 
 		var style = setterWidget.getElement().style;
 		style.fontSize = fontSize + 'px';
@@ -1195,8 +1194,9 @@ Kekule.Editor.EmbeddedSetter.Formula = Class.create(Kekule.Editor.EmbeddedSetter
 	/** @ignore */
 	afterOpeningSetterUi: function(setterWidget, targetObj, baseCoord)
 	{
-		setterWidget.selectAll();
-		setterWidget.focus();
+		var inputter = setterWidget.getChildWidgets()[0];
+		inputter.selectAll();
+		inputter.focus();
 	}
 });
 

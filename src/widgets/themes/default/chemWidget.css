@@ -719,17 +719,24 @@
     width: 8em;
 }
 
+.K-ChemEditor-Formula-Setter,
 .K-ChemEditor-ChemCondition-Setter {
     padding: 0;
 }
 
+.K-ChemEditor-Formula-Setter .K-TextBox,
 .K-ChemEditor-ChemCondition-Setter .K-ComboBox
 {
     display: block;
     margin: 0;
-    max-width: min(300px, 8em);
+    max-width: min(300px, 10em);
     font-size: inherit;
     transform: translate(-50%, -50%);
+}
+
+.K-ChemEditor-Formula-Setter .K-TextBox
+{
+    text-align: center;
 }
 
 .K-ChemEditor-ChemCondition-Setter .K-ComboBox .K-TextBox,
