@@ -2893,6 +2893,9 @@ Kekule.Editor.ActionComposerSetRepositoryAddSymbolController = Kekule.Editor.cre
 	null, null,
 	BNS.glyphRepAddSymbol
 );
+
+
+/*
 Kekule.Editor.ActionComposerSetRepositoryChemConditionSymbolController = Kekule.Editor.createComposerIaControllerActionClass(
 	'Kekule.Editor.ActionComposerSetRepositoryChemConditionSymbolController',
 	Kekule.$L('ChemWidgetTexts.CAPTION_REPOSITORY_CHEM_CONDITION'), //Kekule.ChemWidgetTexts.CAPTION_REPOSITORY_HEAT_SYMBOL,
@@ -2904,6 +2907,32 @@ Kekule.Editor.ActionComposerSetRepositoryChemConditionSymbolController = Kekule.
 		'glyphInitialParams': {
 			'condition': Kekule.ReactionQualitativeCondition.HEAT
 		}
+	},
+	null, null,
+	BNS.glyphRepChemConditionSymbol
+);
+*/
+
+Kekule.Editor.ActionComposerSetChemConditionHeatController = Kekule.Editor.createComposerIaControllerActionClass(
+	'Kekule.Editor.ActionComposerSetChemConditionHeatController',
+	Kekule.$L('ChemWidgetTexts.CAPTION_CHEM_CONDITION_HEAT'),
+	Kekule.$L('ChemWidgetTexts.HINT_CHEM_CONDITION_HEAT'),
+	'ChemConditionIaController',
+	'ChemConditionIaController-Heat',
+	{
+		'initialParams': {'condition': Kekule.ReactionQualitativeCondition.HEAT}
+	},
+	null, null,
+	BNS.glyphRepChemConditionSymbol
+);
+Kekule.Editor.ActionComposerSetChemConditionLightController = Kekule.Editor.createComposerIaControllerActionClass(
+	'Kekule.Editor.ActionComposerSetChemConditionLightController',
+	Kekule.$L('ChemWidgetTexts.CAPTION_CHEM_CONDITION_LIGHT'),
+	Kekule.$L('ChemWidgetTexts.HINT_CHEM_CONDITION_LIGHT'),
+	'ChemConditionIaController',
+	'ChemConditionIaController-Light',
+	{
+		'initialParams': {'condition': Kekule.ReactionQualitativeCondition.LIGHT}
 	},
 	null, null,
 	BNS.glyphRepChemConditionSymbol
@@ -3103,9 +3132,10 @@ Kekule.Editor.ActionComposerSetRepositoryGlyphController = Kekule.Editor.createC
 		Kekule.Editor.ActionComposerSetRepositoryDoubleElectronPushingArrowController,
 		Kekule.Editor.ActionComposerSetRepositorySingleElectronPushingArrowController,
 		Kekule.Editor.ActionComposerSetRepositoryBondFormingElectronPushingArrowController,
-		Kekule.Editor.ActionComposerSetRepositoryHeatSymbolController,
+		// Kekule.Editor.ActionComposerSetRepositoryHeatSymbolController,
 		Kekule.Editor.ActionComposerSetRepositoryAddSymbolController,
-		Kekule.Editor.ActionComposerSetRepositoryChemConditionSymbolController
+		Kekule.Editor.ActionComposerSetChemConditionHeatController,
+		Kekule.Editor.ActionComposerSetChemConditionLightController
 	],
 	null,
 	BNS.glyph

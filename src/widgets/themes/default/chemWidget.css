@@ -677,7 +677,6 @@
 }
 
 
-
 .K-Chem-Editor
 {
     overflow: auto;
@@ -718,6 +717,31 @@
 .K-ChemEditor-Atom-Setter
 {
     width: 8em;
+}
+
+.K-ChemEditor-ChemCondition-Setter {
+    padding: 0;
+}
+
+.K-ChemEditor-ChemCondition-Setter .K-ComboBox
+{
+    display: block;
+    margin: 0;
+    max-width: min(300px, 8em);
+    font-size: inherit;
+    transform: translate(-50%, -50%);
+}
+
+.K-ChemEditor-ChemCondition-Setter .K-ComboBox .K-TextBox,
+.K-ChemEditor-ChemCondition-Setter .K-ComboBox .K-SelectBox,
+.K-ChemEditor-ChemCondition-Setter .K-ComboBox .K-SelectBox option
+{
+    text-align: center;
+}
+
+.K-ChemEditor-ChemCondition-Setter .K-ComboBox .K-SelectBox option
+{
+    font-size: initial;
 }
 
 .K-Chem-Composer

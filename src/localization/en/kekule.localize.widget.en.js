@@ -272,7 +272,6 @@ Kekule.Localization.addResource('en', 'ChemWidgetTexts', {
 
 	CAPTION_REPOSITORY_HEAT_SYMBOL: 'Heat symbol',
 	CAPTION_REPOSITORY_ADD_SYMBOL: 'Plus symbol',
-	CAPTION_REPOSITORY_CHEM_CONDITION: 'Reaction condition',
 
 	// modifiers
 	CAPTION_TEXT_FORMAT: 'Text format',
@@ -303,7 +302,9 @@ Kekule.Localization.addResource('en', 'ChemWidgetTexts', {
 	CAPTION_NODE_LABEL_DISPLAY_MODE_HIDDEN: 'Hide label',
 	CAPTION_NODE_LABEL_DISPLAY_MODE_SMART: 'Smart',
 
-	CAPTION_REACTION_CONDITION: 'Reaction condition',
+	CAPTION_CHEM_CONDITION: 'Chemical condition',
+	CAPTION_CHEM_CONDITION_HEAT: 'Chemical condition: heat',
+	CAPTION_CHEM_CONDITION_LIGHT: 'Chemical condition: light',
 
 	CAPTION_ATOM_MODIFIER: 'Atom',
 	CAPTION_ATOM_MODIFIER_MIXED: '[A]',
@@ -315,11 +316,11 @@ Kekule.Localization.addResource('en', 'ChemWidgetTexts', {
 	CAPTION_MULTI_ARC_PATH_MODIFIER: 'Multi-Arc',
 	CAPTION_ELECTRON_PUSHING_ARROW_MODIFIER: 'Electron pushing arrow',
 	CAPTION_BOND_FORMING_ELECTRON_PUSHING_ARROW_MODIFIER: 'Bond forming arrow',
-	CAPTION_REACTION_CONDITION_MODIFIER: 'Reaction condition',
+	CAPTION_CHEM_CONDITION_MODIFIER: 'Chemical condition',
 	CAPTION_CONDITION: 'Condition',
 	CAPTION_CUSTOM_CONDITION: 'Custom condition',
-	CAPTION_REACTION_CONDITION_GLYPH_SIZE: 'Size',
-	CAPTION_REACTION_CONDITION_DISPLAY_SYMBOL: 'Symbol',
+	CAPTION_CHEM_CONDITION_GLYPH_SIZE: 'Size',
+	CAPTION_CHEM_CONDITION_DISPLAY_SYMBOL: 'Symbol',
 
 	TEXT_CHARGE_POSITIVE: '+',
 	TEXT_CHARGE_NEGATIVE: '-',
@@ -439,12 +440,15 @@ Kekule.Localization.addResource('en', 'ChemWidgetTexts', {
 	HINT_REACTION_ARROW_RETROSYNTHESIS: 'Retrosynthesis arrow',
 	*/
 
+	HINT_CHEM_CONDITION: 'Chemical condition',
+	HINT_CHEM_CONDITION_HEAT: 'Chemical condition: heat',
+	HINT_CHEM_CONDITION_LIGHT: 'Chemical condition: light',
+
 	// modifiers
 	HINT_NODE_LABEL_DISPLAY_MODE: 'Atom label display mode',
-	HINT_REACTION_CONDITION: 'Reaction condition',
-	HINT_REACTION_CUSTOM_CONDITION: 'Reaction custom condition',
-	HINT_REACTION_CONDITION_GLYPH_SIZE: 'Reaction condition glyph size',
-	HINT_REACTION_CONDITION_DISPLAY_SYMBOL: 'Try display condition symbol instead of text',
+	HINT_CHEM_CONDITION: 'Reaction condition',
+	HINT_CHEM_CONDITION_GLYPH_SIZE: 'Reaction condition glyph size',
+	HINT_CHEM_CONDITION_DISPLAY_SYMBOL: 'Try display condition symbol instead of text',
 
 	HINT_TEXT_FORMAT: 'Set text format',
 	HINT_FONTNAME: 'Set font name',
@@ -465,7 +469,7 @@ Kekule.Localization.addResource('en', 'ChemWidgetTexts', {
 	HINT_MULTI_ARC_PATH_MODIFIER: 'Set multi-arc properties',
 	HINT_ELECTRON_PUSHING_ARROW_MODIFIER: 'Set electron pushing arrow properties',
 	HINT_BOND_FORMING_ELECTRON_PUSHING_ARROW_MODIFIER: 'Set bond forming arrow properties',
-	HINT_REACTION_CONDITION_MODIFIER: 'Set reaction condition',
+	HINT_CHEM_CONDITION_MODIFIER: 'Set chemical condition',
 
 	HINT_USE_ATOM_CUSTOM_COLOR: '(use atom custom color)',
 

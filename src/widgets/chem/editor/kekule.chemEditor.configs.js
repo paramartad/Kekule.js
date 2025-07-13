@@ -71,7 +71,7 @@ Kekule.Editor.ChemSpaceEditorConfigs = Class.create(Kekule.Editor.BaseEditorConf
 	{
 		this.addConfigProp('chemSpaceConfigs', 'Kekule.Editor.ChemSpaceConfigs');
 		this.addConfigProp('styleSetterConfigs', 'Kekule.Editor.StyleSetterConfigs', undefined, {'scope': PS.PUBLIC});
-		this.addConfigProp('reactionConditionSetterConfigs', 'Kekule.Editor.ReactionConditionSetterConfigs', undefined, {'scope': PS.PUBLIC})
+		this.addConfigProp('chemConditionSetterConfigs', 'Kekule.Editor.ChemConditionSetterConfigs', undefined, {'scope': PS.PUBLIC})
 	},
 	/** @private */
 	initPropValues: function(/*$super*/)
@@ -79,7 +79,7 @@ Kekule.Editor.ChemSpaceEditorConfigs = Class.create(Kekule.Editor.BaseEditorConf
 		this.tryApplySuper('initPropValues')  /* $super() */;
 		this.setPropStoreFieldValue('chemSpaceConfigs', new Kekule.Editor.ChemSpaceConfigs());
 		this.setPropStoreFieldValue('styleSetterConfigs', new Kekule.Editor.StyleSetterConfigs());
-		this.setPropStoreFieldValue('reactionConditionSetterConfigs', new Kekule.Editor.ReactionConditionSetterConfigs());
+		this.setPropStoreFieldValue('chemConditionSetterConfigs', new Kekule.Editor.ChemConditionSetterConfigs());
 	}
 });
 Kekule.ClassUtils.makeSingleton(Kekule.Editor.ChemSpaceEditorConfigs);
@@ -580,22 +580,22 @@ Kekule.Editor.StyleSetterConfigs = Class.create(Kekule.AbstractConfigs,
 });
 
 /**
- * Configs of chem composer reaction condition modifier settings.
+ * Configs of chem composer chem condition modifier settings.
  * @class
  * @augments Kekule.AbstractConfigs
  *
- * @property {Array} listedReactionConditions Predefined reaction conditions (value and display text) displayed in selector.
+ * @property {Array} listedChemConditions Predefined reaction conditions (value and display text) displayed in selector.
  *   Each item is an object of {text, value}
  */
-Kekule.Editor.ReactionConditionSetterConfigs = Class.create(Kekule.AbstractConfigs,
-/** @lends Kekule.Editor.ReactionConditionSetterConfigs# */
+Kekule.Editor.ChemConditionSetterConfigs = Class.create(Kekule.AbstractConfigs,
+/** @lends Kekule.Editor.ChemConditionSetterConfigs# */
 {
 	/** @private */
-	CLASS_NAME: 'Kekule.Editor.ReactionConditionSetterConfigs',
+	CLASS_NAME: 'Kekule.Editor.ChemConditionSetterConfigs',
 	/** @private */
 	initProperties: function()
 	{
-		this.defineProp('listedReactionConditions', {'dataType': DataType.ARRAY});
+		this.defineProp('listedChemConditions', {'dataType': DataType.ARRAY});
 		this.addNumConfigProp('conditionGlyphFontSizeMin', 4);
 		this.addNumConfigProp('conditionGlyphFontSizeMax', 32);
 		this.addNumConfigProp('conditionGlyphFontSizeStep', 1);
@@ -613,7 +613,7 @@ Kekule.Editor.ReactionConditionSetterConfigs = Class.create(Kekule.AbstractConfi
 			{'text': Kekule.$L('ChemWidgetTexts.LABEL_REACTION_CONDITION_MICROWAVE'), 'value': Kekule.ReactionQualitativeCondition.MICROWAVE}
 			// {'text': Kekule.$L('ChemWidgetTexts.LABEL_REACTION_CONDITION_CUSTOM'), 'value': ''}  // empty value means custom reaction condition
 		];
-		this.setListedReactionConditions(items);
+		this.setListedChemConditions(items);
 	}
 });
 

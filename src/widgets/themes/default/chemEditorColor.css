@@ -105,6 +105,11 @@
   background-image: url("images/slice/icons16/text_align_center_v.png");
 }
 
+.K-Chem-Composer-Reaction-Condition-Button > .K-Pri-Glyph-Content
+{
+  background-image: url("images/slice/iconsSmall/chemCondition.gif");
+}
+
 .K-Chem-BasicMolManipulationIaController > .K-Pri-Glyph-Content,
 .K-Chem-SelectIaController > .K-Pri-Glyph-Content
 {
@@ -554,4 +559,13 @@
 .K-Chem-Glyph-ElectronPushingArrow-PresetSelector-Button-1 > .K-Pri-Glyph-Content
 {
   background-image: url("images/slice/iconsSmall/arrowSingleSideOpenArc.gif");
+}
+
+.K-Chem-ChemConditionIaController-Heat > .K-Pri-Glyph-Content
+{
+  background-image: url("images/slice/iconsSmall/heatSymbol.gif");
+}
+.K-Chem-ChemConditionIaController-Light > .K-Pri-Glyph-Content
+{
+  background-image: url("images/slice/iconsSmall/hvSymbol.gif");
 }

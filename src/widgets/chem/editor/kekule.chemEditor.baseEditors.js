@@ -5164,6 +5164,32 @@ Kekule.Editor.BaseEditor = Class.create(Kekule.ChemWidget.ChemObjDisplayer,
 		}
 		return this;
 	},
+	/**
+	 * Remove object(s) in chem space of editor.
+	 * @param {Variant} objOrObjs A object or an array of objects.
+	 * @param {Bool} putInOperHistory If set to true, the modification will be put into history and can be undone.
+	 */
+	removeObjects: function(objOrObjs, putInOperHistory)
+	{
+		var objs = Kekule.ArrayUtils.toArray(objOrObjs);
+		try
+		{
+			var macro = new Kekule.MacroOperation();
+			for (var i = 0, l = objs.length; i < l; ++i)
+			{
+				var obj = objs[i];
+				var oper = new Kekule.ChemObjOperation.Remove(obj, null, null, this);
+				macro.add(oper);
+			}
+			macro.execute();
+		}
+		finally
+		{
+			if (putInOperHistory && this.getEnableOperHistory() && macro.getChildCount())
+				this.pushOperation(macro);
+		}
+		return this;
+	},
 
 	/**
 	 * Modify render options of objects in editor.
@@ -5616,6 +5642,12 @@ Kekule.Editor.BaseEditor = Class.create(Kekule.ChemWidget.ChemObjDisplayer,
 		var handled = this.tryApplySuper('react_keydown', [e]);
 		if (!handled)
 			return this.reactHotKeys(e);
+	},
+
+	/** @private */
+	dispatchEventToIaControllers: function(e, eventCategory)
+	{
+		return this.tryApplySuper('dispatchEventToIaControllers', [e, eventCategory]);
 	}
 });
 
@@ -6111,6 +6143,26 @@ Kekule.Editor.BaseEditorIaController = Class.create(Kekule.Editor.BaseEditorBase
 			}
 			e.preventDefault();
 			return true;
+		}
+	},
+
+	// TODO: temp
+	react_dblclick: function(e)
+	{
+		var coord = this._getEventMouseCoord(e);
+		{
+			var obj = this.getTopmostInteractableObjAtScreenCoord(coord);
+			// console.log('react_dbclick!!', coord, obj);
+
+			// find default embedded editor
+			var embeddedSetterClass = Kekule.Editor.EmbeddedSetterManager.getDefaultSetterClassForObject(obj);
+			if (embeddedSetterClass)
+				this.getEditor().getEmbeddedSetter(embeddedSetterClass).execute([obj], coord, function(applied, modifiedObjs) {
+					// do nothing
+				});
+
+			e.preventDefault();
+			e.stopPropagation();
 		}
 	},
 

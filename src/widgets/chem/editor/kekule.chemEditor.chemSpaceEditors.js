@@ -37,11 +37,7 @@ var CCNS = Kekule.ChemWidget.HtmlClassNames;
 Kekule.ChemWidget.HtmlClassNames = Object.extend(Kekule.ChemWidget.HtmlClassNames, {
 	CHEMSPACE_EDITOR: 'K-Chem-Space-Editor',
 	CHEMSPACE_EDITOR2D: 'K-Chem-Space-Editor2D',
-	CHEMSPACE_EDITOR3D: 'K-Chem-Space-Editor3D',
-
-	CHEMEDITOR_ATOM_SETTER: 'K-ChemEditor-Atom-Setter',
-	CHEMEDITOR_TEXT_SETTER: 'K-ChemEditor-Text-Setter',
-	CHEMEDITOR_FORMULA_SETTER: 'K-ChemEditor-Formula-Setter'
+	CHEMSPACE_EDITOR3D: 'K-Chem-Space-Editor3D'
 });
 
 Kekule.globalOptions.add('chemWidget.editor', {
@@ -6955,6 +6951,101 @@ Kekule.Editor.ImageBlockIaController = Class.create(Kekule.Editor.ContentBlockIa
 });
 // register
 Kekule.Editor.IaControllerManager.register(Kekule.Editor.ImageBlockIaController, Kekule.Editor.ChemSpaceEditor);
+
+
+/**
+ * Controller to add or edit chemical condition in document.
+ * @class
+ * @augments Kekule.Editor.ContentBlockIaController
+ */
+Kekule.Editor.ChemConditionIaController = Class.create(Kekule.Editor.ContentBlockIaController,
+/** @lends Kekule.Editor.ChemConditionIaController# */
+{
+	/** @private */
+	CLASS_NAME: 'Kekule.Editor.ChemConditionIaController',
+	/** @construct */
+	initialize: function(editor)
+	{
+		this.tryApplySuper('initialize', [editor]);
+	},
+	/** @private */
+	initProperties: function()
+	{
+		this.defineProp('initialParams', {'dataType': DataType.HASH});
+	},
+
+	/** @ignore */
+	isValidBlock: function(obj)
+	{
+		return obj instanceof Kekule.Glyph.ChemConditionSymbol;
+	},
+
+	/** @private */
+	getEmbeddedSetter: function()
+	{
+		if (!this._embeddedSetter)
+			this._embeddedSetter = this.getEditor().getEmbeddedSetter(Kekule.Editor.EmbeddedSetter.ChemConditionSymbol);
+		return this._embeddedSetter
+	},
+
+	/** @private */
+	insertNewSymbol: function(coord)
+	{
+		var editor = this.getEditor();
+		if (!editor.canCreateNewChild())
+			return null;
+
+		var symbol;
+		editor.beginUpdateObject();
+		try
+		{
+			var initialParams = this.getInitialParams() || {};
+			var chemSpace = editor.getChemSpace();
+
+			symbol = new Kekule.Glyph.ChemConditionSymbol();
+
+			// initialize with intial params
+			symbol.setCondition(initialParams.condition || Kekule.ReactionQualitativeCondition.HEAT);
+
+			var macroOper = new Kekule.MacroOperation();
+			macroOper.add(new Kekule.ChemObjOperation.Add(symbol, chemSpace, null, editor));
+			macroOper.add(new Kekule.ChemObjOperation.Modify(symbol, {'absCoord2D': coord}));
+			// macroOper.execute();
+
+			editor.pushOperation(macroOper, true);
+		}
+		finally
+		{
+			editor.endUpdateObject();
+		}
+		return symbol;
+	},
+
+	/** @ignore */
+	execute: function(chemSpace, baseCoord, block)
+	{
+		var self = this;
+		if (!block)
+		{
+			// TODO: a rough approach
+			// clicked on an empty space in editor, create a new chem condition object with default settings
+			var coord = this.getEditor().screenCoordToObj(baseCoord);
+			this.insertNewSymbol(coord);
+		}
+		else
+		{
+			// clicked on a condition symbol, edit it
+			this.getEmbeddedSetter().execute(block, baseCoord, function (applied, modifiedObjs) {
+				if (applied)
+					self.doneInsertOrModifyBasicObjects(modifiedObjs);
+			});
+		}
+	}
+});
+// register
+Kekule.Editor.IaControllerManager.register(Kekule.Editor.ChemConditionIaController, Kekule.Editor.ChemSpaceEditor);
+
+
 
 /**
  * Controller to explicitly create attached markers to a existing object.

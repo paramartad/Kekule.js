@@ -90,9 +90,9 @@ Kekule.ChemWidget.ComponentWidgetNames =
 
 	nodeDisplayMode: 'nodeDisplayMode',
 
-	reactionCondition: 'reactionCondition',
-	reactionConditionDisplaySymbol: 'reactionConditionDisplaySymbol',
-	reactionConditionGlyphSize: 'reactionSymbolSize'
+	chemCondition: 'reactionCondition',
+	chemConditionDisplaySymbol: 'reactionConditionDisplaySymbol',
+	chemConditionGlyphSize: 'reactionSymbolSize'
 };
 
 /** @ignore */

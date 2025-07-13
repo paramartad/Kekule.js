@@ -17,6 +17,14 @@
 (function(){
 "use strict";
 
+/** @ignore */
+Kekule.ChemWidget.HtmlClassNames = Object.extend(Kekule.ChemWidget.HtmlClassNames, {
+	CHEMEDITOR_ATOM_SETTER: 'K-ChemEditor-Atom-Setter',
+	CHEMEDITOR_TEXT_SETTER: 'K-ChemEditor-Text-Setter',
+	CHEMEDITOR_FORMULA_SETTER: 'K-ChemEditor-Formula-Setter',
+	CHEMEDITOR_CHEM_CONDITION_SETTER: 'K-ChemEditor-ChemCondition-Setter'
+});
+
 var AU = Kekule.ArrayUtils;
 var CE = Kekule.Editor;
 var CNS = Kekule.Widget.HtmlClassNames;
@@ -825,7 +833,6 @@ Kekule.Editor.EmbeddedSetter.CreatableBlock = Class.create(Kekule.Editor.Embedde
 	{
 		var result = this.doCreateSetterWidget(doc, parentElem, this.getEditor());  // new Kekule.Widget.TextBox(this.getEditor());
 
-		result.addClassName(CCNS.CHEMEDITOR_FORMULA_SETTER);
 		result.appendToElem(parentElem);
 
 		// default event handler
@@ -1201,6 +1208,144 @@ Kekule.Editor.EmbeddedSetter.Formula.isValidTarget = function(obj)
 
 
 /**
+ * Embedded to setter to add or edit chem condition symbol in document.
+ * @class
+ * @augments Kekule.Editor.EmbeddedSetter.CreatableBlock
+ */
+Kekule.Editor.EmbeddedSetter.ChemConditionSymbol = Class.create(Kekule.Editor.EmbeddedSetter.CreatableBlock,
+/** @lends Kekule.Editor.EmbeddedSetter.ChemConditionSymbol# */
+{
+	/** @private */
+	CLASS_NAME: 'Kekule.Editor.EmbeddedSetter.ChemConditionSymbol',
+
+	/** @ignore */
+	isValidObj: function(obj)
+	{
+		return Kekule.Editor.EmbeddedSetter.ChemConditionSymbol.isValidTarget(obj);
+	},
+
+	/** @ignore */
+	doCreateNewObj: function(chemSpace, coord)
+	{
+		var editor = this.getEditor();
+		var result = new Kekule.Glyph.ChemConditionSymbol();
+		editor.setObjectScreenCoord(result, coord);
+
+		return result;
+	},
+
+	/**
+	 * Returns condition text of symbol.
+	 * @param {Kekule.ChemConditionSymbol} symbol
+	 * @returns {String}
+	 * @private
+	 */
+	getConditionText: function(symbol)
+	{
+		return symbol.getText();
+	},
+
+	/** @private */
+	doCreateSetterWidget: function(doc, parentElem)
+	{
+		var configs = this.getEditorConfigs().getChemConditionSetterConfigs();
+
+		var result = new Kekule.Widget.Container(this.getEditor());
+		result.addClassName(CCNS.CHEMEDITOR_CHEM_CONDITION_SETTER);
+		result.setDisplayed(false);
+		result.appendToElem(parentElem)
+
+		var conditionInputter = new Kekule.ChemWidget.ChemConditionComboBox(result); // new Kekule.Widget.ComboBox(result);
+		// conditionInputter.addClassName(CCNS.CHEMEDITOR_CHEM_CONDITION_SETTER);
+		// conditionInputter.setDisplayed(false);
+		// conditionInputter.appendToElem(parentElem);
+		conditionInputter.setItems(configs.getListedChemConditions());
+
+		// event handler
+		var self = this;
+		conditionInputter.addEventListener('keyup', function(e)
+			{
+				var ev = e.htmlEvent;
+				var keyCode = ev.getKeyCode();
+				if ((keyCode === Kekule.X.Event.KeyCode.ENTER))
+				{
+					self.applySetter(result);
+					result.dismiss();  // avoid call apply setter twice
+				}
+				else if (keyCode === Kekule.X.Event.KeyCode.ESC)  // ESC, cancel editor
+				{
+					conditionInputter.dismiss();
+					self.cancelSetter();
+				}
+			}
+		);
+		conditionInputter.addEventListener('valueSelect', function(e)
+			{
+				self.applySetter(result);
+				result.dismiss();  // avoid call apply setter twice
+			});
+		return result;
+	},
+
+	/** @ignore */
+	getSetterWidgetModifiedValues: function(widget)
+	{
+		var condText = widget.getChildWidgets()[0].getConditionText();
+		// var isCustomCondition = widget.getChildWidgets()[0].getIsCustom();
+		if (!condText)  // empty string, actually need to remove this symbol
+			return null;
+		/*
+		if (isCustomCondition)
+			return {'text': condValue};
+		else
+			return {'condition': condValue};
+		*/
+		return {'text': condText};
+	},
+
+	/** @ignore */
+	createTargetObjModifyOper: function(obj, modifiedValues)
+	{
+		return new Kekule.ChemObjOperation.Modify(obj, modifiedValues, this.getEditor());
+	},
+
+	/** @ignore */
+	prepareOpeningSetterUi: function(setterWidget, targetObj, baseCoord)
+	{
+		var fontSize = targetObj.getCascadedRenderOption('fontSize') || this.getEditor().getEditorConfigs().getInteractionConfigs().getAtomSetterFontSize();
+		fontSize *= (this.getEditor().getZoom() || 1);
+		var fontName = targetObj.getCascadedRenderOption('fontFamily') || '';
+		//var posAdjust = fontSize / 1.5;  // adjust position to align to atom center
+		var text = this.getConditionText(targetObj);
+
+		setterWidget.getChildWidgets()[0].setConditionText(text || '');
+		// var sPlaceholder = text || Kekule.$L('ChemWidgetTexts.CAPTION_TEXTBLOCK_INIT');
+		// setterWidget.setPlaceholder(sPlaceholder);
+
+		var style = setterWidget.getElement().style;
+		style.position = 'absolute';
+		style.fontSize = fontSize + 'px';
+		style.fontFamily = fontName;
+		style.opacity = 1;
+	},
+	/** @ignore */
+	afterOpeningSetterUi: function(setterWidget, targetObj, baseCoord)
+	{
+		var inputter = setterWidget.getChildWidgets()[0];
+		inputter.selectAll();
+		inputter.focus();
+	}
+});
+
+/** @ignore */
+Kekule.Editor.EmbeddedSetter.ChemConditionSymbol.isValidTarget = function(obj)
+{
+	return obj instanceof Kekule.Glyph.ChemConditionSymbol;
+};
+
+
+
+/**
  * Embedded to setter to add or edit text block in document.
  * @class
  * @augments Kekule.Editor.EmbeddedSetter.CreatableBlock
@@ -1540,5 +1685,6 @@ ESM.register(EmbeddedSetter.MolAtom, [Kekule.ChemStructureNode]);
 ESM.register(EmbeddedSetter.Formula, [Kekule.StructureFragment]);
 ESM.register(EmbeddedSetter.TextBlock, [Kekule.TextBlock]);
 ESM.register(EmbeddedSetter.ImageBlock, [Kekule.ImageBlock]);
+ESM.register(EmbeddedSetter.ChemConditionSymbol, [Kekule.Glyph.ChemConditionSymbol]);
 
 })();
