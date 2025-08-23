@@ -1381,7 +1381,7 @@ Kekule.ReactionExtractionUtils = {
         var symbolGeometryMap = RU._generateSymbolGeometryMap(chemDoc, plusSymbols);
 
         try {
-            var reactionInfo = RU._extractReactionInfoFromChemDocument(chemDoc, null, null, molecules, molGeometryMap, symbolGeometryMap, ops);  // retrieve the reaction of the first reaction arrow object
+            var reactionInfo = RU._extractReactionInfoFromChemDocument(chemDoc, null, plusSymbols, molecules, molGeometryMap, symbolGeometryMap, ops);  // retrieve the reaction of the first reaction arrow object
             if (reactionInfo)
             {
                 var reactantDetails = reactionInfo.reactantDetails;
@@ -1455,7 +1455,7 @@ Kekule.ReactionExtractionUtils = {
         var symbolGeometryMap = RU._generateSymbolGeometryMap(chemDoc, plusSymbols);
 
         try {
-            var chains = RU._extractReactionChainsInfoFromChemDocument(chemDoc, null, null, molecules, molGeometryMap, symbolGeometryMap, ops);
+            var chains = RU._extractReactionChainsInfoFromChemDocument(chemDoc, null, plusSymbols, molecules, molGeometryMap, symbolGeometryMap, ops);
             // console.log('chains', chains);
 
             // from the chains info, build the final multistep reactions
