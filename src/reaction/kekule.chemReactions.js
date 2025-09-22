@@ -218,7 +218,7 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
         });
         // conditions map of reaction
         this.defineProp('conditions', {
-            'dataType': DataType.ARRAY,
+            'dataType': DataType.HASH,
             'setter': null,
             'getter': function(canCreate)
             {
