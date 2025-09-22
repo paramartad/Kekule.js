@@ -92,11 +92,11 @@ Kekule.ReactionExtractionUtils = {
             return (child instanceof Kekule.Molecule);
         }, true);
     },
-    _generateMoleculeGeometryMap: function(chemDoc, molecules, containerBoxLengthThreshold, expandedContainerBoxExpansion, normalContainerBoxExpansionRatio)
+    _fillMoleculeGeometryMap: function(map, chemDoc, molecules, containerBoxLengthThreshold, expandedContainerBoxExpansion, normalContainerBoxExpansionRatio)
     {
         if (normalContainerBoxExpansionRatio === undefined)
             normalContainerBoxExpansionRatio = 1/100;    // expand the container box a little, let it easier to intersect with arrow line
-        var result = new Kekule.MapEx();
+        var result = map;  // new Kekule.MapEx();
         for (var i = 0, l = molecules.length; i < l; ++i)
         {
             var containerBox = molecules[i].getExposedContainerBox ? molecules[i].getExposedContainerBox(Kekule.CoordMode.COORD2D) : molecules[i].getContainerBox(Kekule.CoordMode.COORD2D);
@@ -133,9 +133,9 @@ Kekule.ReactionExtractionUtils = {
         }
         return result;
     },
-    _generateSymbolGeometryMap: function(chemDoc, glyphSymbols)
+    _fillSymbolGeometryMap: function(map, chemDoc, glyphSymbols)
     {
-        var result = new Kekule.MapEx();
+        var result = map; // new Kekule.MapEx();
         for (var i = 0, l = glyphSymbols.length; i < l; ++i)
         {
             var containerBox = glyphSymbols[i].getExposedContainerBox ? glyphSymbols[i].getExposedContainerBox(Kekule.CoordMode.COORD2D) : glyphSymbols[i].getContainerBox(Kekule.CoordMode.COORD2D);
@@ -425,7 +425,7 @@ Kekule.ReactionExtractionUtils = {
     },
 
     // decide the overlapping molecule belongs to which reaction
-    _getOverlappingObjectArrangementInfo: function(reactionInfo1, reactionInfo2, object, unoverlappedDetails, molGeometryMap, symbolGeometryMap)
+    _getOverlappingObjectArrangementInfo: function(reactionInfo1, reactionInfo2, object, unoverlappedDetails, objGeometryMap)
     {
         var getCoordRelPosToLines = function(coord, lineParamsList)
         {
@@ -618,7 +618,7 @@ Kekule.ReactionExtractionUtils = {
         */
     },
 
-    _calcReactionChainGeometry: function(reactionInfos, molGeometryMap, symbolGeometryMap, options)
+    _calcReactionChainGeometry: function(reactionInfos, objGeometryMap, options)
     {
         var result = {};
         // consider reactant and product only, bypass reagents
@@ -635,7 +635,7 @@ Kekule.ReactionExtractionUtils = {
         for (var i = 0, l = geoObjs.length; i < l; ++i)
         {
             var obj = geoObjs[i].object;
-            var objGeometryInfo = (obj instanceof Kekule.Molecule)? molGeometryMap.get(obj): symbolGeometryMap.get(obj);
+            var objGeometryInfo = objGeometryMap.get(obj);
             if (objGeometryInfo)
             {
                 result.containerBox = Kekule.BoxUtils.getContainerBox(objGeometryInfo.containerBox, result);
@@ -647,7 +647,7 @@ Kekule.ReactionExtractionUtils = {
         return result;
     },
 
-    _extractReactionInfoFromChemDocument: function(chemDoc, reactionArrow, plusSymbols, targetMolecules, molGeometryMap, symbolGeometryMap, options)
+    _extractReactionInfoFromChemDocument: function(chemDoc, reactionArrow, plusSymbols, targetMolecules, objGeometryMap, options)
     {
         var ops = options || {};
         // var cloneMolecules = (ops.cloneMolecules === undefined)? true: !!ops.cloneMolecules;
@@ -745,7 +745,7 @@ Kekule.ReactionExtractionUtils = {
             var containerBox, expandedContainerBox, objCenterCoord;
             if (!(currObj instanceof Kekule.Glyph.PlusSymbol))  // currObj is molecule
             {
-                var molGeometryInfo = molGeometryMap.get(currObj);
+                var molGeometryInfo = objGeometryMap.get(currObj);
                 containerBox = molGeometryInfo.containerBox;
                 expandedContainerBox = molGeometryInfo.expandedContainerBox;
                 objCenterCoord = molGeometryInfo.centerCoord;
@@ -753,7 +753,7 @@ Kekule.ReactionExtractionUtils = {
             }
             else  // currObj is plus symbol
             {
-                var symbolGeometryInfo = symbolGeometryMap.get(currObj);
+                var symbolGeometryInfo = objGeometryMap.get(currObj);
                 containerBox = symbolGeometryInfo.containerBox;   // we regard the plus symbol as a single point
                 objCenterCoord = symbolGeometryInfo.centerCoord;
             }
@@ -997,7 +997,7 @@ Kekule.ReactionExtractionUtils = {
         return result;
     },
 
-    _extractReactionChainsInfoFromChemDocument: function(chemDoc, targetReactionArrows, targetPlusSymbols, targetMolecules, molGeometryMap, symbolGeometryMap, options)
+    _extractReactionChainsInfoFromChemDocument: function(chemDoc, targetReactionArrows, targetPlusSymbols, targetMolecules, objGeometryMap, options)
     {
         // need to generate a directed reaction graph from document
 
@@ -1018,7 +1018,7 @@ Kekule.ReactionExtractionUtils = {
         var reactionInfos = [];
         for (var i = 0, l = reactionArrows.length; i < l; ++i)
         {
-            var info = RU._extractReactionInfoFromChemDocument(chemDoc, reactionArrows[i], targetPlusSymbols, targetMolecules, molGeometryMap, symbolGeometryMap, ops);
+            var info = RU._extractReactionInfoFromChemDocument(chemDoc, reactionArrows[i], targetPlusSymbols, targetMolecules, objGeometryMap, ops);
             if (info)
                 reactionInfos.push(info);
         }
@@ -1203,7 +1203,7 @@ Kekule.ReactionExtractionUtils = {
             }
         }
 
-        RU._sortReactionChains(chemDoc, chains, molGeometryMap, symbolGeometryMap, ops.xSortMode, ops.ySortMode, /*ops.primarySortAxis*/ops.sortAxisWeightRatioXY, ops.reactionSortRefLength);
+        RU._sortReactionChains(chemDoc, chains, objGeometryMap, ops.xSortMode, ops.ySortMode, /*ops.primarySortAxis*/ops.sortAxisWeightRatioXY, ops.reactionSortRefLength);
 
         // console.log('chains', chains);
 
@@ -1253,14 +1253,14 @@ Kekule.ReactionExtractionUtils = {
         }
         return result;
     },
-    _sortReactionChains: function(chemDoc, reactionChains, molGeometryMap, symbolGeometryMap, xSortMode, ySortMode, /*primaryAxis*/sortAxisWeightRatioXY, reactionSortRefLength)
+    _sortReactionChains: function(chemDoc, reactionChains, objGeometryMap, xSortMode, ySortMode, /*primaryAxis*/sortAxisWeightRatioXY, reactionSortRefLength)
     {
         // sort the chains, from top to bottom, left to right by default
         var reactionGeometryMap = new Kekule.MapEx();
         try {
 
             for (var i = 0, l = reactionChains.length; i < l; ++i)
-                reactionGeometryMap.set(reactionChains[i], RU._calcReactionChainGeometry(reactionChains[i], molGeometryMap, symbolGeometryMap));
+                reactionGeometryMap.set(reactionChains[i], RU._calcReactionChainGeometry(reactionChains[i], objGeometryMap));
 
             var axisSortModes = [xSortMode, ySortMode];
             // var primarySortAxisIndex = (primaryAxis === 'x')? 0: 1;
@@ -1377,13 +1377,14 @@ Kekule.ReactionExtractionUtils = {
 
         var cloneMolecules = (ops.cloneMolecules === undefined)? true: !!ops.cloneMolecules;
 
+        var objGeometryMap = new Kekule.MapEx();
         var molecules = RU._getMoleculesInDoc(chemDoc);
-        var molGeometryMap = RU._generateMoleculeGeometryMap(chemDoc, molecules, ops.reactionArrowPerpendicularExpansion, ops.reactionArrowPerpendicularExpansion);
         var plusSymbols = RU._getPlusSymbolsInDoc(chemDoc);
-        var symbolGeometryMap = RU._generateSymbolGeometryMap(chemDoc, plusSymbols);
+        RU._fillMoleculeGeometryMap(objGeometryMap, chemDoc, molecules, ops.reactionArrowPerpendicularExpansion, ops.reactionArrowPerpendicularExpansion);
+        RU._fillSymbolGeometryMap(objGeometryMap, chemDoc, plusSymbols);
 
         try {
-            var reactionInfo = RU._extractReactionInfoFromChemDocument(chemDoc, null, plusSymbols, molecules, molGeometryMap, symbolGeometryMap, ops);  // retrieve the reaction of the first reaction arrow object
+            var reactionInfo = RU._extractReactionInfoFromChemDocument(chemDoc, null, plusSymbols, molecules, objGeometryMap, ops);  // retrieve the reaction of the first reaction arrow object
             if (reactionInfo)
             {
                 var reactantDetails = reactionInfo.reactantDetails;
@@ -1424,7 +1425,7 @@ Kekule.ReactionExtractionUtils = {
         }
         finally
         {
-            molGeometryMap.finalize();
+            objGeometryMap.finalize();
         }
         return result;
     },
@@ -1451,13 +1452,14 @@ Kekule.ReactionExtractionUtils = {
 
         var cloneMolecules = (ops.cloneMolecules === undefined)? true: !!ops.cloneMolecules;
 
+        var objGeometryMap = new Kekule.MapEx();
         var molecules = RU._getMoleculesInDoc(chemDoc);
-        var molGeometryMap = RU._generateMoleculeGeometryMap(chemDoc, molecules, ops.reactionArrowPerpendicularExpansion, ops.reactionArrowPerpendicularExpansion);
         var plusSymbols = RU._getPlusSymbolsInDoc(chemDoc);
-        var symbolGeometryMap = RU._generateSymbolGeometryMap(chemDoc, plusSymbols);
+        RU._fillMoleculeGeometryMap(objGeometryMap, chemDoc, molecules, ops.reactionArrowPerpendicularExpansion, ops.reactionArrowPerpendicularExpansion);
+        RU._fillSymbolGeometryMap(objGeometryMap, chemDoc, plusSymbols);
 
         try {
-            var chains = RU._extractReactionChainsInfoFromChemDocument(chemDoc, null, plusSymbols, molecules, molGeometryMap, symbolGeometryMap, ops);
+            var chains = RU._extractReactionChainsInfoFromChemDocument(chemDoc, null, plusSymbols, molecules, objGeometryMap, ops);
             // console.log('chains', chains);
 
             // from the chains info, build the final multistep reactions
@@ -1573,7 +1575,7 @@ Kekule.ReactionExtractionUtils = {
         }
         finally
         {
-            molGeometryMap.finalize();
+            objGeometryMap.finalize();
         }
         return result;
     }
