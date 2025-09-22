@@ -44,7 +44,8 @@ Kekule.ReactionConditionComponent = {
     PRESSURE: 'pressure',
     WAVELENGTH: 'wavelength',
     TIME: 'time',
-    VOLUME: 'volume'
+    VOLUME: 'volume',
+    UNKNOWN: 'unknown'
     // OTHER: 'other'
 }
 
@@ -545,6 +546,8 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
             this.setCondition(CC.PRESSURE, qualitiveCondition);
         else if (qualitiveCondition === QC.LIGHT || qualitiveCondition === QC.MICROWAVE)
             this.setCondition(CC.WAVELENGTH, qualitiveCondition);
+        else
+            this.setCondition(CC.UNKNOWN, qualitiveCondition);
         return this;
     },
 
