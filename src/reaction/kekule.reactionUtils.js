@@ -62,6 +62,8 @@ Kekule.globalOptions.add('reaction', {
         // assocSubstancePrimaryAxisAlignMode: Kekule.ReactionObjectAlign.CENTER,
         // assocSubstanceSecondaryAxisAlignMode: Kekule.ReactionObjectAlign.CENTER,
         assocSubstanceAlignMode: Kekule.ReactionObjectAlign.CENTER,  // reagents above or below reaction arrow, only consider align in the primary axis direction
+        singleLine: false   // if true, multiple reactions will be layout to one line rather than multiple lines
+        // reactionInlineBlockAlignMode: Kekule.ReactionObjectAlign.BASELINE  // in single line mode, the multiple reaction box align mode. Default base line means the arrow position in secondary axis is same.
     }
 });
 
@@ -1613,6 +1615,9 @@ Kekule.ReactionLayoutUtils = {
         // ops.assocSubstanceSecondaryAxisAlignMode = oneOf(ops.assocSubstanceSecondaryAxisAlignMode, globalOps.assocSubstanceSecondaryAxisAlignMode);
         ops.assocSubstanceAlignMode = oneOf(ops.assocSubstanceAlignMode, globalOps.assocSubstanceAlignMode);
 
+        ops.singleLine = oneOf(ops.singleLine, globalOps.singleLine);
+        ops.reactionInlineBlockAlignMode = oneOf(ops.reactionInlineBlockAlignMode, globalOps.reactionInlineBlockAlignMode);
+
         if (ops.reactionBoxXAlignment === undefined)
             ops.reactionBoxXAlignment = Kekule.Render.BoxXAlignment.LEFT;
         if (ops.reactionBoxYAlignment === undefined)
@@ -1636,6 +1641,7 @@ Kekule.ReactionLayoutUtils = {
         var primaryAxis = ops.primaryAxis;
         var secondaryAxis = (primaryAxis === 'y')? 'x': 'y';
         var doMoleculesClone = ops.cloneMolecules;
+        var singleLineMode = !!ops.singleLine;
         var ROA = Kekule.ReactionObjectAlign;
 
         var targetMainSubstanceTypes = [];
@@ -1898,6 +1904,7 @@ Kekule.ReactionLayoutUtils = {
             var XA = Kekule.Render.BoxXAlignment, YA = Kekule.Render.BoxYAlignment;
             var totalContainerBox = Kekule.BoxUtils.getContainerBox(mainObjectsBox, assocObjectsBox);
             totalContainerBox = Kekule.BoxUtils.getContainerBox(totalContainerBox, reactionArrowBox);
+
             var currPositionPointCoord = {};
             currPositionPointCoord.x = (ops.reactionBoxXAlignment === XA.LEFT)? totalContainerBox.x1:
                 (ops.reactionBoxXAlignment === XA.RIGHT)? totalContainerBox.x2:
@@ -1907,6 +1914,15 @@ Kekule.ReactionLayoutUtils = {
                 totalContainerBox.y1 + (totalContainerBox.y2 - totalContainerBox.y1)/2;
 
             var deltaCoord = Kekule.CoordUtils.substract(baseCoord, currPositionPointCoord);
+
+            if (singleLineMode)
+            {
+                if (primaryAxis === 'x')
+                    deltaCoord.y = 0;
+                else if (primaryAxis === 'y')
+                    deltaCoord.x = 0;
+            }
+
             // var deltaCoord = {x: 0, y: 0};
             var allObjects = [reactionArrow].concat(mainObjects).concat(assocObjects);
             for (var i = 0, l = allObjects.length; i < l; ++i)
@@ -1923,7 +1939,8 @@ Kekule.ReactionLayoutUtils = {
             var finalContainerBox = Kekule.BoxUtils.transform2D(totalContainerBox, {translateX: deltaCoord.x, translateY: deltaCoord.y});
             return {
                 objects: allObjects,
-                containerBox: finalContainerBox
+                containerBox: finalContainerBox,
+                // reactionArrowBox: reactionArrowBox
             };
         }
         // finally
@@ -1949,12 +1966,18 @@ Kekule.ReactionLayoutUtils = {
         var ops = RLU._prepareReactionLayoutOptions(chemDoc, options);
         var singleReactionOps = Object.create(ops);
 
+        var singleLineMode = !!ops.singleLine;
+
         var directionWeight;
+        var primaryAxis = ops.primaryAxis;
         var secondaryAxis;
         if (ops.primaryAxis === 'y')
         {
             secondaryAxis = 'x';
-            directionWeight = (ops.layoutXMode === Kekule.ReactionLayoutXMode.RtoL)? -1: 1;
+            if (!singleLineMode)
+                directionWeight = (ops.layoutXMode === Kekule.ReactionLayoutXMode.RtoL)? -1: 1;
+            else
+                directionWeight = (ops.layoutYMode === Kekule.ReactionLayoutYMode.BtoT)? 1: -1;
             singleReactionOps.reactionBoxXAlignment = (directionWeight < 0)? XA.RIGHT: XA.LEFT;  // for stacking reactions
             singleReactionOps.reactionBoxYAlignment = (ops.mainSubstancePrimaryAxisAlignMode === ROA.CENTER)? YA.CENTER:
                 (ops.mainSubstancePrimaryAxisAlignMode === ROA.BOTTOM)? YA.BOTTOM
@@ -1963,7 +1986,10 @@ Kekule.ReactionLayoutUtils = {
         else
         {
             secondaryAxis = 'y';
-            directionWeight = (ops.layoutYMode === Kekule.ReactionLayoutYMode.BtoT)? 1: -1;
+            if (!singleLineMode)
+                directionWeight = (ops.layoutYMode === Kekule.ReactionLayoutYMode.BtoT)? 1: -1;
+            else
+                directionWeight = (ops.layoutXMode === Kekule.ReactionLayoutXMode.RtoL)? -1: 1;
             singleReactionOps.reactionBoxYAlignment = (directionWeight < 0)? YA.TOP: YA.BOTTOM;  // for stacking reactions
             singleReactionOps.reactionBoxXAlignment = (ops.mainSubstancePrimaryAxisAlignMode === ROA.CENTER)? XA.CENTER:
                 (ops.mainSubstancePrimaryAxisAlignMode === ROA.RIGHT)? XA.RIGHT
@@ -1989,18 +2015,22 @@ Kekule.ReactionLayoutUtils = {
                     var currContainerBoxSize = {x: currContainerBox.x2 - currContainerBox.x1, y: currContainerBox.y2 - currContainerBox.y1};
                     reactionContainerBoxes.push(currContainerBox);
 
+                    // console.log(i, currCoord, currContainerBox);
+
                     totalObjects = totalObjects.concat(reactionLayoutResult.objects);
                     totalContainerBox = Kekule.BoxUtils.getContainerBox(totalContainerBox, currContainerBox);
 
                     // decide the baseCoord for next reaction
                     if (i < l - 1)
                     {
-                        currCoord[secondaryAxis] += (currContainerBoxSize[secondaryAxis] + (ops.reactionGap || 0)) * directionWeight;
+                        if (!singleLineMode)  // layout in next line
+                            currCoord[secondaryAxis] += (currContainerBoxSize[secondaryAxis] + (ops.reactionGap || 0)) * directionWeight;
+                        else  // layout in curr line
+                            currCoord[primaryAxis] += (currContainerBoxSize[ops.primaryAxis] + (ops.reactionGap || 0)) * directionWeight;
                     }
                 }
 
                 // adjust the position of each object, calculate the delta coord
-
                 var currPositionPointCoord = {};
                 currPositionPointCoord.x = (ops.reactionBoxXAlignment === XA.LEFT)? totalContainerBox.x1:
                     (ops.reactionBoxXAlignment === XA.RIGHT)? totalContainerBox.x2:
