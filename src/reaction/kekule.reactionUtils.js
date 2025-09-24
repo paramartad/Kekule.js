@@ -62,6 +62,7 @@ Kekule.globalOptions.add('reaction', {
         // assocSubstancePrimaryAxisAlignMode: Kekule.ReactionObjectAlign.CENTER,
         // assocSubstanceSecondaryAxisAlignMode: Kekule.ReactionObjectAlign.CENTER,
         assocSubstanceAlignMode: Kekule.ReactionObjectAlign.CENTER,  // reagents above or below reaction arrow, only consider align in the primary axis direction
+        assocSubstanceStackOnPrimaryAxis: true,   // if false, multiple assoc substances will to layout in secondary axis (e.g., primary is x, assoc substances will be layouted from/to top/bottom)
         singleLine: false   // if true, multiple reactions will be layout to one line rather than multiple lines
         // reactionInlineBlockAlignMode: Kekule.ReactionObjectAlign.BASELINE  // in single line mode, the multiple reaction box align mode. Default base line means the arrow position in secondary axis is same.
     }
@@ -1616,6 +1617,7 @@ Kekule.ReactionLayoutUtils = {
         // ops.assocSubstancePrimaryAxisAlignMode = oneOf(ops.assocSubstancePrimaryAxisAlignMode, globalOps.assocSubstancePrimaryAxisAlignMode);
         // ops.assocSubstanceSecondaryAxisAlignMode = oneOf(ops.assocSubstanceSecondaryAxisAlignMode, globalOps.assocSubstanceSecondaryAxisAlignMode);
         ops.assocSubstanceAlignMode = oneOf(ops.assocSubstanceAlignMode, globalOps.assocSubstanceAlignMode);
+        ops.assocSubstanceStackOnPrimaryAxis = oneOf(ops.assocSubstanceStackOnPrimaryAxis, globalOps.assocSubstanceStackOnPrimaryAxis);
 
         ops.singleLine = oneOf(ops.singleLine, globalOps.singleLine);
         ops.reactionInlineBlockAlignMode = oneOf(ops.reactionInlineBlockAlignMode, globalOps.reactionInlineBlockAlignMode);
@@ -1654,7 +1656,7 @@ Kekule.ReactionLayoutUtils = {
         var targetAssocSubstanceTypes = Kekule.ArrayUtils.exclude(ops.targetSubstances, [Kekule.ChemReactionComponent.REACTANT, Kekule.ChemReactionComponent.PRODUCT]);
 
         var mainSubstancePrimaryAxisLayoutWeight, mainSubstanceSecondaryAxisAlignWeight;
-        var assocSubstancePrimaryAxisLayoutWeight;
+        var assocSubstancePrimaryAxisLayoutWeight, assocSubstanceSecondaryAxisLayoutWeight;
         if (primaryAxis === 'y')
         {
             // mainSubstancePrimaryAxisLayoutWeight = (ops.mainSubstancePrimaryAxisAlignMode === ROA.BOTTOM)? 1 : -1;
@@ -1662,9 +1664,12 @@ Kekule.ReactionLayoutUtils = {
             mainSubstanceSecondaryAxisAlignWeight = (ops.mainSubstanceSecondaryAxisAlignMode === ROA.RIGHT)? -1:
                 (ops.mainSubstanceSecondaryAxisAlignMode === ROA.LEFT)? 1
                     :0;  // center
-            assocSubstancePrimaryAxisLayoutWeight = (ops.assocSubstanceAlignMode === ROA.BOTTOM)? 1:
-                (ops.assocSubstanceAlignMode === ROA.TOP)? -1
-                    :0;  // center
+            if (ops.assocSubstanceStackOnPrimaryAxis)
+                assocSubstancePrimaryAxisLayoutWeight = mainSubstancePrimaryAxisLayoutWeight;
+            else
+                assocSubstancePrimaryAxisLayoutWeight = (ops.assocSubstanceAlignMode === ROA.BOTTOM)? 1:
+                    (ops.assocSubstanceAlignMode === ROA.TOP)? -1
+                        :0;  // center
         }
         else
         {
@@ -1673,9 +1678,13 @@ Kekule.ReactionLayoutUtils = {
             mainSubstanceSecondaryAxisAlignWeight = (ops.mainSubstanceSecondaryAxisAlignMode === ROA.BOTTOM)? 1:
                 (ops.mainSubstanceSecondaryAxisAlignMode === ROA.TOP)? -1:
                     0;   // center
-            assocSubstancePrimaryAxisLayoutWeight = (ops.assocSubstanceAlignMode === ROA.RIGHT)? -1:
-                (ops.assocSubstanceAlignMode === ROA.LEFT)? 1
-                    :0;  // center
+
+            if (ops.assocSubstanceStackOnPrimaryAxis)
+                assocSubstancePrimaryAxisLayoutWeight = mainSubstancePrimaryAxisLayoutWeight;
+            else
+                assocSubstancePrimaryAxisLayoutWeight = (ops.assocSubstanceAlignMode === ROA.RIGHT)? -1:
+                    (ops.assocSubstanceAlignMode === ROA.LEFT)? 1
+                        :0;  // center
         }
 
 
@@ -1698,25 +1707,26 @@ Kekule.ReactionLayoutUtils = {
             return result;
         };
 
-        var arrangeReactionObject = function(isAssocObj, startingCoord, substance, leadingPadding,
+        var arrangeReactionObject = function(stackOnSecondaryAxis, startingCoord, substance, leadingPadding,
                                       primaryAxis, secondaryAxis,
                                       primaryAxisAlignWeight, secondaryAxisAlignWeight,   // for main object
-                                      assocSubstancePrimaryAxisWeight,    // for assoc object, align weight on primary axis
-                                      assocSubstanceSecondaryAxisWeight,   // for assoc object, layout weight on secondary axis
+                                      // assocSubstancePrimaryAxisWeight,    // for assoc object, align weight on primary axis
+                                      // assocSubstanceSecondaryAxisWeight,   // for assoc object, layout weight on secondary axis
                                       objsContainerBox, objGeometryMap)
         {
             var currCoord = Object.extend({}, startingCoord);
             if (leadingPadding)
             {
-                if (isAssocObj)
-                    currCoord[secondaryAxis] += leadingPadding * assocSubstanceSecondaryAxisWeight;
+                if (stackOnSecondaryAxis)
+                    currCoord[secondaryAxis] += leadingPadding * secondaryAxisAlignWeight;
                 else
                     currCoord[primaryAxis] += leadingPadding * primaryAxisAlignWeight;
             }
             var containerBox = substance.getExposedContainerBox? substance.getExposedContainerBox(Kekule.CoordMode.COORD2D): substance.getContainerBox(Kekule.CoordMode.COORD2D);
             var containerBoxSize = {x: containerBox.x2 - containerBox.x1, y: containerBox.y2 - containerBox.y1};
             var objCenterCoord = Object.extend({}, currCoord);
-            if (isAssocObj)
+            /*
+            if (stackOnSecondaryAxis)
             {
                 objCenterCoord[primaryAxis] += containerBoxSize[primaryAxis] / 2 * assocSubstancePrimaryAxisWeight;
                 objCenterCoord[secondaryAxis] += containerBoxSize[secondaryAxis] / 2 * assocSubstanceSecondaryAxisWeight;
@@ -1728,6 +1738,13 @@ Kekule.ReactionLayoutUtils = {
                 objCenterCoord[secondaryAxis] = containerBoxSize[secondaryAxis] / 2 * secondaryAxisAlignWeight;
                 currCoord[primaryAxis] += containerBoxSize[primaryAxis] * primaryAxisAlignWeight;
             }
+            */
+            objCenterCoord[primaryAxis] += containerBoxSize[primaryAxis] / 2 * primaryAxisAlignWeight;
+            objCenterCoord[secondaryAxis] += containerBoxSize[secondaryAxis] / 2 * secondaryAxisAlignWeight;
+            if (stackOnSecondaryAxis)
+                currCoord[secondaryAxis] += containerBoxSize[secondaryAxis] * secondaryAxisAlignWeight;
+            else
+                currCoord[primaryAxis] += containerBoxSize[primaryAxis] * primaryAxisAlignWeight;
 
             // var objOriginalCenterCoord = substance.getCoordOfMode(Kekule.CoordMode.COORD2D);
             var objOriginalCenterCoord = Kekule.BoxUtils.getCenterCoord(containerBox);
@@ -1747,6 +1764,49 @@ Kekule.ReactionLayoutUtils = {
             Object.extend(objsContainerBox, newObjsContainerBox);
 
             // objGeometryMap.set(substance, result);
+            return result;
+        };
+
+        var arrangeReactionObjectSubGroup = function(stackOnSecondaryAxis, revObjSeq, startingCoord, objectGroup, objPadding,
+                                                  primaryAxis, secondaryAxis,
+                                                  objPrimaryAxisAlignWeight, objSecondaryAxisAlignWeight,   // for individual object inside group
+                                                  groupPrimaryAxisAlignWeight, groupSecondaryAxisAlignWeight,   // for the whole group
+                                                  objsContainerBox, objGeometryMap)
+        {
+            var sumContainerBox = {};
+            var currCoord = Kekule.CoordUtils.create(0, 0);  // start from zero, adjust when all objects are arranged
+            for (var i = 0, l = objectGroup.length; i < l; ++i)
+            {
+                var objIndex = revObjSeq? l - i - 1: i;
+                var currGeometry = arrangeReactionObject(stackOnSecondaryAxis, currCoord, objectGroup[objIndex], (i > 0)? objPadding: 0,
+                    primaryAxis, secondaryAxis,
+                    objPrimaryAxisAlignWeight, objSecondaryAxisAlignWeight,
+                    sumContainerBox, objGeometryMap);
+                currCoord = currGeometry.nextStartingCoord;
+            }
+            // adjust the position of each object according to the starting coord
+            var sumContainerBoxSize = {x: sumContainerBox.x2 - sumContainerBox.x1, y: sumContainerBox.y2 - sumContainerBox.y1};
+            var sumContainerBoxCenter = Kekule.BoxUtils.getCenterCoord(sumContainerBox);
+
+            var delta = Kekule.CoordUtils.substract(startingCoord, sumContainerBoxCenter);
+            delta[primaryAxis] += sumContainerBoxSize[primaryAxis] / 2 * (0 + groupPrimaryAxisAlignWeight);
+            delta[secondaryAxis] += sumContainerBoxSize[secondaryAxis] / 2 * (0 + groupSecondaryAxisAlignWeight);
+
+            for (var i = 0, l = objectGroup.length; i < l; ++i)
+            {
+                var objGeometry = objGeometryMap.get(objectGroup[i]);
+                objGeometry.coordDelta = Kekule.CoordUtils.add(objGeometry.coordDelta, delta);
+            }
+
+            var adjustedContainerBox = Kekule.BoxUtils.transform2D(sumContainerBox, {translateX: delta.x, translateY: delta.y});
+            var newObjsContainerBox = Kekule.BoxUtils.getContainerBox(objsContainerBox, adjustedContainerBox);
+            // modify the original objContainerBox
+            Object.extend(objsContainerBox, newObjsContainerBox);
+
+            var result = {
+                'adjustedContainerBox': adjustedContainerBox
+            };
+
             return result;
         };
 
@@ -1770,27 +1830,87 @@ Kekule.ReactionLayoutUtils = {
             var firstHalfReagentCount = Math.ceil(reagents.length / 2);
             var reagentGroup1 = reagents.slice(0, firstHalfReagentCount);
             var reagentGroup2 = reagents.slice(firstHalfReagentCount);
-            for (var i = reagentGroup1.length - 1; i >= 0; --i)  // group1, arrange them from bottom to top by default
-            {
-                var currGeometry;
-                var substance = getTargetMolecule(reagentGroup1[i], chemDoc, doMoleculesClone);
-                currGeometry = arrangeReactionObject(true, currCoord, substance, substanceGapSecondary, primaryAxis, secondaryAxis,
-                    mainSubstancePrimaryAxisLayoutWeight, mainSubstanceSecondaryAxisAlignWeight,
-                    assocSubstancePrimaryAxisLayoutWeight, 1, assocObjectsBox, objGeometryMap);
-                assocObjects.push(substance);
-                currCoord = currGeometry.nextStartingCoord;
+            var reagentStackOnSecondardyAxis = !ops.assocSubstanceStackOnPrimaryAxis;
+
+            /*
+            if (false && reagentStackOnSecondardyAxis) {
+                for (var i = reagentGroup1.length - 1; i >= 0; --i)  // group1, arrange them from bottom to top by default
+                {
+                    var currGeometry;
+                    var substance = getTargetMolecule(reagentGroup1[i], chemDoc, doMoleculesClone);
+                    currGeometry = arrangeReactionObject(reagentStackOnSecondardyAxis, currCoord, substance, substanceGapSecondary, primaryAxis, secondaryAxis,
+                        assocSubstancePrimaryAxisLayoutWeight, 1, assocObjectsBox, objGeometryMap);
+                    assocObjects.push(substance);
+                    currCoord = currGeometry.nextStartingCoord;
+                }
+                currCoord = {x: 0, y: 0};   // reset to the zero point, begin to arrange group 2
+                for (var i = 0, l = reagentGroup2.length; i < l; ++i)  // group2, arrange them from top to bottom by default
+                {
+                    var currGeometry;
+                    var substance = getTargetMolecule(reagentGroup2[i], chemDoc, doMoleculesClone);
+                    currGeometry = arrangeReactionObject(reagentStackOnSecondardyAxis, currCoord, substance, substanceGapSecondary, primaryAxis, secondaryAxis,
+                        assocSubstancePrimaryAxisLayoutWeight, -1, assocObjectsBox, objGeometryMap);
+                    assocObjects.push(substance);
+                    currCoord = currGeometry.nextStartingCoord;
+                }
             }
-            currCoord = {x: 0, y: 0};   // reset to the zero point, begin to arrange group 2
-            for (var i = 0, l = reagentGroup2.length; i < l; ++i)  // group2, arrange them from top to bottom by default
+            else  // reagentStackOnPrimaryAxis, we can not layout them individually, must handle them as group
+            */
             {
-                var currGeometry;
-                var substance = getTargetMolecule(reagentGroup2[i], chemDoc, doMoleculesClone);
-                currGeometry = arrangeReactionObject(true, currCoord, substance, substanceGapSecondary, primaryAxis, secondaryAxis,
-                    mainSubstancePrimaryAxisLayoutWeight, mainSubstanceSecondaryAxisAlignWeight,
-                    assocSubstancePrimaryAxisLayoutWeight, -1, assocObjectsBox, objGeometryMap);
-                assocObjects.push(substance);
-                currCoord = currGeometry.nextStartingCoord;
+                var groupPrimaryAxisLayoutWeight;
+                if (primaryAxis === 'y')
+                {
+                    groupPrimaryAxisLayoutWeight = (ops.assocSubstanceAlignMode === ROA.BOTTOM) ? 1 :
+                        (ops.assocSubstanceAlignMode === ROA.TOP) ? -1
+                            : 0;  // center
+                }
+                else
+                {
+                    groupPrimaryAxisLayoutWeight = (ops.assocSubstanceAlignMode === ROA.RIGHT) ? -1 :
+                        (ops.assocSubstanceAlignMode === ROA.LEFT) ? 1
+                            : 0;  // center
+                }
+
+                // group1
+                if (reagentGroup1.length)
+                {
+                    var targetGroup = []
+                    for (var i = 0, l = reagentGroup1.length; i < l; ++i)
+                    {
+                        var substance = getTargetMolecule(reagentGroup1[i], chemDoc, doMoleculesClone);
+                        targetGroup.push(substance);
+                    }
+                    currCoord = {x: 0, y: 0};
+                    currCoord[secondaryAxis] += substanceGapSecondary;
+                    var groupGeometry = arrangeReactionObjectSubGroup(
+                        reagentStackOnSecondardyAxis, reagentStackOnSecondardyAxis, currCoord, targetGroup, substanceGapPrimary, primaryAxis, secondaryAxis,
+                        assocSubstancePrimaryAxisLayoutWeight, 1,
+                        groupPrimaryAxisLayoutWeight, 1,
+                        assocObjectsBox, objGeometryMap
+                    );
+                    assocObjects = assocObjects.concat(targetGroup);
+                }
+                // group2
+                if (reagentGroup2.length)
+                {
+                    var targetGroup = []
+                    for (var i = 0, l = reagentGroup2.length; i < l; ++i)
+                    {
+                        var substance = getTargetMolecule(reagentGroup2[i], chemDoc, doMoleculesClone);
+                        targetGroup.push(substance);
+                    }
+                    currCoord = {x: 0, y: 0};
+                    currCoord[secondaryAxis] -= substanceGapSecondary;
+                    groupGeometry = arrangeReactionObjectSubGroup(
+                        reagentStackOnSecondardyAxis, false, currCoord, targetGroup, substanceGapPrimary, primaryAxis, secondaryAxis,
+                        assocSubstancePrimaryAxisLayoutWeight, -1,
+                        groupPrimaryAxisLayoutWeight, -1,
+                        assocObjectsBox, objGeometryMap
+                    );
+                    assocObjects = assocObjects.concat(targetGroup);
+                }
             }
+
             var assocObjectBoxSize = !Kekule.BoxUtils.isUnset(assocObjectsBox)? {x: assocObjectsBox.x2 - assocObjectsBox.x1, y: assocObjectsBox.y2 - assocObjectsBox.y1}: {x: 0, y: 0};
 
             // reset the curr coord and arrange the reaction arrow
@@ -1799,6 +1919,12 @@ Kekule.ReactionLayoutUtils = {
             // var reactionArrowActualPadding = Math.max(ops.reactionArrowPadding, (ops.reactionArrowMinSize - assocObjectBoxSize[primaryAxis] / 2));
             var reactionArrowActualPadding = (reactionArrowSize - (assocObjectBoxSize[primaryAxis] || 0)) / 2;
             var reactionArrowStartingCoord = Object.extend({}, currCoord), reactionArrowEndingCoord = Object.extend({}, currCoord);
+
+
+            reactionArrowStartingCoord[primaryAxis] = (assocObjectsBox[primaryAxis + '1'] || 0) - reactionArrowActualPadding;
+            reactionArrowEndingCoord[primaryAxis] = (assocObjectsBox[primaryAxis + '2'] || 0) + reactionArrowActualPadding;
+
+            /*
             if (assocSubstancePrimaryAxisLayoutWeight === -1)  // align to right or top
             {
                 reactionArrowStartingCoord[primaryAxis] += (assocObjectBoxSize[primaryAxis] + reactionArrowActualPadding) * assocSubstancePrimaryAxisLayoutWeight;
@@ -1814,6 +1940,8 @@ Kekule.ReactionLayoutUtils = {
                 reactionArrowStartingCoord[primaryAxis] -= (reactionArrowActualPadding + assocObjectBoxSize[primaryAxis]/2);
                 reactionArrowEndingCoord[primaryAxis] += (reactionArrowActualPadding + assocObjectBoxSize[primaryAxis]/2);
             }
+            */
+
             if (mainSubstancePrimaryAxisLayoutWeight < 0)  // reversed direction, need to revert starting/ending coord
             {
                 var tempCoord = reactionArrowStartingCoord;
@@ -1858,7 +1986,7 @@ Kekule.ReactionLayoutUtils = {
                     var substance = getTargetMolecule(reaction.getReactantAt(i), chemDoc, doMoleculesClone);
                     currGeometry = arrangeReactionObject(false, currCoord, substance, substanceGapPrimary, primaryAxis, secondaryAxis,
                         -mainSubstancePrimaryAxisLayoutWeight, mainSubstanceSecondaryAxisAlignWeight,
-                        assocSubstancePrimaryAxisLayoutWeight, 1, mainObjectsBox, objGeometryMap);
+                        mainObjectsBox, objGeometryMap);
                     mainObjects.push(substance);
                     currCoord = currGeometry.nextStartingCoord;
 
@@ -1867,7 +1995,7 @@ Kekule.ReactionLayoutUtils = {
                         var plusSymbol = createPlusSymbol(chemDoc);
                         currGeometry = arrangeReactionObject(false, currCoord, plusSymbol, substanceGapPrimary, primaryAxis, secondaryAxis,
                             -mainSubstancePrimaryAxisLayoutWeight, mainSubstanceSecondaryAxisAlignWeight,
-                            assocSubstancePrimaryAxisLayoutWeight, 1, mainObjectsBox, objGeometryMap);
+                            mainObjectsBox, objGeometryMap);
                         mainObjects.push(plusSymbol);
                         currCoord = currGeometry.nextStartingCoord;
                     }
@@ -1888,7 +2016,7 @@ Kekule.ReactionLayoutUtils = {
                         var plusSymbol = createPlusSymbol(chemDoc);
                         currGeometry = arrangeReactionObject(false, currCoord, plusSymbol, substanceGapPrimary, primaryAxis, secondaryAxis,
                             mainSubstancePrimaryAxisLayoutWeight, mainSubstanceSecondaryAxisAlignWeight,
-                            assocSubstancePrimaryAxisLayoutWeight, 1, mainObjectsBox, objGeometryMap);
+                            mainObjectsBox, objGeometryMap);
                         mainObjects.push(plusSymbol);
                         currCoord = currGeometry.nextStartingCoord;
                     }
@@ -1896,7 +2024,7 @@ Kekule.ReactionLayoutUtils = {
                     var substance = getTargetMolecule(reaction.getProductAt(i), chemDoc, doMoleculesClone);
                     currGeometry = arrangeReactionObject(false, currCoord, substance, substanceGapPrimary, primaryAxis, secondaryAxis,
                         mainSubstancePrimaryAxisLayoutWeight, mainSubstanceSecondaryAxisAlignWeight,
-                        assocSubstancePrimaryAxisLayoutWeight, 1, mainObjectsBox, objGeometryMap);
+                        mainObjectsBox, objGeometryMap);
                     mainObjects.push(substance);
                     currCoord = currGeometry.nextStartingCoord;
                 }
