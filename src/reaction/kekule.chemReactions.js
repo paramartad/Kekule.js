@@ -551,6 +551,27 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
         return this;
     },
 
+    /**
+     * Clear all structure stereo features (e.g., bond wedge, node zIndex2D) of all molecules in reaction.
+     */
+    clearStereo: function()
+    {
+        this.beginUpdate();
+        try
+        {
+            for (var i = 0, l = this.getChildCount(); i < l; ++i)
+            {
+                var obj = this.getChildAt(i);
+                if (obj && obj.clearStereo)
+                    obj.clearStereo();
+            }
+        }
+        finally
+        {
+            this.endUpdate();
+        }
+    },
+
     // /**
     //  * Returns the index of a condition object in condition list of reaction.
     //  * @param {Kekule.Scalar} condition
@@ -988,6 +1009,27 @@ Kekule.ConsecutiveReactions = Class.create(Kekule.ChemObject,
             reactionList.insert(step, index);
         }
         return step;
+    },
+
+    /**
+     * Clear all structure stereo features (e.g., bond wedge, node zIndex2D) of all molecules in reaction.
+     */
+    clearStereo: function()
+    {
+        this.beginUpdate();
+        try
+        {
+            for (var i = 0, l = this.getStepCount(); i < l; ++i)
+            {
+                var step = this.getStepAt(i);
+                if (step && step.clearStereo)
+                    step.clearStereo();
+            }
+        }
+        finally
+        {
+            this.endUpdate();
+        }
     },
 
     /** @ignore */
