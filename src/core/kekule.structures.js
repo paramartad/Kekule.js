@@ -864,6 +864,23 @@ Kekule.ChemStructureObject = Class.create(Kekule.ChemObject,
 	},
 
 	/**
+	 * Clear all structure stereo features (e.g., bond wedge, node zIndex2D).
+	 */
+	clearStereo: function()
+	{
+		return this.doClearStereo();
+	},
+	/**
+	 * Do actual work of {@link Kekule.ChemStructureObject.clearStereo}.
+	 * Descendants should override this method.
+	 * @private
+	 */
+	doClearStereo: function()
+	{
+		// do nothing here
+	},
+
+	/**
 	 * Returns property names that affects chem structure.
 	 * Descendants should override this method.
 	 * @private
@@ -1008,7 +1025,13 @@ Kekule.SimpleStructureNode = Class.create(Kekule.ChemStructureObject,
 	getContainerBox3D: function(allowCoordBorrow)
 	{
 		return this.getContainerBox(Kekule.CoordMode.COORD3D, allowCoordBorrow);
-	}
+	},
+
+	/** @ignore */
+	doClearStereo: function()
+	{
+		this.setZIndex2D(null);
+	},
 });
 Kekule.ClassDefineUtils.addStandardCoordSupport(Kekule.SimpleStructureNode);
 
@@ -4865,6 +4888,22 @@ Kekule.StructureConnectionTable = Class.create(ObjectEx,
 			}
 		}
 		return result;
+	},
+
+	/** @ignore */
+	clearStereo: function() {
+		this.beginUpdate();
+		try
+		{
+			this.traverse(function(obj, isConnector) {
+				if (obj.clearStereo)
+					obj.clearStereo();
+			});
+		}
+		finally
+		{
+			this.endUpdate();
+		}
 	}
 });
 
@@ -6920,6 +6959,19 @@ Kekule.StructureFragment = Class.create(Kekule.ChemStructureNode,
 			return this.getCtab().traverse(callback, startingNode, breadthFirst, partialNodes);
 		else
 			return null;
+	},
+
+	/** @ignore */
+	doClearStereo: function() {
+		this.beginUpdate();
+		if (this.hasCtab()) {
+			this.getCtab().clearStereo();
+			var shadow = this.getFlattenedShadowFragment(false);
+			if (shadow && shadow !== this && shadow.clearStereo) {
+				shadow.clearStereo();
+			}
+		}
+		this.endUpdate();
 	}
 });
 
@@ -8116,6 +8168,12 @@ Kekule.Bond = Class.create(Kekule.ChemStructureConnector,
 			}
 		}
 		return false;
+	},
+
+	/** @iignore */
+	doClearStereo: function()
+	{
+		this.setStereo(Kekule.BondStereo.NONE);
 	}
 });
 
@@ -8571,7 +8629,7 @@ Kekule.ChemStructureObjectGroup = Class.create(Kekule.ChemStructureObject,
 		if (refIndex < 0)
 			refIndex = this.indexOfObj(refChild);
 		return this.insertChild(item, refIndex);
-	}
+	},
 	/*
 	 * Remove a child at index.
 	 * @param {Int} index
@@ -8599,6 +8657,22 @@ Kekule.ChemStructureObjectGroup = Class.create(Kekule.ChemStructureObject,
 		return result || $super(obj);
 	}
 	*/
+	doClearStereo: function() {
+		this.beginUpdate();
+		try
+		{
+			for (var i = 0, l = this.getItemCount(); i < l; ++i)
+			{
+				var obj = this.getObjAt(i);
+				if (obj && obj.clearStereo)
+					obj.clearStereo();
+			}
+		}
+		finally
+		{
+			this.endUpdate();
+		}
+	}
 });
 
 /**
@@ -8881,6 +8955,27 @@ Kekule.CompositeMolecule = Class.create(Kekule.Molecule,
 		return this.getSubMolecules().removeChild(obj) || $super(obj);
 	}
 	*/
+
+	/** @ignore */
+	doClearStereo: function() {
+		this.beginUpdate();
+		try {
+			var subMols = this.getPropStoreFieldValue('subMolecules');
+			if (subMols)
+			{
+				for (var i = 0, l = subMols.getItemCount(); i < l; ++i)
+				{
+					var mol = subMols.getObjAt(i);
+					if (mol.clearStereo)
+						mol.clearStereo();
+				}
+			}
+		}
+		finally
+		{
+			this.endUpdate();
+		}
+	}
 });
 
 /**
@@ -9006,5 +9101,26 @@ Kekule.ChemStructureNodeFactory = {
 		return result;
 	}
 }
+
+
+ClassEx.extendMethods(Kekule.ChemSpace, {
+	'clearStereo': function () {
+		this.beginUpdate();
+		try {
+			var mols = this.filterChildren(function (obj) {
+				return obj && (obj instanceof Kekule.Molecule);
+			}, true);
+			for (var i = 0, l = mols.length; i < l; ++i)
+			{
+				var mol = mols[i];
+				mol.clearStereo();
+			}
+		}
+		finally
+		{
+			this.endUpdate();
+		}
+	}
+});
 
 })();
