@@ -1611,6 +1611,12 @@ Kekule.Render.TextBasedChemMarker2DRenderer = Class.create(Kekule.Render.RichTex
 				return Kekule.Render.RichTextUtils.createSection(text,
 						{'charDirection': Kekule.Render.TextDirection.LTR});
 		}
+		else if (obj instanceof Kekule.ChemMarker.Notation)
+		{
+			text = obj.getText();
+			if (text)
+				return Kekule.Render.RichTextUtils.createSection(text);
+		}
 		return null;
 	},
 
@@ -5049,6 +5055,7 @@ Kekule.Render.ChemSpace2DRenderer = Class.create(Kekule.Render.CompositeObj2DRen
 });
 
 // register renderers
+Kekule.Render.Renderer2DFactory.register(Kekule.ChemMarker.Notation, Kekule.Render.TextBasedChemMarker2DRenderer);
 Kekule.Render.Renderer2DFactory.register(Kekule.ChemMarker.Charge, Kekule.Render.TextBasedChemMarker2DRenderer);
 Kekule.Render.Renderer2DFactory.register(Kekule.ChemMarker.Radical, Kekule.Render.TextBasedChemMarker2DRenderer);
 Kekule.Render.Renderer2DFactory.register(Kekule.ChemMarker.UnbondedElectronSet, Kekule.Render.UnbondedElectronSetRenderer);
