@@ -52,6 +52,32 @@ Kekule.ChemMarker.BaseMarker = Class.create(Kekule.ChemObject,
 Kekule.ClassDefineUtils.addStandardCoordSupport(Kekule.ChemMarker.BaseMarker);
 
 /**
+ * Represent a notation marker with a custom label.
+ * @class
+ * @augments ChemMarker.BaseMarker
+ *
+ * @property {String} text Text of the notation.
+ * @property {String} category Category of the notation. Can be set to any custom values.
+ */
+Kekule.ChemMarker.Notation = Class.create(Kekule.ChemMarker.BaseMarker,
+/** @lends Kekule.ChemMarker.Notation# */
+{
+	/** @private */
+	CLASS_NAME: 'Kekule.ChemMarker.Notation',
+	/** @private */
+	initProperties: function()
+	{
+		this.defineProp('text', {'dataType': DataType.STRING});
+		this.defineProp('category', {'dataType': DataType.STRING});
+	},
+	/** @ignore */
+	getAutoIdPrefix: function()
+	{
+		return 'notation';
+	}
+});
+
+/**
  * Represent a lone pair marker in rendering parent chem object.
  * @class
  * @augments ChemMarker.BaseMarker
@@ -248,6 +274,22 @@ Kekule.ChemMarker.Radical = Class.create(Kekule.ChemMarker.ChemPropertyMarker,
 	getAutoIdPrefix: function()
 	{
 		return 'radical';
+	}
+});
+
+ClassEx.defineProp(Kekule.ChemStructureObject, 'customNotations', {
+	'dataType': DataType.ARRAY, 'scope': Class.PropertyScope.PUBLISHED, 'serializable': false,
+	'setter': null,  // currently disable setter
+	'getter': function()
+	{
+		var result = [];
+		var notations = this.getMarkersOfType(Kekule.ChemMarker.Notation);
+		for (var i = 0, l = notations.length; i < l; ++i)
+		{
+			var note = notations[i];
+			result.push(note.getText());
+		}
+		return result;
 	}
 });
 

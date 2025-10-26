@@ -7120,13 +7120,15 @@ Kekule.Editor.AttachedMarkerIaController = Class.create(Kekule.Editor.BaseEditor
 	/** @private */
 	createOperations: function(targetObj)
 	{
-		var result;
 		var marker = this.createMarker();
 		if (marker)  // add to target object
 		{
+			var result;
 			result = new Kekule.ChemObjOperation.Add(marker, targetObj, null, this.getEditor());
+			return [result];
 		}
-		return [result];
+		else
+			return [];
 	},
 
 	/**
@@ -7176,6 +7178,94 @@ Kekule.Editor.AttachedMarkerIaController = Class.create(Kekule.Editor.BaseEditor
 	}
 });
 Kekule.Editor.IaControllerManager.register(Kekule.Editor.AttachedMarkerIaController, Kekule.Editor.ChemSpaceEditor);
+
+/**
+ * Controller to toggle attached markers of an existing object.
+ * @class
+ * @augments Kekule.Editor.AttachedMarkerIaController
+ *
+ * @property {Bool} enableToggle If true, when click on an object, it will toggle the marker, otherwise a new marker will be added.
+ */
+Kekule.Editor.ToggleAttachedMarkerIaController = Class.create(Kekule.Editor.AttachedMarkerIaController,
+/** @lends Kekule.Editor.ToggleAttachedMarkerIaController# */
+{
+	/** @private */
+	CLASS_NAME: 'Kekule.Editor.ToggleAttachedMarkerIaController',
+	/** @construct */
+	initialize: function(editor)
+	{
+		this.tryApplySuper('initialize', [editor]);
+	},
+	/** @private */
+	initProperties: function()
+	{
+		this.defineProp('enableToggle', {'dataType': DataType.BOOL, 'serializable': false});
+	},
+	initPropValues: function()
+	{
+		this.tryApplySuper('initPropValues');
+		this.setEnableToggle(true);
+	},
+
+	/** @private */
+	createOperations: function(targetObj)
+	{
+		var result;
+		var existedMarker = this.getToggleTargetMarker(targetObj);
+		if (this.getEnableToggle() && existedMarker)
+			result = this.createRemoveOperations(targetObj, existedMarker);
+		else
+		{
+			result = this.tryApplySuper('createOperations', [targetObj]);
+		}
+		return result;
+	},
+
+	/** @private */
+	createRemoveOperations: function(targetObj, targetMarker)
+	{
+		if (targetMarker)  // remove from target object
+		{
+			var result = new Kekule.ChemObjOperation.Remove(targetMarker, null, null, this.getEditor());
+			return [result];
+		}
+		else
+		{
+			return [];
+		}
+	},
+
+	/**
+	 * Returns the existed marker instance can be toggled off.
+	 * Descendants should override this method.
+	 * @param {Kekule.ChemObject} targetObj
+	 * @returns {Kekule.ChemMarker.BaseMarker}
+	 * @private
+	 */
+	getToggleTargetMarker: function(targetObj)
+	{
+		var markers = targetObj.getAttachedMarkers() || [];
+		for (var i = 0, l = markers.length; i < l; ++i)
+		{
+			var marker = markers[i];
+			if (this.isToggleTargetMarker(marker))
+				return marker;
+		}
+		return null;
+	},
+	/**
+	 * Check if marker is same type of marker and can be toggled.
+	 * Descendants should override this method.
+	 * @param {Kekule.ChemMarker.BaseMarker} marker
+	 * @returns {Bool}
+	 * @private
+	 */
+	isToggleTargetMarker: function(marker)
+	{
+		return marker.getClassName() === this.getMarkerClassName();
+	}
+});
+Kekule.Editor.IaControllerManager.register(Kekule.Editor.ToggleAttachedMarkerIaController, Kekule.Editor.ChemSpaceEditor);
 
 /**
  * Controller to set atom/group charge and radical.
@@ -7338,5 +7428,98 @@ Kekule.Editor.MolNodeChargeIaController = Class.create(Kekule.Editor.AttachedMar
 // register
 Kekule.Editor.IaControllerManager.register(Kekule.Editor.MolNodeChargeIaController, Kekule.Editor.ChemSpaceEditor);
 
+/**
+ * Controller to set custom notation to chem structure object.
+ * @class
+ * @augments Kekule.Editor.AttachedMarkerIaController
+ */
+Kekule.Editor.CustomNotationIaController = Class.create(Kekule.Editor.AttachedMarkerIaController,
+/** @lends Kekule.Editor.CustomNotationIaController# */
+{
+	/** @private */
+	CLASS_NAME: 'Kekule.Editor.CustomNotationIaController',
+	/** @construct */
+	initialize: function(editor)
+	{
+		this.tryApplySuper('initialize', [editor]);
+	},
+	/** @private */
+	initProperties: function()
+	{
+		this.defineProp('text', {'dataType': DataType.STRING, 'serializable': false});
+		this.defineProp('category', {'dataType': DataType.STRING, 'serializable': false});
+		this.defineProp('renderOptions', {'dataType': DataType.HASH, 'serializable': false});
+	},
+	initPropValues: function(/*$super*/)
+	{
+		this.tryApplySuper('initPropValues');
+		this.setTargetClass(Kekule.ChemStructureObject);
+		this.setMarkerClass(Kekule.ChemMarker.Notation);
+	},
+
+	/** @private */
+	createMarker: function()
+	{
+		var result = this.tryApplySuper('createMarker');
+		result.setText(this.getText()).setCategory(this.getCategory())
+		if (this.getRenderOptions())
+			result.setRenderOptions(this.getRenderOptions());
+		return result;
+	}
+});
+
+// register
+Kekule.Editor.IaControllerManager.register(Kekule.Editor.CustomNotationIaController, Kekule.Editor.ChemSpaceEditor);
+
+/**
+ * Controller to toggle custom notation to chem structure object.
+ * @class
+ * @augments Kekule.Editor.AttachedMarkerIaController
+ */
+Kekule.Editor.ToggleCustomNotationIaController = Class.create(Kekule.Editor.ToggleAttachedMarkerIaController,
+/** @lends Kekule.Editor.ToggleCustomNotationIaController# */
+{
+	/** @private */
+	CLASS_NAME: 'Kekule.Editor.ToggleCustomNotationIaController',
+	/** @construct */
+	initialize: function(editor)
+	{
+		this.tryApplySuper('initialize', [editor]);
+	},
+	/** @private */
+	initProperties: function()
+	{
+		this.defineProp('text', {'dataType': DataType.STRING, 'serializable': false});
+		this.defineProp('category', {'dataType': DataType.STRING, 'serializable': false});
+		this.defineProp('renderOptions', {'dataType': DataType.HASH, 'serializable': false});
+	},
+	initPropValues: function(/*$super*/)
+	{
+		this.tryApplySuper('initPropValues');
+		this.setTargetClass(Kekule.ChemStructureObject);
+		this.setMarkerClass(Kekule.ChemMarker.Notation);
+	},
+
+	/** @private */
+	createMarker: function()
+	{
+		var result = this.tryApplySuper('createMarker');
+		result.setText(this.getText()).setCategory(this.getCategory());
+		if (this.getRenderOptions())
+			result.setRenderOptions(this.getRenderOptions());
+		return result;
+	},
+
+	/** @ignore */
+	isToggleTargetMarker: function(marker)
+	{
+		var markerCategory = marker.getCategory();
+		return (marker instanceof (this.getMarkerClass()))
+			&& (markerCategory == this.getCategory());  // use == here, if categories is not set (undefined, null, ''), this will also return true
+	}
+});
+
+// register
+Kekule.Editor.IaControllerManager.register(Kekule.Editor.ToggleCustomNotationIaController, Kekule.Editor.ChemSpaceEditor);
 
 })();
