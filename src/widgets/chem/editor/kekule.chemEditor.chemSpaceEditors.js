@@ -8044,13 +8044,15 @@ Kekule.Editor.AttachedMarkerIaController = Class.create(Kekule.Editor.BaseEditor
 	/** @private */
 	createOperations: function(targetObj)
 	{
-		var result;
 		var marker = this.createMarker();
 		if (marker)  // add to target object
 		{
+			var result;
 			result = new Kekule.ChemObjOperation.Add(marker, targetObj, null, this.getEditor());
+			return [result];
 		}
-		return [result];
+		else
+			return [];
 	},
 
 	/**
