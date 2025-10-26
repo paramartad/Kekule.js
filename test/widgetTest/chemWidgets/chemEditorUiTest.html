@@ -60,6 +60,37 @@
 
     var EMC = Kekule.Editor.ObjModifier.Category;
     var SM = Kekule.ObjPropSettingManager;
+
+    Kekule.Editor.ActionComposerSetNotationMarkerIaController = Kekule.Editor.createComposerIaControllerActionClass(
+            'Kekule.Editor.ActionComposerSetNotationMarkerIaController',
+            'Notation',//Kekule.$L('ChemWidgetTexts.CAPTION_MOL_ELECTRON_LONEPAIR'), //Kekule.ChemWidgetTexts.CAPTION_MOL_CHARGE_DOUBLET,
+            'Notation',//Kekule.$L('ChemWidgetTexts.HINT_MOL_ELECTRON_LONEPAIR'), //Kekule.ChemWidgetTexts.HINT_MOL_CHARGE_DOUBLET,
+            'CustomNotationIaController',
+            'CustomNotationIaController',
+            {
+              'text': '*'
+            },
+            null, null,
+            'notation'//BNS.molElectronLonePair
+    );
+    Kekule.Editor.ActionComposerToggleNotationMarkerIaController = Kekule.Editor.createComposerIaControllerActionClass(
+            'Kekule.Editor.ActionComposerToggleNotationMarkerIaController',
+            'Toggle Notation',//Kekule.$L('ChemWidgetTexts.CAPTION_MOL_ELECTRON_LONEPAIR'), //Kekule.ChemWidgetTexts.CAPTION_MOL_CHARGE_DOUBLET,
+            'Toggle Notation',//Kekule.$L('ChemWidgetTexts.HINT_MOL_ELECTRON_LONEPAIR'), //Kekule.ChemWidgetTexts.HINT_MOL_CHARGE_DOUBLET,
+            'ToggleCustomNotationIaController',
+            'ToggleCustomNotationIaController',
+            {
+              'text': '*',
+              'category': 'custom',
+              'renderOptions': {color: '#ff0000'}
+            },
+            null, null,
+            'toggleNotation'//BNS.molElectronLonePair
+    );
+    Kekule.ActionManager.registerNamedActionClass('notation', Kekule.Editor.ActionComposerSetNotationMarkerIaController, Kekule.Editor.ChemSpaceEditor);
+    Kekule.ActionManager.registerNamedActionClass('toggleNotation', Kekule.Editor.ActionComposerToggleNotationMarkerIaController, Kekule.Editor.ChemSpaceEditor);
+
+
     // overwrite molOnly setting of composer
     SM.register('Kekule.Editor.Composer.molOnly', {  // composer that can only edit molecule
 	    //enableStyleToolbar: true,
@@ -107,9 +138,9 @@
 			    {
 				    'name': BNS.molCharge, 'attached': [
 					    BNS.molChargeClear, BNS.molChargePositive, BNS.molChargeNegative,
-					    BNS.molRadicalDoublet, BNS.molElectronLonePair
+					    BNS.molRadicalDoublet, BNS.molElectronLonePair, 'notation', 'toggleNotation'
 				    ]
-			    }
+			    },
 	    ],   // create only chem tool buttons related with molecule
 	    styleToolComponentNames: null,  // create all default style components
 	    allowedObjModifierCategories: [EMC.GENERAL, EMC.CHEM_STRUCTURE]  // only all chem structure modifiers
