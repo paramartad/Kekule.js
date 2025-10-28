@@ -98,6 +98,7 @@ Kekule.Editor.SelectMode = {
 
 // add some global options
 Kekule.globalOptions.add('chemWidget.editor', {
+	'enableEmbeddedSetter': true,
 	'enableIssueCheck': true,
 	'enableCreateNewDoc': true,
 	'enableOperHistory': true,
@@ -363,6 +364,8 @@ Kekule.Editor.BaseEditor = Class.create(Kekule.ChemWidget.ChemObjDisplayer,
 		//this.defineProp('standardizeObjectsBeforeSaving', {'dataType': DataType.BOOL});
 
 		this.defineProp('enableCreateNewDoc', {'dataType': DataType.BOOL, 'serializable': false});
+		this.defineProp('enableEmbeddedSetter', {'dataType': DataType.BOOL});
+
 		this.defineProp('initOnNewDoc', {'dataType': DataType.BOOL, 'serializable': false});
 		this.defineProp('enableOperHistory', {'dataType': DataType.BOOL, 'serializable': false});
 		this.defineProp('operHistory', {
@@ -774,6 +777,7 @@ Kekule.Editor.BaseEditor = Class.create(Kekule.ChemWidget.ChemObjDisplayer,
 		*/
 		var ICIDs = Kekule.IssueCheck.CheckerIds;
 		var getGlobalOptionValue = Kekule.globalOptions.get;
+		this.setEnableEmbeddedSetter(getGlobalOptionValue('chemWidget.editor.enableEmbeddedSetter', true));
 		this.setEnableAutoIssueCheck(getGlobalOptionValue('chemWidget.editor.issueChecker.enableAutoIssueCheck', true));
 		this.setEnableAutoScrollToActiveIssue(getGlobalOptionValue('chemWidget.editor.issueChecker.enableAutoScrollToActiveIssue', true));
 		this.setIssueCheckerIds(getGlobalOptionValue('chemWidget.editor.issueChecker.issueCheckerIds', [ICIDs.ATOM_VALENCE, ICIDs.BOND_ORDER, ICIDs.NODE_DISTANCE_2D]));
@@ -5682,6 +5686,10 @@ Kekule.Editor.BaseEditor.Settings = Class.create(Kekule.ChemWidget.ChemObjDispla
 			'getter': function() { return this.getEditor().getEnableIssueCheck(); },
 			'setter': function(value) { this.getEditor().setEnableIssueCheck(value); }
 		});
+		this.defineProp('enableEmbeddedSetter', {'dataType': DataType.BOOL, 'serializable': false,
+			'getter': function() { return this.getEditor().getEnableEmbeddedSetter(); },
+			'setter': function(value) { this.getEditor().setEnableEmbeddedSetter(value); }
+		});
 	},
 	/** @private */
 	getEditor: function()
@@ -6149,20 +6157,23 @@ Kekule.Editor.BaseEditorIaController = Class.create(Kekule.Editor.BaseEditorBase
 	// TODO: temp
 	react_dblclick: function(e)
 	{
-		var coord = this._getEventMouseCoord(e);
+		if (this.getEditor().getEnableEmbeddedSetter())
 		{
-			var obj = this.getTopmostInteractableObjAtScreenCoord(coord);
-			// console.log('react_dbclick!!', coord, obj);
+			var coord = this._getEventMouseCoord(e);
+			{
+				var obj = this.getTopmostInteractableObjAtScreenCoord(coord);
+				// console.log('react_dbclick!!', coord, obj);
 
-			// find default embedded editor
-			var embeddedSetterClass = Kekule.Editor.EmbeddedSetterManager.getDefaultSetterClassForObject(obj);
-			if (embeddedSetterClass)
-				this.getEditor().getEmbeddedSetter(embeddedSetterClass).execute([obj], coord, function(applied, modifiedObjs) {
-					// do nothing
-				});
+				// find default embedded editor
+				var embeddedSetterClass = Kekule.Editor.EmbeddedSetterManager.getDefaultSetterClassForObject(obj);
+				if (embeddedSetterClass)
+					this.getEditor().getEmbeddedSetter(embeddedSetterClass).execute([obj], coord, function(applied, modifiedObjs) {
+						// do nothing
+					});
 
-			e.preventDefault();
-			e.stopPropagation();
+				e.preventDefault();
+				e.stopPropagation();
+			}
 		}
 	},
 
