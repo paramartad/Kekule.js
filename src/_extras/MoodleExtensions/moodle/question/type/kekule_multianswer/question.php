@@ -169,7 +169,7 @@ class qtype_kekule_multianswer_question extends question_graded_automatically_wi
                 $blank->fraction = $blank->matchAnswerKey->fraction * $maxCell->matchRatio;
             else
                 $blank->fraction = 0;
-            $blank->score = $this->getBlankDefaultMark($keyIndex) * $maxCell->matchRatio * $blank->fraction;
+            $blank->score = $this->getBlankDefaultMark($keyIndex) * $blank->fraction; // * $maxCell->matchRatio;
             //var_dump($blank);
         }
     }

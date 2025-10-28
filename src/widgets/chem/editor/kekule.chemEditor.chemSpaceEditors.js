@@ -7146,7 +7146,7 @@ Kekule.Editor.AttachedMarkerIaController = Class.create(Kekule.Editor.BaseEditor
 		{
 			// oper.execute();
 			var editor = this.getEditor();
-			if (editor && editor.getEnableOperHistory())
+			if (editor)
 			{
 				editor.pushOperation(oper, true);  // execute when pushing
 			}
