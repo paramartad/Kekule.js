@@ -13,6 +13,8 @@
         <FIELD NAME="removespaces" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="ignorecase" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" />
         <FIELD NAME="strictstereoflags" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" />
+        <FIELD NAME="enablecharselector" TYPE="int" LENGTH="2" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="charselectorcontent" TYPE="text" LENGTH="1024" SEQUENCE="false" />
         <!--
         <FIELD NAME="defcomparemethod" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Default method to compare molecules"/>
         <FIELD NAME="inputtype" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Restrict input one molecule or a chem document"/>
