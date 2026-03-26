@@ -1324,14 +1324,6 @@ Kekule.Editor.Composer = Class.create(Kekule.ChemWidget.AbstractWidget,
 			}
 		});
 
-		this.defineProp('enableEmbeddedSetter', {'dataType': DataType.BOOL, 'serializable': false,
-			'getter': function() { return this.getEditor() && this.getEditor().getEnableEmbeddedSetter(); },
-			'setter': function(value) {
-				if (this.getEditor())
-					this.getEditor().setEnableEmbeddedSetter(value);
-			}
-		});
-
 		this.defineProp('commonToolButtons', {'dataType': DataType.HASH, 'serializable': false,
 			'getter': function()
 			{
@@ -3236,7 +3228,7 @@ Kekule.Editor.Composer.Settings = Class.create(Kekule.Widget.BaseWidget.Settings
 		this.defineDelegatedProps([
 			'enableCreateNewDoc', 'enableLoadNewFile', 'initOnNewDoc', 'enableOperHistory', 'allowCreateNewChild', 'allowAppendDataToCurr',
 			'enableIssueCheck',
-			'enableStyleToolbar', 'enableObjModifierToolbar', 'enableEmbeddedSetter'
+			'enableStyleToolbar', 'enableObjModifierToolbar'
 		]);
 	}
 });
