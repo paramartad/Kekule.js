@@ -900,6 +900,23 @@ Kekule.Editor.EmbeddedSetter.CreatableBlock = Class.create(Kekule.Editor.Embedde
 	},
 
 	/** @private */
+	needToModifyObj: function(obj, modifiedValues)
+	{
+		// ensure the property is really modified
+		var needDoModification = false;
+		var propNames = Object.getOwnPropertyNames(modifiedValues);
+		for (var i = 0, l = propNames.length; i < l; ++i)
+		{
+			var propName = propNames[i];
+			if (obj.hasProperty(propName) && obj.getPropValue(propName) !== modifiedValues[propName]) {
+				needDoModification = true;
+				break;
+			}
+		}
+		return needDoModification;
+	},
+
+	/** @private */
 	createTargetObjRemoveOper: function(obj)
 	{
 		return new Kekule.ChemObjOperation.Remove(obj, obj.getParent(), null, this.getEditor());
@@ -935,7 +952,7 @@ Kekule.Editor.EmbeddedSetter.CreatableBlock = Class.create(Kekule.Editor.Embedde
 		// if (!text)  // no input, delete
 		if (!modifiedValues)
 		{
-			if (this._operAddBlock)  // new forumla just added to space
+			if (this._operAddBlock)  // new object just added to space
 				this.cancelSetter();
 			else  // old one, delete it
 			{
@@ -944,7 +961,10 @@ Kekule.Editor.EmbeddedSetter.CreatableBlock = Class.create(Kekule.Editor.Embedde
 		}
 		else
 		{
-			oper = this.createTargetObjModifyOper(obj, modifiedValues); // new Kekule.ChemObjOperation.Modify(obj.getFormula(), {'text': text}, this.getEditor());
+			// ensure the property is really modified
+			var needDoModification = this.needToModifyObj(obj, modifiedValues);
+			if (needDoModification)
+				oper = this.createTargetObjModifyOper(obj, modifiedValues); // new Kekule.ChemObjOperation.Modify(obj.getFormula(), {'text': text}, this.getEditor());
 		}
 
 		var editor = this.getEditor();
@@ -1165,7 +1185,12 @@ Kekule.Editor.EmbeddedSetter.Formula = Class.create(Kekule.Editor.EmbeddedSetter
 	/** @ignore */
 	getSetterWidgetModifiedValues: function(widget)
 	{
-		return {'formulaText': widget.getChildWidgets()[0].getValue()};
+		var formulaText = widget.getChildWidgets()[0].getValue();
+		return formulaText? {'formulaText': widget.getChildWidgets()[0].getValue()}: null;
+	},
+	/** @private */
+	needToModifyObj: function(obj, modifiedValues) {
+		return this.applySuper('needToModifyObj', [obj.getFormula(), {'text': modifiedValues.formulaText}]);
 	},
 
 	/** @ignore */
@@ -1423,7 +1448,8 @@ Kekule.Editor.EmbeddedSetter.TextBlock = Class.create(Kekule.Editor.EmbeddedSett
 	/** @ignore */
 	getSetterWidgetModifiedValues: function(widget)
 	{
-		return {'text': widget.getValue()};
+		var value = widget.getValue();
+		return value? {'text': widget.getValue()}: null;
 	},
 
 	/** @ignore */
