@@ -44,9 +44,11 @@ ClassEx.extend(Kekule.ChemObject,
 	},
 	/**
 	 * Returns objects that should be removed cascadely when deleting this one in editor.
+	 * @param {Kekule.ChemObject} invokerObj
+	 * @param {Object} options
 	 * @returns {Array}
 	 */
-	getCascadeDeleteObjs: function()
+	getCascadeDeleteObjs: function(invokerObj, options)
 	{
 		return [];
 	},
@@ -261,10 +263,13 @@ ClassEx.extend(Kekule.ChemStructureObject,
 /** @lends Kekule.ChemStructureObject# */
 {
 	/** @ignore */
-	getCascadeDeleteObjs: function(/*$super*/)
+	getCascadeDeleteObjs: function(invokerObj, options)
 	{
+		var connectorCascadeRemoveOptions = Object.create(options || {});
+		connectorCascadeRemoveOptions.retainConnectedOrphanChemNodes = !connectorCascadeRemoveOptions.removeOrphanNeighborChemNodes;
+		connectorCascadeRemoveOptions.retainLastConnectedOrphanChemNode = !!connectorCascadeRemoveOptions.preserveLastOrphanNeighborChemNode;
 		// TODO: here nested substructures is not considered
-		var result = this.tryApplySuper('getCascadeDeleteObjs')  /* $super() */;
+		var result = this.tryApplySuper('getCascadeDeleteObjs', [invokerObj, options])  /* $super() */;
 		var linkedConnectors = this.getLinkedConnectors? this.getLinkedConnectors(): [];
 		for (var i = 0, l = linkedConnectors.length; i < l; ++i)
 		{
@@ -272,7 +277,7 @@ ClassEx.extend(Kekule.ChemStructureObject,
 			if (connector.getConnectedObjs().length <= 2)
 			{
 				Kekule.ArrayUtils.pushUnique(result, connector);
-				var newCascadeObjs = connector.getCascadeDeleteObjs();
+				var newCascadeObjs = connector.getCascadeDeleteObjs(this, connectorCascadeRemoveOptions);
 				Kekule.ArrayUtils.pushUnique(result, newCascadeObjs);
 			}
 		}
@@ -315,9 +320,9 @@ ClassEx.extend(/*Kekule.ChemStructureNode*/Kekule.BaseStructureNode,
 /** @lends Kekule.BaseStructureNode# */
 {
 	/** @ignore */
-	getCascadeDeleteObjs: function(/*$super*/)
+	getCascadeDeleteObjs: function(invokerObj, options)
 	{
-		return this.tryApplySuper('getCascadeDeleteObjs')  /* $super() */;
+		return this.tryApplySuper('getCascadeDeleteObjs', [invokerObj, options]);
 	},
 	/**
 	 * Whether the coord of chem object is calculated from other object (like connector).
@@ -383,17 +388,35 @@ ClassEx.extend(/*Kekule.ChemStructureConnector*/Kekule.BaseStructureConnector,
 /** @lends Kekule.BaseStructureConnector# */
 {
 	/** @ignore */
-	getCascadeDeleteObjs: function(/*$super*/)
+	getCascadeDeleteObjs: function(invokerObj, options)
 	{
-		var result = this.tryApplySuper('getCascadeDeleteObjs')  /* $super() */;
+		var retainOrphanConnectedObjs = options && options.retainConnectedOrphanNodes;
+		var retainLastOrphanConnectedObj = options && options.retainLastConnectedOrphanNode;
+		var remainingNodesInParent;
+		if (retainLastOrphanConnectedObj) {
+			var parent = this.getParent();
+			remainingNodesInParent = [].concat(parent.getNodes());
+			if (invokerObj) {
+				Kekule.ArrayUtils.remove(remainingNodesInParent, invokerObj, true);
+			}
+		}
+		var result = this.tryApplySuper('getCascadeDeleteObjs', [invokerObj, options]);
 		var objs = this.getConnectedObjs();
 		for (var i = 0, l = objs.length; i < l; ++i)
 		{
 			var obj = objs[i];
 			if (obj instanceof Kekule.BaseStructureNode)
 			{
-				if (obj.getLinkedConnectors().length <= 1)
+				if (!retainOrphanConnectedObjs && obj.getLinkedConnectors().length <= 1) {
+					if (retainLastOrphanConnectedObj) {
+						Kekule.ArrayUtils.remove(remainingNodesInParent, obj, true);
+						if (!remainingNodesInParent.length) {
+							// obj is the last orphan node, so retain it
+							continue;
+						}
+					}
 					Kekule.ArrayUtils.pushUnique(result, obj);
+				}
 			}
 		}
 		return result;
@@ -493,6 +516,20 @@ ClassEx.extend(/*Kekule.ChemStructureConnector*/Kekule.BaseStructureConnector,
 	}
 });
 
+ClassEx.extend(Kekule.ChemStructureConnector, {
+/** @lends Kekule.ChemStructureConnector# */
+	/** @ignore */
+	getCascadeDeleteObjs: function(invokerObj, options)
+	{
+		var retainOrphanConnectedObjs = options && (options.retainConnectedOrphanNodes || options.retainConnectedOrphanChemNodes);
+		var retainLastOrphanConnectedObj = options && (options.retainLastConnectedOrphanNode || options.retainLastConnectedOrphanChemNode);
+		var op = Object.create(options || {});
+		op.retainConnectedOrphanNodes = !!retainOrphanConnectedObjs;
+		op.retainLastConnectedOrphanNode = !!retainLastOrphanConnectedObj;
+		return this.tryApplySuper('getCascadeDeleteObjs', [invokerObj, op]);
+	},
+});
+
 ClassEx.extend(Kekule.ChemStructureNode,
 /** @lends Kekule.ChemStructureNode# */
 {
@@ -508,7 +545,7 @@ ClassEx.extend(Kekule.Glyph.PathGlyphNode,
 /** @lends Kekule.Glyph.PathGlyphNode# */
 {
 	/** @ignore */
-	getCascadeDeleteObjs: function(/*$super*/)  // to glyph element, delte one means delete the whole glyph
+	getCascadeDeleteObjs: function(invokerObj, options)  // to glyph element, delete one means delete the whole glyph
 	{
 		/*
 		var result = $super();
@@ -559,7 +596,7 @@ ClassEx.extend(Kekule.Glyph.PathGlyphConnector,
 /** @lends Kekule.Glyph.PathGlyphConnector# */
 {
 	/** @ignore */
-	getCascadeDeleteObjs: function(/*$super*/)  // to glyph element, delte one means delete the whole glyph
+	getCascadeDeleteObjs: function(invokerObj, options)  // to glyph element, delete one means delete the whole glyph
 	{
 		/*
 		var result = $super();

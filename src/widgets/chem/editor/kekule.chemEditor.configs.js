@@ -117,6 +117,10 @@ Kekule.ClassUtils.makeSingleton(Kekule.Editor.ChemSpaceEditorConfigs);
  * @property {Bool} enableNeighborNodeMerge Whether neighboring node merging is allowed.
  * @property {Bool} enableConnectorMerge Whether connector merging is allowed.
  * @property {Bool} enableStructFragmentMerge Whether node or connector merging between different molecule is allowed.
+ * @property {Bool} enableCascadeRemoveOrphanNeighborChemNode When deleting a chem node (and its linked connectors) in editor, whether its neighbor with no linked connector after deleting will also be removed.
+ * @property {Bool} enablePreserveLastOrphanNeighborChemNode When deleting a chem node (and its linked connectors), if its neighbor is the last node in molecule, whether this last node should be preserved.
+ *   If this property is true, it is much easier to input single main atom molecule (e.g., CH4, OH2) in editor.
+ *
  * @property {Bool} followPointerCoordOnDirectManipulatingSingleObj If true, the new coord of manipulating object will be set directly by the position of pointer (rather than the delta coord to the original position).
  * @property {Bool} enableOffSelectionManipulation If true, holding pointer down outside selection region for a while
  *   will enter the manipulation state to move the selected objects.
@@ -193,6 +197,8 @@ Kekule.Editor.InteractionConfigs = Class.create(Kekule.AbstractConfigs,
 		this.addBoolConfigProp('enableNeighborNodeMerge', true);
 		this.addBoolConfigProp('enableConnectorMerge', true);
 		this.addBoolConfigProp('enableStructFragmentMerge', true);
+		this.addBoolConfigProp('enableCascadeRemoveOrphanNeighborChemNode', true);
+		this.addBoolConfigProp('enablePreserveLastOrphanNeighborChemNode', true);
 
 		this.addBoolConfigProp('enableGestureManipulation', true);
 		this.addBoolConfigProp('enableGestureZoomOnEditor', true);

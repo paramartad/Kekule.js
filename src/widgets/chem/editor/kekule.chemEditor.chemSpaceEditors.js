@@ -1819,6 +1819,10 @@ Kekule.Editor.BasicMolEraserIaController = Class.create(Kekule.Editor.BasicErase
 	 */
 	doGetActualRemovedObjs: function(objs)
 	{
+		var cascadeDeleteOptions = {
+			removeOrphanNeighborChemNodes: this.getEditorConfigs().getInteractionConfigs().getEnableCascadeRemoveOrphanNeighborChemNode(),
+			preserveLastOrphanNeighborChemNode: this.getEditorConfigs().getInteractionConfigs().getEnablePreserveLastOrphanNeighborChemNode()
+		};
 		var result = [];
 		var editorRoot = this.getEditor().getChemObj();
 		//Kekule.ArrayUtils.pushUnique(result, objs);
@@ -1833,7 +1837,7 @@ Kekule.Editor.BasicMolEraserIaController = Class.create(Kekule.Editor.BasicErase
 			else
 			{
 				Kekule.ArrayUtils.pushUnique(result, obj);
-				delObjs = obj.getCascadeDeleteObjs ? obj.getCascadeDeleteObjs() : [];
+				delObjs = obj.getCascadeDeleteObjs ? obj.getCascadeDeleteObjs(obj, cascadeDeleteOptions) : [];
 			}
 			//Kekule.Editor.StructureUtils.getCascadeDeleteObjs(objs[i]);
 			if (delObjs)
