@@ -952,7 +952,7 @@ Kekule.Editor.EmbeddedSetter.CreatableBlock = Class.create(Kekule.Editor.Embedde
 		// if (!text)  // no input, delete
 		if (!modifiedValues)
 		{
-			if (this._operAddBlock)  // new object just added to space
+			if (this._operAddObj)  // new object just added to space
 				this.cancelSetter();
 			else  // old one, delete it
 			{
