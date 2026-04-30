@@ -5249,116 +5249,127 @@ Kekule.StructureFragment = Class.create(Kekule.ChemStructureNode,
 					result = hasFormula1? (hasFormula2? 0: 1): (hasFormula2? -1: 0);
 				}
 
-				// both has ctab, comparing child nodes and connectors
-				if (!result && this.hasCtab())
+				if (!result)
 				{
-					if ((result === 0) && (this.getNonHydrogenNodes && targetObj.getNonHydrogenNodes))  // structure fragment, if with same node and connector count, compare nodes and connectors
+					// both has ctab, comparing child nodes and connectors
+					if (this.hasCtab())
 					{
-						var _getNeighorNodeIndexes = function(nodeOrConnector, parent)
+						if ((result === 0) && (this.getNonHydrogenNodes && targetObj.getNonHydrogenNodes))  // structure fragment, if with same node and connector count, compare nodes and connectors
 						{
-							var neighbors;
-							if (nodeOrConnector instanceof Kekule.ChemStructureConnector)
-								neighbors = nodeOrConnector.getConnectedNonHydrogenObjs();
-							else if (nodeOrConnector instanceof Kekule.ChemStructureNode)
-								neighbors = nodeOrConnector.getLinkedNonHydrogenObjs();  // ignore H
-							var result = [];
-							for (var i = 0, l = neighbors.length; i < l; ++i)
+							var _getNeighorNodeIndexes = function(nodeOrConnector, parent)
 							{
-								var n = neighbors[i];
-								//if (n instanceof Kekule.ChemStructureNode)
-								var index = parent.indexOfNode(n);
-								if (index >= 0)  // ignore cross structure bonds
-									result.push(index);
-							}
-							result.sort();
-							return result;
-						};
-
-
-						var nodes1 = this.getNonHydrogenNodes();
-						var nodes2 = targetObj.getNonHydrogenNodes();
-						result = nodes1.length - nodes2.length;
-						if (result === 0)
-						{
-							for (var i = 0, l = nodes1.length; i < l; ++i)
-							{
-								result = this.doCompareOnValue(nodes1[i], nodes2[i], options);
-								if (result !== 0)
-									break;
-								else
+								var neighbors;
+								if (nodeOrConnector instanceof Kekule.ChemStructureConnector)
+									neighbors = nodeOrConnector.getConnectedNonHydrogenObjs();
+								else if (nodeOrConnector instanceof Kekule.ChemStructureNode)
+									neighbors = nodeOrConnector.getLinkedNonHydrogenObjs();  // ignore H
+								var result = [];
+								for (var i = 0, l = neighbors.length; i < l; ++i)
 								{
-									// check the neighbor node index to current node, avoid issue #86
-									var neighborNodeIndexes1 = _getNeighorNodeIndexes(nodes1[i], this);
-									var neighborNodeIndexes2 = _getNeighorNodeIndexes(nodes2[i], targetObj);
-									result = Kekule.ArrayUtils.compare(neighborNodeIndexes1, neighborNodeIndexes2);
+									var n = neighbors[i];
+									//if (n instanceof Kekule.ChemStructureNode)
+									var index = parent.indexOfNode(n);
+									if (index >= 0)  // ignore cross structure bonds
+										result.push(index);
+								}
+								result.sort();
+								return result;
+							};
+
+
+							var nodes1 = this.getNonHydrogenNodes();
+							var nodes2 = targetObj.getNonHydrogenNodes();
+							result = nodes1.length - nodes2.length;
+							if (result === 0)
+							{
+								for (var i = 0, l = nodes1.length; i < l; ++i)
+								{
+									result = this.doCompareOnValue(nodes1[i], nodes2[i], options);
 									if (result !== 0)
-									{
-										//console.log('diff node', nodes1[i].getId(), neighborNodeIndexes1, nodes2[i].getId(), neighborNodeIndexes2);
 										break;
+									else
+									{
+										// check the neighbor node index to current node, avoid issue #86
+										var neighborNodeIndexes1 = _getNeighorNodeIndexes(nodes1[i], this);
+										var neighborNodeIndexes2 = _getNeighorNodeIndexes(nodes2[i], targetObj);
+										result = Kekule.ArrayUtils.compare(neighborNodeIndexes1, neighborNodeIndexes2);
+										if (result !== 0)
+										{
+											//console.log('diff node', nodes1[i].getId(), neighborNodeIndexes1, nodes2[i].getId(), neighborNodeIndexes2);
+											break;
+										}
 									}
 								}
 							}
 						}
-					}
-					if ((result === 0) && (this.getConnectors && targetObj.getConnectors))
-					{
-						var connectors1 = this.getNonHydrogenConnectors();
-						var connectors2 = targetObj.getNonHydrogenConnectors();
-						result = connectors1.length - connectors2.length;
-						if (result === 0)
+						if ((result === 0) && (this.getConnectors && targetObj.getConnectors))
 						{
-							for (var i = 0, l = connectors1.length; i < l; ++i)
+							var connectors1 = this.getNonHydrogenConnectors();
+							var connectors2 = targetObj.getNonHydrogenConnectors();
+							result = connectors1.length - connectors2.length;
+							if (result === 0)
 							{
-								result = this.doCompareOnValue(connectors1[i], connectors2[i], options);
-								if (result !== 0)
-									break;
-								else
+								for (var i = 0, l = connectors1.length; i < l; ++i)
 								{
-									// check the neighbor node index to current node, avoid issue #86
-									var neighborNodeIndexes1 = _getNeighorNodeIndexes(connectors1[i], this);
-									var neighborNodeIndexes2 = _getNeighorNodeIndexes(connectors2[i], targetObj);
-									result = Kekule.ArrayUtils.compare(neighborNodeIndexes1, neighborNodeIndexes2);
+									result = this.doCompareOnValue(connectors1[i], connectors2[i], options);
 									if (result !== 0)
-									{
-										//console.log('diff bond', connectors1[i].getId(), neighborNodeIndexes1, connectors2[i].getId(), neighborNodeIndexes2);
 										break;
+									else
+									{
+										// check the neighbor node index to current node, avoid issue #86
+										var neighborNodeIndexes1 = _getNeighorNodeIndexes(connectors1[i], this);
+										var neighborNodeIndexes2 = _getNeighorNodeIndexes(connectors2[i], targetObj);
+										result = Kekule.ArrayUtils.compare(neighborNodeIndexes1, neighborNodeIndexes2);
+										if (result !== 0)
+										{
+											//console.log('diff bond', connectors1[i].getId(), neighborNodeIndexes1, connectors2[i].getId(), neighborNodeIndexes2);
+											break;
+										}
 									}
 								}
 							}
 						}
-					}
 
-					// The node/connector sequence check can distinguish most molecules
-					// but a few of them (e.g. issue#74 https://github.com/partridgejiang/Kekule.js/issues/74)
-					// still need a spanning tree check
-					if (result === 0)
-					{
-						//console.log('spanning tree compare');
-						// traverse from the last node, with all non hydrongen nodes
-						var nonHydrogenNodesThis = this.getNonHydrogenNodes();
-						var nonHydrogenNodesTarget = targetObj.getNonHydrogenNodes();
-						var traversedObjsThis = this.traverse(null, nonHydrogenNodesThis[nonHydrogenNodesThis.length - 1], true, nonHydrogenNodesThis);
-						var traversedObjsTarget = targetObj.traverse(null, nonHydrogenNodesTarget[nonHydrogenNodesTarget.length - 1], true, nonHydrogenNodesTarget);
-						//console.log(traversedObjsThis.nodes, traversedObjsTarget.nodes);
-						for (var i = 0, l = traversedObjsThis.nodes.length; i < l; ++i)
-						{
-							var nodeThis = traversedObjsThis.nodes[i];
-							var nodeTarget = traversedObjsTarget.nodes[i];
-							result = this.doCompareOnValue(nodeThis, nodeTarget, options);
-							if (result !== 0)
-								break;
-						}
+						// The node/connector sequence check can distinguish most molecules
+						// but a few of them (e.g. issue#74 https://github.com/partridgejiang/Kekule.js/issues/74)
+						// still need a spanning tree check
 						if (result === 0)
 						{
-							for (var i = 0, l = traversedObjsThis.connectors.length; i < l; ++i)
+							//console.log('spanning tree compare');
+							// traverse from the last node, with all non hydrongen nodes
+							var nonHydrogenNodesThis = this.getNonHydrogenNodes();
+							var nonHydrogenNodesTarget = targetObj.getNonHydrogenNodes();
+							var traversedObjsThis = this.traverse(null, nonHydrogenNodesThis[nonHydrogenNodesThis.length - 1], true, nonHydrogenNodesThis);
+							var traversedObjsTarget = targetObj.traverse(null, nonHydrogenNodesTarget[nonHydrogenNodesTarget.length - 1], true, nonHydrogenNodesTarget);
+							//console.log(traversedObjsThis.nodes, traversedObjsTarget.nodes);
+							for (var i = 0, l = traversedObjsThis.nodes.length; i < l; ++i)
 							{
-								var connectorThis = traversedObjsThis.connectors[i];
-								var connectorTarget = traversedObjsTarget.connectors[i];
-								result = this.doCompareOnValue(connectorThis, connectorTarget, options);
+								var nodeThis = traversedObjsThis.nodes[i];
+								var nodeTarget = traversedObjsTarget.nodes[i];
+								result = this.doCompareOnValue(nodeThis, nodeTarget, options);
 								if (result !== 0)
 									break;
 							}
+							if (result === 0)
+							{
+								for (var i = 0, l = traversedObjsThis.connectors.length; i < l; ++i)
+								{
+									var connectorThis = traversedObjsThis.connectors[i];
+									var connectorTarget = traversedObjsTarget.connectors[i];
+									result = this.doCompareOnValue(connectorThis, connectorTarget, options);
+									if (result !== 0)
+										break;
+								}
+							}
 						}
+					}
+					else if (this.hasFormula())
+					{
+						// both have formula compare formula
+						// TODO: now simply compares the formula text
+						var formulaText1 = Kekule.FormulaUtils.formulaToText(this.getFormula());
+						var formulaText2 = Kekule.FormulaUtils.formulaToText(targetObj.getFormula());
+						result = formulaText1 > formulaText2? 1: (formulaText1 < formulaText2? -1: 0);
 					}
 				}
 			}
