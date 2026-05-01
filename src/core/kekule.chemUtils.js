@@ -1023,6 +1023,72 @@ Kekule.FormulaUtils = {
 			chargelabel = (partialChargeDecimalsLength? Kekule.NumUtils.toDecimals(chargeAmount, partialChargeDecimalsLength): chargeAmount.toString()) + chargeSign;
 		}
 		return chargelabel;
+	},
+
+	/**
+	 * Compare two formula objects.
+	 * @param {Kekule.MolculeFormula} formula1
+	 * @param {Kekule.MolculeFormula} formula2
+	 * @param {Hash} options
+	 * @returns {Int}
+	 */
+	compareFormula(formula1, formula2, options) {
+		var sections1 = [].concat(formula1.getSections() || []);
+		var sections2 = [].concat(formula2.getSections() || []);
+		// sort from large to small
+		sections1.sort(function(s1, s2) {
+			return -FU._compareFormulaSection(s1, s2, options);
+		});
+		sections2.sort(function(s1, s2) {
+			return -FU._compareFormulaSection(s1, s2, options);
+		});
+		for (var i = 0, l = Math.min(sections1.length, sections2.length); i < l; ++i)
+		{
+			var result = FU._compareFormulaSection(sections1[i], sections2[i], options);
+			if (result)
+				return result;
+		}
+		var result = sections1.length - sections2.length;
+		return (result > 0)? 1: (result < 0)? -1: 0;
+	},
+
+	/** @private */
+	_compareFormulaSection(section1, section2, options) {
+		var result = 0;
+		var sectionObj1 = section1.obj;
+		var sectionObj2 = section2.obj;
+		if (sectionObj1 instanceof Kekule.MolecularFormula || sectionObj2 instanceof Kekule.MolecularFormula)
+		{
+			if (sectionObj1 instanceof Kekule.MolecularFormula && sectionObj2 instanceof Kekule.MolecularFormula)
+			{
+				result = FU.compareFormula(sectionObj1, sectionObj2, options);
+			}
+			else if (sectionObj1 instanceof Kekule.MolecularFormula)
+			{
+				// sectionObj2 is atom
+				result = 1;
+			}
+			else if (sectionObj2 instanceof Kekule.MolecularFormula)
+			{
+				// sectionObj1 is atom
+				result = -1;
+			}
+		}
+		else
+		{
+			// both sectionObjs are atom
+			result = sectionObj1.compare(sectionObj2, options);
+			// console.log('compare atom result', sectionObj1.getSymbol(), sectionObj2.getSymbol(), result);
+		}
+
+		if (result === 0)
+		{
+			// need to further check count
+			result = (section1.count || 1) - (section2.count || 1);
+			result = (result > 0)? 1: (result < 0)? -1: 0;
+		}
+
+		return result;
 	}
 };
 

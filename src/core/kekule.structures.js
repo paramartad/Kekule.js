@@ -5365,11 +5365,8 @@ Kekule.StructureFragment = Class.create(Kekule.ChemStructureNode,
 					}
 					else if (this.hasFormula())
 					{
-						// both have formula compare formula
-						// TODO: now simply compares the formula text
-						var formulaText1 = Kekule.FormulaUtils.formulaToText(this.getFormula());
-						var formulaText2 = Kekule.FormulaUtils.formulaToText(targetObj.getFormula());
-						result = formulaText1 > formulaText2? 1: (formulaText1 < formulaText2? -1: 0);
+						// both have formula, compare formulas
+						return Kekule.FormulaUtils.compareFormula(this.getFormula(), targetObj.getFormula(), options);
 					}
 				}
 			}
