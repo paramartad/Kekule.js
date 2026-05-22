@@ -346,6 +346,8 @@ var kekuleFiles = {
 			'core/kekule.structureBuilder.js',
 			'core/kekule.reactions.js',
 			'core/kekule.chemUtils.js',
+			'reaction/kekule.chemReactions.js',
+			'reaction/kekule.reactionUtils.js',
 
 			'chemdoc/kekule.glyph.base.js',
 			'chemdoc/kekule.glyph.utils.js',
@@ -354,7 +356,7 @@ var kekuleFiles = {
 			'chemdoc/kekule.glyph.chemGlyphs.js',
 			'chemdoc/kekule.contentBlocks.js',
 			'chemdoc/kekule.attachedMarkers.js',
-			'chemdoc/kekule.commonChemMarkers.js'
+			'chemdoc/kekule.commonChemMarkers.js',
 		],
 		'category': 'core'
 	},
@@ -499,6 +501,7 @@ var kekuleFiles = {
 			'widgets/chem/editor/kekule.chemEditor.actions.js',
 			'widgets/chem/editor/kekule.chemEditor.trackParser.js',
 
+			'widgets/chem/editor/kekule.chemEditor.embeddedSetters.js',
 			'widgets/chem/editor/kekule.chemEditor.objModifiers.js',
 			'widgets/chem/editor/modifiers/kekule.chemEditor.styleModifiers.js',
 			'widgets/chem/editor/modifiers/kekule.chemEditor.textModifiers.js',
