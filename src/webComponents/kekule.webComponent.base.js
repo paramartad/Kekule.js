@@ -709,7 +709,17 @@ Kekule.WebComponent.Utils = {
 			result._exposeWidgetMethods(op.exposedMethods, ignoredMethods, {});
 		}
 		if (customElemTag && typeof(customElements) !== 'undefined')
-			customElements.define(customElemTag, result);
+		{
+			// avoid registering customElemTag twice, and causing error in some browsers
+			if (!customElements.get(customElemTag))
+			{
+				try {
+					customElements.define(customElemTag, result);
+				} catch(e) {
+
+				}
+			}
+		}
 		return result;
 	}
 }
