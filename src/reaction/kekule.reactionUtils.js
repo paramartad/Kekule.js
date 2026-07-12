@@ -87,6 +87,11 @@ Kekule.ReactionExtractionUtils = {
             return (child instanceof Kekule.Glyph.PlusSymbol);
         }, true);
     },
+    _getConditionSymbolsInDoc: function(chemDoc) {
+        return chemDoc.filterChildren(function(child) {
+            return (child instanceof Kekule.Glyph.ChemConditionSymbol);
+        }, true);
+    },
     _getMoleculesInDoc: function(chemDoc)
     {
         return chemDoc.filterChildren(function(child) {
@@ -234,7 +239,7 @@ Kekule.ReactionExtractionUtils = {
         var neighborDetail = neighborDetailEx.neighborDetail;
 
         var distance;
-        if (substanceType === 'reagent')
+        if (substanceType === 'reagent' || substanceType === 'condition')
         {
             if (neighborDetail)
                 distance = Math.min(currMolDetail.distanceToArrow, Kekule.CoordUtils.getDistance(currMolDetail.centerCoord, neighborDetail.centerCoord));
@@ -319,7 +324,7 @@ Kekule.ReactionExtractionUtils = {
     _getReactionDetailOverlapsEx: function(reactionInfo1, reactionInfo2, checkedSubstanceTypes, options)
     {
         if (!checkedSubstanceTypes)
-            checkedSubstanceTypes = ['reactant', 'product', 'reagent'];
+            checkedSubstanceTypes = ['reactant', 'product', 'reagent', 'condition'];
 
         var reactionComponentDetails1 = [];
         var reactionComponentDetails2 = [];
@@ -347,7 +352,7 @@ Kekule.ReactionExtractionUtils = {
     _getObjDetailsInReactionInfo: function(object, reactionInfo, checkedSubstanceTypes)
     {
         if (!checkedSubstanceTypes)
-            checkedSubstanceTypes = ['reactant', 'product', 'reagent'];
+            checkedSubstanceTypes = ['reactant', 'product', 'reagent', 'condition'];
         for (var i = 0, l = checkedSubstanceTypes.length; i < l; ++i)
         {
             var substanceType = checkedSubstanceTypes[i];
@@ -367,7 +372,7 @@ Kekule.ReactionExtractionUtils = {
     _removeObjFromReactionInfo: function(object, reactionInfo, checkedSubstanceTypes)
     {
         if (!checkedSubstanceTypes)
-            checkedSubstanceTypes = ['reactant', 'product', 'reagent'];
+            checkedSubstanceTypes = ['reactant', 'product', 'reagent', 'condition'];
         for (var i = 0, l = checkedSubstanceTypes.length; i < l; ++i)
         {
             var substanceType = checkedSubstanceTypes[i];
@@ -395,12 +400,12 @@ Kekule.ReactionExtractionUtils = {
         var possibleReactionRelation = null;  // 0: parallel reaction sharing reactant, -1: reaction1 -> reaction2, 1: reaction2 -> reaction1, null: no relation
         if (objDetails1 && objDetails2)
         {
-            if (objDetails1.substanceType === 'reactant' && objDetails2.substanceType !== 'reagent')
+            if (objDetails1.substanceType === 'reactant' && (objDetails2.substanceType !== 'reagent' && objDetails2.substanceType !== 'condition'))
             {
                 objSharable = true;
                 possibleReactionRelation = (objDetails2.substanceType === 'product')? 1: 0;
             }
-            else if (objDetails2.substanceType === 'reactant' && objDetails1.substanceType !== 'reagent')
+            else if (objDetails2.substanceType === 'reactant' && (objDetails1.substanceType !== 'reagent' && objDetails1.substanceType !== 'condition'))
             {
                 objSharable = true;
                 possibleReactionRelation = (objDetails1.substanceType === 'product')? -1: 0;
@@ -459,7 +464,7 @@ Kekule.ReactionExtractionUtils = {
         var normalLineParamsList = [reactionInfo1.arrowDetails.normalLineEquationParams, reactionInfo2.arrowDetails.normalLineEquationParams];
 
         // 计算两个反应箭头的共享区域与独享区域，作两个反应箭头中点出发的法线。
-        // 此外分子类型也与能否共享相关。一反应的产物可共享为另一反应的反应物，或两反应共享反应物，但两反应不能共享产物。至于Reagent，均不视作可共享。
+        // 此外分子类型也与能否共享相关。一反应的产物可共享为另一反应的反应物，或两反应共享反应物，但两反应不能共享产物。至于Reagent/condition，均不视作可共享。
         /*
                 [molType1/molType2]   reactant    product   reagent
                 reactant                Y           Y           N
@@ -648,8 +653,13 @@ Kekule.ReactionExtractionUtils = {
         return result;
     },
 
-    _extractReactionInfoFromChemDocument: function(chemDoc, reactionArrow, plusSymbols, targetMolecules, objGeometryMap, options)
+    _extractReactionInfoFromChemDocument: function(chemDoc, targetObjs, /*reactionArrow, plusSymbols, targetMolecules,*/ objGeometryMap, options)
     {
+        var reactionArrow = targetObjs.reactionArrow;
+        var plusSymbols = targetObjs.plusSymbols;
+        var conditionSymbols = targetObjs.conditionSymbols;
+        var targetMolecules = targetObjs.molecules;
+
         var ops = options || {};
         // var cloneMolecules = (ops.cloneMolecules === undefined)? true: !!ops.cloneMolecules;
         var calcContainerBoxes = ops.calcContainerBoxes || false;
@@ -664,6 +674,11 @@ Kekule.ReactionExtractionUtils = {
         if (!plusSymbols)
         {
             plusSymbols = RU._getPlusSymbolsInDoc(chemDoc);
+        }
+
+        if (!conditionSymbols)
+        {
+            conditionSymbols = RU._getConditionSymbolsInDoc(chemDoc);
         }
 
         var arrowCoords = [];
@@ -733,18 +748,18 @@ Kekule.ReactionExtractionUtils = {
         }
 
         var molecules = targetMolecules || RU._getMoleculesInDoc(chemDoc);
-        var molAndPlusSymbols = [].concat(molecules).concat(plusSymbols);  // we mix the plus symbol and molecule, since they acts similar in reactants and products (but not in reagents)
+        var molAndSymbols = [].concat(molecules).concat(plusSymbols).concat(conditionSymbols);  // we mix the plus/condition symbol and molecule, since they act similar in reactants and products / reagents
         // var molContainerBoxes = [];
-        var reactantDetails = [], productDetails = [], reagentDetails = [];
-        for (var i = 0, l = molAndPlusSymbols.length; i < l; ++i) {
-            var currObj = molAndPlusSymbols[i];
+        var reactantDetails = [], productDetails = [], reagentAndConditionDetails = [];
+        for (var i = 0, l = molAndSymbols.length; i < l; ++i) {
+            var currObj = molAndSymbols[i];
             var objInReactionArrowHorizontalDirection = false;
             var objInReactionArrowVerticalDirection = false;
             var crossPointDirection, crossPointToNormalLineDirection;
 
 
             var containerBox, expandedContainerBox, objCenterCoord;
-            if (!(currObj instanceof Kekule.Glyph.PlusSymbol))  // currObj is molecule
+            if (!(currObj instanceof Kekule.Glyph.PlusSymbol || currObj instanceof Kekule.Glyph.ChemConditionSymbol))  // currObj is molecule
             {
                 var molGeometryInfo = objGeometryMap.get(currObj);
                 containerBox = molGeometryInfo.containerBox;
@@ -752,10 +767,10 @@ Kekule.ReactionExtractionUtils = {
                 objCenterCoord = molGeometryInfo.centerCoord;
                 reactionAutoRefLength = Math.max(reactionAutoRefLength, molGeometryInfo.refLength);
             }
-            else  // currObj is plus symbol
+            else  // currObj is plus / condition symbol
             {
                 var symbolGeometryInfo = objGeometryMap.get(currObj);
-                containerBox = symbolGeometryInfo.containerBox;   // we regard the plus symbol as a single point
+                containerBox = symbolGeometryInfo.containerBox;   // we regard the symbol as a single point
                 objCenterCoord = symbolGeometryInfo.centerCoord;
             }
 
@@ -821,12 +836,12 @@ Kekule.ReactionExtractionUtils = {
                 }
             }
 
-            // check if molecule/symbol is on the vertical direction of arrow line, if so, it may be a reagent
+            // check if molecule/symbol is on the vertical direction of arrow line, if so, it may be a reagent or condition symbol
             var perpendicularCrossPointCoordToNormalLine = Kekule.GeometryUtils.getPerpendicularCrossPointFromCoordToLine(objCenterCoord, arrowNormalLineCoords[0], arrowNormalLineCoords[1], true);
             var perpendicularDistanceToNormalLine = Kekule.CoordUtils.getDistance(objCenterCoord, perpendicularCrossPointCoordToNormalLine);
             if (perpendicularDistanceToNormalLine * 2 < arrowLength + reactionArrowHorizontalExpansion)
             {
-                // inside the expansion area of reaction arrow in vertical direction, should be a reagent of reaction
+                // inside the expansion area of reaction arrow in vertical direction, should be a reagent of reaction or a condition symbol of reaction
                 crossPointToNormalLineDirection = Math.sign((perpendicularCrossPointCoordToNormalLine.x - arrowCenterCoord.x) || (perpendicularCrossPointCoordToNormalLine.y - arrowCenterCoord.y));
                 objInReactionArrowVerticalDirection = true;
                 distanceOnNormalLine = Kekule.CoordUtils.getDistance(perpendicularCrossPointCoordToNormalLine, arrowCenterCoord);
@@ -857,7 +872,7 @@ Kekule.ReactionExtractionUtils = {
                         'substanceType': 'product', 'distance': distance - halfReactionArrowLength,
                         'containerBox': containerBox, 'centerCoord': objCenterCoord,
                         'crossLengthOnReactionArrowLine': crossLengthOnReactionArrowLine || 0,
-                        'object': molAndPlusSymbols[i]
+                        'object': molAndSymbols[i]
                     });
                     if (calcContainerBoxes)
                         productContainerBox = Kekule.BoxUtils.getContainerBox(productContainerBox, containerBox);
@@ -870,28 +885,39 @@ Kekule.ReactionExtractionUtils = {
                         'substanceType': 'reactant', 'distance': distance - halfReactionArrowLength,
                         'containerBox': containerBox, 'centerCoord': objCenterCoord,
                         'crossLengthOnReactionArrowLine': crossLengthOnReactionArrowLine || 0,
-                        'object': molAndPlusSymbols[i],
+                        'object': molAndSymbols[i],
                     });
                     if (calcContainerBoxes)
                         reactantContainerBox = Kekule.BoxUtils.getContainerBox(reactantContainerBox, containerBox);
                 }
             }
-            else if (objInReactionArrowVerticalDirection)  // reagent
+            else if (objInReactionArrowVerticalDirection)  // reagent or condition symbol
             {
+                var distanceToArrowCenter = Kekule.CoordUtils.getDistance(objCenterCoord, arrowCenterCoord);
+                var distanceToArrowLineSegment = Kekule.GeometryUtils.getDistanceFromPointToLine(objCenterCoord, arrowCoords[0], arrowCoords[1], false);
+                var substanceType = null;
                 if (currObj instanceof Kekule.Molecule)
                 {
-                    // only molecule can be reagent, so here we ignores the plus symbol
-                    var distanceToArrowCenter = Kekule.CoordUtils.getDistance(objCenterCoord, arrowCenterCoord);
-                    var distanceToArrowLineSegment = Kekule.GeometryUtils.getDistanceFromPointToLine(objCenterCoord, arrowCoords[0], arrowCoords[1], false);
-                    reagentDetails.push({
-                        'substanceType': 'reagent', 'onTop': crossPointToNormalLineDirection == arrowNormalLineDirection,
-                        'containerBox': containerBox, 'centerCoord': objCenterCoord, 'distance': distanceOnNormalLine,
-                        'distanceToArrowCenter': distanceToArrowCenter,
-                        'distanceToArrow': distanceToArrowLineSegment,
-                        'object': molAndPlusSymbols[i]
-                    });
-                    if (calcContainerBoxes)
-                        reagentContainerBox = Kekule.BoxUtils.getContainerBox(reagentContainerBox, containerBox);
+                    substanceType = 'reagent';
+                }
+                else if (currObj instanceof Kekule.Glyph.ChemConditionSymbol)
+                {
+                    substanceType = 'condition';
+                }
+
+                reagentAndConditionDetails.push({
+                    'substanceType': substanceType,
+                    'onTop': crossPointToNormalLineDirection == arrowNormalLineDirection,
+                    'containerBox': containerBox,
+                    'centerCoord': objCenterCoord,
+                    'distance': distanceOnNormalLine,
+                    'distanceToArrowCenter': distanceToArrowCenter,
+                    'distanceToArrow': distanceToArrowLineSegment,
+                    'object': molAndSymbols[i]
+                });
+                if (calcContainerBoxes)
+                {
+                    reagentContainerBox = Kekule.BoxUtils.getContainerBox(reagentContainerBox, containerBox);
                 }
             }
         }
@@ -903,8 +929,8 @@ Kekule.ReactionExtractionUtils = {
             reactantDetails.sort(function(a, b) { return b.distance - a.distance;});
             productDetails.sort(function(a, b) { return a.distance - b.distance;});
 
-            // sort reagent
-            reagentDetails.sort(function(a, b) {
+            // sort reagent / conditions
+            reagentAndConditionDetails.sort(function(a, b) {
                 if (a.onTop === b.onTop) {
                     return a.onTop? (b.distance - a.distance): (a.distance - b.distance);
                 } else {
@@ -915,7 +941,7 @@ Kekule.ReactionExtractionUtils = {
             var roughReactionInfo = {
                 reactantDetails: reactantDetails,
                 productDetails: productDetails,
-                reagentDetails: reagentDetails
+                reagentDetails: reagentAndConditionDetails
             };
 
             // erase substances too faraway, and record the delta distance to neighbor
@@ -940,36 +966,49 @@ Kekule.ReactionExtractionUtils = {
                 }
                 // productDetails[i].distanceToNeighbor = deltaDistance;
             }
-            for (var l = reagentDetails.length - 1, i = l; i >= 0; --i)
+            for (var l = reagentAndConditionDetails.length - 1, i = l; i >= 0; --i)
             {
-                if (!reagentDetails[i].onTop)
+                if (!reagentAndConditionDetails[i].onTop)
                     continue;
                 var deltaDistance = RU._getObjDetailDistanceToNeighborOrReactionArrow(roughReactionInfo, i, 'reagent');
                 if (deltaDistance > distanceThreshold)  // too faraway from nearby substance, remove all following ones
                 {
-                    reagentDetails.splice(0, i + 1);
+                    reagentAndConditionDetails.splice(0, i + 1);
                     break;
                 }
                 // reagentDetails[i].distanceToNeighbor = deltaDistance;
             }
-            for (var l = reagentDetails.length, i = 0; i < l; ++i)
+            for (var l = reagentAndConditionDetails.length, i = 0; i < l; ++i)
             {
-                if (reagentDetails[i].onTop)
+                if (reagentAndConditionDetails[i].onTop)
                     continue;
                 var deltaDistance = RU._getObjDetailDistanceToNeighborOrReactionArrow(roughReactionInfo, i, 'reagent');
                 if (deltaDistance > distanceThreshold)  // too faraway from nearby substance, remove all following ones
                 {
-                    reagentDetails.splice(i, l);
+                    reagentAndConditionDetails.splice(i, l);
                     break;
                 }
                 // reagentDetails[i].distanceToNeighbor = deltaDistance;
             }
 
+            // split reagent and condition details to two arrays
+            var reagentDetails = [];
+            var conditionDetails = [];
+            for (var i = 0, l = reagentAndConditionDetails.length; i < l; ++i)
+            {
+                var curr = reagentAndConditionDetails[i];
+                if (curr.substanceType === 'reagent')
+                    reagentDetails.push(curr);
+                else if (curr.substanceType === 'condition')
+                    conditionDetails.push(curr);
+            }
 
             result = {
                 reactantDetails: reactantDetails,
                 productDetails: productDetails,
+                reagentAndConditionDetails: reagentAndConditionDetails,
                 reagentDetails: reagentDetails,
+                conditionDetails: conditionDetails,
                 arrowDetails: {
                     coords: arrowCoords,
                     centerCoord: arrowCenterCoord,
@@ -998,8 +1037,12 @@ Kekule.ReactionExtractionUtils = {
         return result;
     },
 
-    _extractReactionChainsInfoFromChemDocument: function(chemDoc, targetReactionArrows, targetPlusSymbols, targetMolecules, objGeometryMap, options)
+    _extractReactionChainsInfoFromChemDocument: function(chemDoc, targetObjs, /*targetReactionArrows, targetPlusSymbols, targetMolecules,*/ objGeometryMap, options)
     {
+        var targetReactionArrows = targetObjs.reactionArrows;
+        var targetPlusSymbols = targetObjs.plusSymbols;
+        var targetMolecules = targetObjs.molecules;
+
         // need to generate a directed reaction graph from document
 
         // force to calc container box of each reaction
@@ -1019,7 +1062,7 @@ Kekule.ReactionExtractionUtils = {
         var reactionInfos = [];
         for (var i = 0, l = reactionArrows.length; i < l; ++i)
         {
-            var info = RU._extractReactionInfoFromChemDocument(chemDoc, reactionArrows[i], targetPlusSymbols, targetMolecules, objGeometryMap, ops);
+            var info = RU._extractReactionInfoFromChemDocument(chemDoc, {reactionArrow: reactionArrows[i], plusSymbols: targetPlusSymbols, molecules: targetMolecules}, objGeometryMap, ops);
             if (info)
                 reactionInfos.push(info);
         }
@@ -1038,6 +1081,7 @@ Kekule.ReactionExtractionUtils = {
                 // var overlappedObjs = RU._getReactionDetailOverlaps(currReactionInfo, refReactionInfo);
                 if (overlappedObjsInfo && overlappedObjsInfo.length)
                 {
+                    console.log(overlappingInfo);
                     // handle this overlaps
                     // firstly, sort the overlappedObjs with distance to the center of either arrow, we will handle them from near to far
                     overlappedObjsInfo.sort(function(objInfo1, objInfo2) {
@@ -1381,16 +1425,21 @@ Kekule.ReactionExtractionUtils = {
         var objGeometryMap = new Kekule.MapEx();
         var molecules = RU._getMoleculesInDoc(chemDoc);
         var plusSymbols = RU._getPlusSymbolsInDoc(chemDoc);
+        var conditionSymbols = RU._getConditionSymbolsInDoc(chemDoc);
         RU._fillMoleculeGeometryMap(objGeometryMap, chemDoc, molecules, ops.reactionArrowPerpendicularExpansion, ops.reactionArrowPerpendicularExpansion);
         RU._fillSymbolGeometryMap(objGeometryMap, chemDoc, plusSymbols);
+        RU._fillSymbolGeometryMap(objGeometryMap, chemDoc, conditionSymbols);
 
         try {
-            var reactionInfo = RU._extractReactionInfoFromChemDocument(chemDoc, null, plusSymbols, molecules, objGeometryMap, ops);  // retrieve the reaction of the first reaction arrow object
+            var reactionInfo = RU._extractReactionInfoFromChemDocument(chemDoc, {
+                    reactionArrow: null, plusSymbols: plusSymbols, conditionSymbols: conditionSymbols, molecules: molecules
+                }, objGeometryMap, ops);  // retrieve the reaction of the first reaction arrow object
             if (reactionInfo)
             {
                 var reactantDetails = reactionInfo.reactantDetails;
                 var productDetails = reactionInfo.productDetails;
                 var reagentDetails = reactionInfo.reagentDetails;
+                var conditionDetails = reactionInfo.conditionDetails;
 
                 var result = new Kekule.ChemReaction();
                 if (reactionInfo.arrowDetails.reactionArrowType !== undefined) {
@@ -1420,6 +1469,15 @@ Kekule.ReactionExtractionUtils = {
                     {
                         var mol = cloneMolecules ? reagentDetails[i].object.clone(true) : reagentDetails[i].object;
                         result.appendReagent(mol);
+                    }
+                }
+                for (var i = 0, l = conditionDetails.length; i < l; ++i)
+                {
+                    if (conditionDetails[i].object instanceof Kekule.Glyph.ChemConditionSymbol)
+                    {
+                        // TODO: here we use setQualitativeCondition, may be detect the condition type and use setCondition(condName, value) in the future
+                        var condGlyph = conditionDetails[i].object;
+                        result.setQualitativeCondition(condGlyph.getCondition() || condGlyph.getText());
                     }
                 }
             }
@@ -1456,11 +1514,15 @@ Kekule.ReactionExtractionUtils = {
         var objGeometryMap = new Kekule.MapEx();
         var molecules = RU._getMoleculesInDoc(chemDoc);
         var plusSymbols = RU._getPlusSymbolsInDoc(chemDoc);
+        var conditionSymbols = RU._getConditionSymbolsInDoc(chemDoc);
         RU._fillMoleculeGeometryMap(objGeometryMap, chemDoc, molecules, ops.reactionArrowPerpendicularExpansion, ops.reactionArrowPerpendicularExpansion);
         RU._fillSymbolGeometryMap(objGeometryMap, chemDoc, plusSymbols);
+        RU._fillSymbolGeometryMap(objGeometryMap, chemDoc, conditionSymbols);
 
         try {
-            var chains = RU._extractReactionChainsInfoFromChemDocument(chemDoc, null, plusSymbols, molecules, objGeometryMap, ops);
+            var chains = RU._extractReactionChainsInfoFromChemDocument(chemDoc, {
+                    reactionArrows: null, plusSymbols: plusSymbols, conditionSymbols: conditionSymbols, molecules: molecules
+                }, objGeometryMap, ops);
             // console.log('chains', chains);
 
             // from the chains info, build the final multistep reactions
@@ -1540,6 +1602,15 @@ Kekule.ReactionExtractionUtils = {
                         {
                             var mol = cloneMolecules ? reactionInfo.reagentDetails[k].object.clone(true) : reactionInfo.reagentDetails[k].object;
                             reactionStep.appendReagent(mol);
+                        }
+                    }
+                    for (var k = 0, kk = reactionInfo.conditionDetails.length; k < kk; ++k)
+                    {
+                        if (reactionInfo.conditionDetails[k].object instanceof Kekule.Glyph.ChemConditionSymbol)
+                        {
+                            // TODO: here we use setQualitativeCondition, may be detect the condition type and use setCondition(condName, value) in the future
+                            var condGlyph = reactionInfo.conditionDetails[k].object;
+                            reactionStep.setQualitativeCondition(condGlyph.getCondition() || condGlyph.getText());
                         }
                     }
                     prevReactionStep = reactionStep;
