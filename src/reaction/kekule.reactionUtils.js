@@ -1081,7 +1081,6 @@ Kekule.ReactionExtractionUtils = {
                 // var overlappedObjs = RU._getReactionDetailOverlaps(currReactionInfo, refReactionInfo);
                 if (overlappedObjsInfo && overlappedObjsInfo.length)
                 {
-                    console.log(overlappingInfo);
                     // handle this overlaps
                     // firstly, sort the overlappedObjs with distance to the center of either arrow, we will handle them from near to far
                     overlappedObjsInfo.sort(function(objInfo1, objInfo2) {
