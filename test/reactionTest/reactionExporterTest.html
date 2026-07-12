@@ -35,15 +35,23 @@
                 var reactantSmiles = reaction.getReactants().map(mol => Kekule.IO.saveFormatData(mol, Kekule.IO.DataFormat.SMILES) || `[${mol.id}]`);
                 var productSmiles = reaction.getProducts().map(mol => Kekule.IO.saveFormatData(mol, Kekule.IO.DataFormat.SMILES) || `[${mol.id}]`);
                 var reagentSmiles = reaction.getReagents().map(mol => Kekule.IO.saveFormatData(mol, Kekule.IO.DataFormat.SMILES) || `[${mol.id}]`);
+                var conditionComponents = reaction.getConditionComponents();
+                var conditionTexts = conditionComponents.map(comp => {
+                    var condition = reaction.getCondition(comp);
+                    console.log(comp, condition);
+                    return condition;
+                });
 
                 document.getElementById('labelReactantSmiles').innerText = reactantSmiles.join(' . ');
                 document.getElementById('labelProductSmiles').innerText = productSmiles.join(' . ');
                 document.getElementById('labelReagentSmiles').innerText = reagentSmiles.join(' . ');
+                document.getElementById('labelConditions').innerText = conditionTexts.join(' / ');
             } else {
                 console.log('No reaction');
                 document.getElementById('labelReactantSmiles').innerText = '';
                 document.getElementById('labelProductSmiles').innerText = '';
                 document.getElementById('labelReagentSmiles').innerText = '';
+                document.getElementById('labelConditions').innerText = '';
             }
         }
     </script>
@@ -55,6 +63,7 @@
         <p>Reactant: <span id="labelReactantSmiles"></span></p>
         <p>Product: <span id="labelProductSmiles"></span></p>
         <p>Reagent: <span id="labelReagentSmiles"></span></p>
+        <p>Condition: <span id="labelConditions"></span></p>
     </section>
 </body>
 </html>
