@@ -641,6 +641,11 @@ Kekule.Glyph.ChemConditionSymbol = Class.create(Kekule.Glyph.LabelGlyph,
 	},
 
 	/** @ignore */
+	doGetObjAnchorPosition: function() {
+		return Kekule.ObjAnchorPosition.CENTER;
+	},
+
+	/** @ignore */
 	doObjectChange: function(modifiedPropNames)
 	{
 		// when condition changed, size may need to be recalculated
