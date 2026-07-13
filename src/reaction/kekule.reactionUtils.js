@@ -63,8 +63,9 @@ Kekule.globalOptions.add('reaction', {
         // assocSubstanceSecondaryAxisAlignMode: Kekule.ReactionObjectAlign.CENTER,
         assocSubstanceAlignMode: Kekule.ReactionObjectAlign.CENTER,  // reagents above or below reaction arrow, only consider align in the primary axis direction
         assocSubstanceStackOnPrimaryAxis: true,   // if false, multiple assoc substances will to layout in secondary axis (e.g., primary is x, assoc substances will be layouted from/to top/bottom)
-        singleLine: false   // if true, multiple reactions will be layout to one line rather than multiple lines
+        singleLine: false,   // if true, multiple reactions will be layout to one line rather than multiple lines
         // reactionInlineBlockAlignMode: Kekule.ReactionObjectAlign.BASELINE  // in single line mode, the multiple reaction box align mode. Default base line means the arrow position in secondary axis is same.
+        withConditionSymbols: false  // if true, the assoc condition symbol of reaction will also be handled
     }
 });
 
@@ -1412,6 +1413,8 @@ Kekule.ReactionExtractionUtils = {
      *     reactionArrowHorizontalExpansion: the length of arrow horizontal length expansion, to determinate whether a molecule is around the arrow, acting as the reagent.
      *     reactionSortRefLength: the reference length used to sort the reaction chains. If x/y distance between two reaction chain centers is less than this length, the two chains x/y will be regarded as same.
      *     cloneMolecules: whether clone molecules to reaction (rather than move them from chem document). Default value is true.
+     *     assocSymbols: whether associate chem symbols (e.g., condition symbols) with reaction when extracting. Default value is false.
+     *     cloneSymbols: If assocSymbols is true, when associate symbol with reaction, whether clone chem rather than move them from chem document. Default value is true.
      * }
      * @returns {@link Kekule.ChemReaction}
      */
@@ -1420,6 +1423,8 @@ Kekule.ReactionExtractionUtils = {
         var ops = RU._prepareReactionExtractionOptions(chemDoc, options);
 
         var cloneMolecules = (ops.cloneMolecules === undefined)? true: !!ops.cloneMolecules;
+        var cloneSymbols = (ops.cloneSymbols === undefined)? true: !!ops.cloneSymbols;
+        var assocSymbols = (ops.assocSymbols === undefined)? false: !!ops.assocSymbols;
 
         var objGeometryMap = new Kekule.MapEx();
         var molecules = RU._getMoleculesInDoc(chemDoc);
@@ -1477,6 +1482,11 @@ Kekule.ReactionExtractionUtils = {
                         // TODO: here we use setQualitativeCondition, may be detect the condition type and use setCondition(condName, value) in the future
                         var condGlyph = conditionDetails[i].object;
                         result.setQualitativeCondition(condGlyph.getCondition() || condGlyph.getText());
+                        if (assocSymbols)
+                        {
+                            var symb = cloneSymbols ? condGlyph.clone(true) : condGlyph;
+                            result.appendAssocObject(symb);
+                        }
                     }
                 }
             }
@@ -1501,6 +1511,8 @@ Kekule.ReactionExtractionUtils = {
      *     disableSiblingMerging: Whether merge two sibling chains when the prev one has products and the next one has no reactants or vice versa.
      *     insertImplicitIntermediate: whether fill an extra implicit intermediate object between two consecutive reactions omitting the common product/reactant.
      *     cloneMolecules: whether clone molecules to reaction (rather than move them from chem document). Default value is true.
+     *     assocSymbols: whether associate chem symbols (e.g., condition symbols) with reaction when extracting. Default value is false.
+     *     cloneSymbols: If assocSymbols is true, when associate symbol with reaction, whether clone chem rather than move them from chem document. Default value is true.
      * }
      * @returns {@link Kekule.ConsecutiveReactions}
      */
@@ -1509,6 +1521,8 @@ Kekule.ReactionExtractionUtils = {
         var ops = RU._prepareReactionExtractionOptions(chemDoc, options);
 
         var cloneMolecules = (ops.cloneMolecules === undefined)? true: !!ops.cloneMolecules;
+        var cloneSymbols = (ops.cloneSymbols === undefined)? true: !!ops.cloneSymbols;
+        var assocSymbols = (ops.assocSymbols === undefined)? false: !!ops.assocSymbols;
 
         var objGeometryMap = new Kekule.MapEx();
         var molecules = RU._getMoleculesInDoc(chemDoc);
@@ -1610,6 +1624,11 @@ Kekule.ReactionExtractionUtils = {
                             // TODO: here we use setQualitativeCondition, may be detect the condition type and use setCondition(condName, value) in the future
                             var condGlyph = reactionInfo.conditionDetails[k].object;
                             reactionStep.setQualitativeCondition(condGlyph.getCondition() || condGlyph.getText());
+                            if (assocSymbols)
+                            {
+                                var symb = cloneSymbols ? condGlyph.clone(true) : condGlyph;
+                                reactionStep.appendAssocObject(symb);
+                            }
                         }
                     }
                     prevReactionStep = reactionStep;
@@ -1758,16 +1777,16 @@ Kekule.ReactionLayoutUtils = {
         }
 
 
-        var getTargetMolecule = function(srcMolecule, targetChemDoc, doMoleculeClone)
+        var getTargetObject = function(srcObject, targetChemDoc, doClone)
         {
             var result;
-            if (doMoleculeClone) {
-                result = srcMolecule.clone();
+            if (doClone) {
+                result = srcObject.clone();
                 // result.setOwner(targetChemDoc);
                 targetChemDoc.appendChild(result);
             }
             else
-                result = srcMolecule;
+                result = srcObject;
             return result;
         };
         var createPlusSymbol = function(targetChemDoc)
@@ -1890,17 +1909,42 @@ Kekule.ReactionLayoutUtils = {
             // the first time layout
             var currCoord = {x: 0, y: 0};  // since we need to adjust coords of each object, we start from 0, 0 here
 
-            // first handle reagents, we divide them into two groups, one above arrow and one below arrow, and we need to calc the length of reaction arrow also
+            // first handle reagents, usually we divide them into two groups, one above arrow and one below arrow, and we need to calc the length of reaction arrow also
+            // but if condition symbols need to be arranged, we will lay-out reagents and symbols on both side of arrow
             var reagents = [];
             for (var i = 0, l = targetAssocSubstanceTypes.length; i < l; ++i)
             {
                 reagents = reagents.concat(reaction.getSubstancesOfType(targetAssocSubstanceTypes[i]));
             }
 
-            var firstHalfReagentCount = Math.ceil(reagents.length / 2);
-            var reagentGroup1 = reagents.slice(0, firstHalfReagentCount);
-            var reagentGroup2 = reagents.slice(firstHalfReagentCount);
-            var reagentStackOnSecondardyAxis = !ops.assocSubstanceStackOnPrimaryAxis;
+            var conditionSymbols = [];
+            if (ops.withConditionSymbols && Kekule.Glyph.ChemConditionSymbol)
+            {
+                var reactionAssocObjects = reaction.getAssocObjects() || [];
+                for (var i = 0, l = reactionAssocObjects.length; i < l; ++i)
+                {
+                    if (reactionAssocObjects[i] instanceof Kekule.Glyph.ChemConditionSymbol)
+                    {
+                        conditionSymbols.push(reactionAssocObjects[i]);
+                    }
+                }
+            }
+
+            var firstHalfReagentAndSymbolCount, reagentAndSymbolGroup1, reagentAndSymbolGroup2, reagentAndSymbolStackOnSecondardyAxis;
+            if (!conditionSymbols.length)
+            {
+                firstHalfReagentAndSymbolCount = Math.ceil(reagents.length / 2);
+                reagentAndSymbolGroup1 = reagents.slice(0, firstHalfReagentAndSymbolCount);
+                reagentAndSymbolGroup2 = reagents.slice(firstHalfReagentAndSymbolCount);
+                reagentAndSymbolStackOnSecondardyAxis = !ops.assocSubstanceStackOnPrimaryAxis;
+            }
+            else
+            {
+                // firstHalfReagentAndSymbolCount = reagents.length;
+                reagentAndSymbolGroup1 = reagents;
+                reagentAndSymbolGroup2 = conditionSymbols;
+                reagentAndSymbolStackOnSecondardyAxis = !ops.assocSubstanceStackOnPrimaryAxis;
+            }
 
             /*
             if (false && reagentStackOnSecondardyAxis) {
@@ -1941,19 +1985,20 @@ Kekule.ReactionLayoutUtils = {
                             : 0;  // center
                 }
 
+                var groupGeometry;
                 // group1
-                if (reagentGroup1.length)
+                if (reagentAndSymbolGroup1.length)
                 {
                     var targetGroup = []
-                    for (var i = 0, l = reagentGroup1.length; i < l; ++i)
+                    for (var i = 0, l = reagentAndSymbolGroup1.length; i < l; ++i)
                     {
-                        var substance = getTargetMolecule(reagentGroup1[i], chemDoc, doMoleculesClone);
+                        var substance = getTargetObject(reagentAndSymbolGroup1[i], chemDoc, doMoleculesClone);
                         targetGroup.push(substance);
                     }
                     currCoord = {x: 0, y: 0};
                     currCoord[secondaryAxis] += substanceGapSecondary;
-                    var groupGeometry = arrangeReactionObjectSubGroup(
-                        reagentStackOnSecondardyAxis, reagentStackOnSecondardyAxis, currCoord, targetGroup, substanceGapPrimary, primaryAxis, secondaryAxis,
+                    groupGeometry = arrangeReactionObjectSubGroup(
+                        reagentAndSymbolStackOnSecondardyAxis, reagentAndSymbolStackOnSecondardyAxis, currCoord, targetGroup, substanceGapPrimary, primaryAxis, secondaryAxis,
                         assocSubstancePrimaryAxisLayoutWeight, 1,
                         groupPrimaryAxisLayoutWeight, 1,
                         assocObjectsBox, objGeometryMap
@@ -1961,18 +2006,18 @@ Kekule.ReactionLayoutUtils = {
                     assocObjects = assocObjects.concat(targetGroup);
                 }
                 // group2
-                if (reagentGroup2.length)
+                if (reagentAndSymbolGroup2.length)
                 {
                     var targetGroup = []
-                    for (var i = 0, l = reagentGroup2.length; i < l; ++i)
+                    for (var i = 0, l = reagentAndSymbolGroup2.length; i < l; ++i)
                     {
-                        var substance = getTargetMolecule(reagentGroup2[i], chemDoc, doMoleculesClone);
+                        var substance = getTargetObject(reagentAndSymbolGroup2[i], chemDoc, doMoleculesClone);
                         targetGroup.push(substance);
                     }
                     currCoord = {x: 0, y: 0};
                     currCoord[secondaryAxis] -= substanceGapSecondary;
                     groupGeometry = arrangeReactionObjectSubGroup(
-                        reagentStackOnSecondardyAxis, false, currCoord, targetGroup, substanceGapPrimary, primaryAxis, secondaryAxis,
+                        reagentAndSymbolStackOnSecondardyAxis, false, currCoord, targetGroup, substanceGapPrimary, primaryAxis, secondaryAxis,
                         assocSubstancePrimaryAxisLayoutWeight, -1,
                         groupPrimaryAxisLayoutWeight, -1,
                         assocObjectsBox, objGeometryMap
@@ -2053,7 +2098,7 @@ Kekule.ReactionLayoutUtils = {
                 {
                     var currGeometry;
 
-                    var substance = getTargetMolecule(reaction.getReactantAt(i), chemDoc, doMoleculesClone);
+                    var substance = getTargetObject(reaction.getReactantAt(i), chemDoc, doMoleculesClone);
                     currGeometry = arrangeReactionObject(false, currCoord, substance, substanceGapPrimary, primaryAxis, secondaryAxis,
                         -mainSubstancePrimaryAxisLayoutWeight, mainSubstanceSecondaryAxisAlignWeight,
                         mainObjectsBox, objGeometryMap);
@@ -2091,7 +2136,7 @@ Kekule.ReactionLayoutUtils = {
                         currCoord = currGeometry.nextStartingCoord;
                     }
 
-                    var substance = getTargetMolecule(reaction.getProductAt(i), chemDoc, doMoleculesClone);
+                    var substance = getTargetObject(reaction.getProductAt(i), chemDoc, doMoleculesClone);
                     currGeometry = arrangeReactionObject(false, currCoord, substance, substanceGapPrimary, primaryAxis, secondaryAxis,
                         mainSubstancePrimaryAxisLayoutWeight, mainSubstanceSecondaryAxisAlignWeight,
                         mainObjectsBox, objGeometryMap);

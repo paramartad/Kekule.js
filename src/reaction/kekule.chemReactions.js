@@ -201,6 +201,23 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
                 }
         });
 
+        // assoc objects (e.g., condition symbol in chem doc)
+        this.defineProp('assocObjects', {
+            'dataType': DataType.ARRAY,
+            'scope': Class.PropertyScope.PRIVATE,
+            'setter': null,
+            'getter': function(canCreate)
+            {
+                var r = this.getPropStoreFieldValue('assocObjects');
+                if (!r && canCreate)
+                {
+                    r = [];
+                    this.setPropStoreFieldValue('assocObjects', r);
+                }
+                return r;
+            }
+        });
+
         // reaction related molecules, including reactants, products, catalysts and so on
         this.defineProp('substances', {
             'dataType': DataType.HASH,
@@ -549,6 +566,20 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
         else
             this.setCondition(CC.UNKNOWN, qualitiveCondition);
         return this;
+    },
+
+    /** @private */
+    appendAssocObject: function(obj) {
+        this.getAssocObjects(true).push(obj);
+        return this;
+    },
+    /** @private */
+    removeAssocObject: function(obj) {
+        Kekule.ArrayUtils.remove(this.getAssocObjects(false) || [], obj, true);
+    },
+    /** @private */
+    clearAssocObjects: function() {
+        this.setPropStoreFieldValue( 'assocObjects', null);
     },
 
     /**
