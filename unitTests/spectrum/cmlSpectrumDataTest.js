@@ -1,4 +1,4 @@
-describe('Test of some core data and functions of spectra module', function() {
+describe('Test of CML IO of spectra module', function() {
 
 	Kekule.globalOptions.IO.cml.enableExtractSampleInsideSpectrum = true;
 

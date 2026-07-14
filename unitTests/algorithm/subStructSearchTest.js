@@ -166,7 +166,7 @@ describe('Test of sub structure search', function(){
 			[true]
 	);
 
-	testSearch('Search on molecule with subgroup-3',
+	testSearch('Search on molecule with subgroup-4',
 			'transDiene',
 			['subgroup1'],
 			{'level': Kekule.StructureComparationLevel.CONFIGURATION},

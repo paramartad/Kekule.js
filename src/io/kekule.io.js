@@ -1380,7 +1380,7 @@ Kekule.IO.loadUrlData = function(fileUrl, callback, formatId, options)
 					var mimeType = Kekule.Ajax.getResponseMimeType(requestObj);
 					formatInfo = Kekule.IO.DataFormatsManager.findFormat(mimeType);
 				}
-				if (!formatId)
+				if (!formatInfo)
 				{
 					var ext = Kekule.UrlUtils.extractFileExt(fileUrl);
 					formatInfo = Kekule.IO.DataFormatsManager.findFormat(null, ext);
