@@ -303,12 +303,16 @@ describe('Test of reaction extraction from chem doc', function(){
 
     function testAutoLayout(testCase)
     {
+        var baseExtractionOptions = {
+            assocSymbols: true
+        }
         var baseLayoutOptions = {
             "substancePrimaryGapLengthRatioToDocRefLength": 0.5,
             "substanceSecondaryGapLengthRatioToDocRefLength": 0.5,
             "plusSymbolSizeRatioToDocRefLength": 1,
             "reactionArrowMinSizeRatioToDocRefLength": 1.5,
             "reactionArrowPaddingRatioToDocRefLength": 0.5,
+            "withConditionSymbols": true
             // "docRefLength": 0.8
         }
         var layoutOptions = [
@@ -355,7 +359,8 @@ describe('Test of reaction extraction from chem doc', function(){
         ];
 
         // test on auto-layout of single reaction
-        var srcReaction = Kekule.ReactionExtractionUtils.extractReactionFromChemDocument(testCase.chemDoc, testCase.options);
+        var extractionOptions = Object.extend(Object.extend({}, baseExtractionOptions), testCase.options);
+        var srcReaction = Kekule.ReactionExtractionUtils.extractReactionFromChemDocument(testCase.chemDoc, extractionOptions);
 
         for (let option of layoutOptions) {
             var ops = Object.extend({}, baseLayoutOptions);
@@ -371,10 +376,10 @@ describe('Test of reaction extraction from chem doc', function(){
                 newChemDoc.removeChildAt(i);
             */
 
-            Kekule.ReactionLayoutUtils.layoutReactionInChemDoc(newChemDoc, srcReaction, {x: 10, y: 10}, testCase.options);
-            var newReaction = Kekule.ReactionExtractionUtils.extractReactionFromChemDocument(newChemDoc, testCase.options);
+            Kekule.ReactionLayoutUtils.layoutReactionInChemDoc(newChemDoc, srcReaction, {x: 10, y: 10}, ops);
+            var newReaction = Kekule.ReactionExtractionUtils.extractReactionFromChemDocument(newChemDoc, extractionOptions);
 
-            expect(newReaction.compare(srcReaction, {method: Kekule.ComparisonMethod.CHEM_STRUCTURE})).toEqual(0);
+            expect(newReaction.compare(srcReaction, {method: Kekule.ComparisonMethod.CHEM_STRUCTURE, compareConditions: true, compareAssocObjects: !true})).toEqual(0);
 
             // console.log('src reaction', reactionToString(srcReaction, true));
             // console.log('new reaction', reactionToString(newReaction, true));
