@@ -2,7 +2,7 @@
  * Created by ginger on 2016/3/2.
  */
 
-describe('Test of finding SSSR in molecule', function(){
+describe('Test of ring blocks', function(){
 	var MB = TestMolBuilder;
 
 	it('Cycle block test on internal data', function(){

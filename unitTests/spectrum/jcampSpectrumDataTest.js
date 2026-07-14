@@ -1,4 +1,4 @@
-describe('Test of some core data and functions of spectra module', function(){
+describe('Test of JCAMP IO of spectra module', function(){
 
 	function loadJcampTestFile(fileName, callback)
 	{

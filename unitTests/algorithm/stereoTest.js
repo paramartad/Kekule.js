@@ -123,7 +123,7 @@ describe('Test of finding stereo center in molecule', function()
 	none("N(#C)=C", 'stereoTest/stereoCenterN25.mol');
 
 	none("N(=C)(C)(C)", 'stereoTest/stereoCenterN26.mol');
-	none("N(=C)(C)", 'stereoTest/stereoCenterN27.mol');
+	none("N(=C)(C) - 2", 'stereoTest/stereoCenterN27.mol');
 	none("N(=C)", 'stereoTest/stereoCenterN28.mol');
 
 	none("N(N)(=N)(C)CC", 'stereoTest/stereoCenterN29.mol');
