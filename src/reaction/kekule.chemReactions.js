@@ -733,7 +733,9 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
         var result = this.tryApplySuper('doCompare', [targetObj, options]);
         // compare substances and conditions
         if (!result && this._getComparisonOptionFlagValue(options, 'conditions'))
-            result = this._compareChildArrayItems(this.getConditions(), targetObj.getConditions(), options);
+        {
+            result = Kekule.ObjComparer.compare(this.getConditions(), targetObj.getConditions(), options);
+        }
         if (!result)
         {
             if (this._getComparisonOptionFlagValue(options, 'inputsOutputs'))
@@ -753,6 +755,10 @@ Kekule.ChemReaction = Class.create(Kekule.ChemObject,
                         break;
                 }
             }
+        }
+        if (!result && this._getComparisonOptionFlagValue(options, 'assocObjects'))
+        {
+            result = this._compareChildArrayItems(this.getAssocObjects() || [], targetObj.getAssocObjects() || [], options);
         }
         return result;
     },
