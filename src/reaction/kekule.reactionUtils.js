@@ -1940,9 +1940,17 @@ Kekule.ReactionLayoutUtils = {
             }
             else
             {
-                // firstHalfReagentAndSymbolCount = reagents.length;
-                reagentAndSymbolGroup1 = reagents;
-                reagentAndSymbolGroup2 = conditionSymbols;
+                if (reagents.length)
+                {
+                    // firstHalfReagentAndSymbolCount = reagents.length;
+                    reagentAndSymbolGroup1 = reagents;
+                    reagentAndSymbolGroup2 = conditionSymbols;
+                }
+                else
+                {
+                    reagentAndSymbolGroup1 = conditionSymbols;
+                    reagentAndSymbolGroup2 = [];
+                }
                 reagentAndSymbolStackOnSecondardyAxis = !ops.assocSubstanceStackOnPrimaryAxis;
             }
 
