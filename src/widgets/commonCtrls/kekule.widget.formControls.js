@@ -1321,6 +1321,7 @@ Kekule.Widget.SelectBox = Class.create(Kekule.Widget.FormWidget,
  * @property {String} text Text in edit box.
  * @property {Array} items An array of hash objects that contains value and title info of select box item.
  *   Each item of array may have the following fields: {text, value, title, data}.
+ * @property {Bool} textBoxReadOnly Whether user can directly input text in child text box.
  */
 /**
  * Invoked when user select a value from select box.
@@ -1371,6 +1372,10 @@ Kekule.Widget.ComboBox = Class.create(Kekule.Widget.FormWidget,
 				if (selectBox)
 					selectBox.setItems(value);
 			}
+		});
+		this.defineProp('textBoxReadOnly', {'dataType': DataType.BOOL, 'serializable': false,
+			'getter': function() { return this.getTextBox().getReadOnly(); },
+			'setter': function(value) { this.getTextBox().setReadOnly(value); }
 		});
 		// private
 		this.defineProp('textBox', {'dataType': 'Kekule.Widget.TextBox', 'serializable': false, 'setter': null, 'scope': Class.PropertyScope.PRIVATE});
