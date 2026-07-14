@@ -111,7 +111,9 @@ Object.extend(Kekule.ChemWidget.ComponentWidgetNames, {
 	glyphRepSingleSideOpenArrowArc: 'repSingleSideOpenArrowArc',
 	glyphRepHeatSymbol: 'repHeatSymbol',
 	glyphRepAddSymbol: 'repAddSymbol',
-	glyphRepChemConditionSymbol: 'repChemConditionSymbol',
+	glyphChemConditionSymbol: 'chemConditionSymbol',
+	glyphChemConditionSymbolHeat: 'chemConditionSymbolHeat',
+	glyphChemConditionSymbolLight: 'chemConditionSymbolLight',
 	glyphElectronPushingArrow: 'repElectronPushingArrow',
 	glyphElectronPushingArrowDouble: 'repElectronPushingArrowDouble',
 	glyphElectronPushingArrowSingle: 'repElectronPushingArrowSingle',
@@ -2923,7 +2925,7 @@ Kekule.Editor.ActionComposerSetChemConditionHeatController = Kekule.Editor.creat
 		'initialParams': {'condition': Kekule.ReactionQualitativeCondition.HEAT}
 	},
 	null, null,
-	BNS.glyphRepChemConditionSymbol
+	BNS.glyphChemConditionSymbolHeat
 );
 Kekule.Editor.ActionComposerSetChemConditionLightController = Kekule.Editor.createComposerIaControllerActionClass(
 	'Kekule.Editor.ActionComposerSetChemConditionLightController',
@@ -2935,7 +2937,7 @@ Kekule.Editor.ActionComposerSetChemConditionLightController = Kekule.Editor.crea
 		'initialParams': {'condition': Kekule.ReactionQualitativeCondition.LIGHT}
 	},
 	null, null,
-	BNS.glyphRepChemConditionSymbol
+	BNS.glyphChemConditionSymbolLight
 );
 
 Kekule.Editor.ActionComposerSetRepositoryLineSegmentController = Kekule.Editor.createComposerIaControllerActionClass(

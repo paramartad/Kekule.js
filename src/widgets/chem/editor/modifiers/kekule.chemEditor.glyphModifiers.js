@@ -1454,6 +1454,11 @@ Kekule.Editor.ObjModifier.GlyphLabel = Class.create(Kekule.Editor.ObjModifier.Ri
 	}
 	*/
 });
+// the ancestor class is registered as style obj modifier, need to re-register as glyph modifier here
+Kekule.Editor.ObjModifier.GlyphLabel.getCategories = function()
+{
+	return [Kekule.Editor.ObjModifier.Category.GLYPH];
+};
 
 /**
  * A modifier to change the reaction condition glyph.
