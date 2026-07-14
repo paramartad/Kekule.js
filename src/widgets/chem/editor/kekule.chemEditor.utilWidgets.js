@@ -4010,8 +4010,8 @@ Kekule.ChemWidget.TextStyleSettingPanel = Class.create(Kekule.Widget.Panel,
  *
  * @property {Array} selectableChemConditions
  * @property {String} conditionText
- * @property {isCustom} Whether user inputs a custom condition.
- *
+ * @property {Bool} isCustom Whether user inputs a custom condition.
+ * @property {Bool} enableCustom If true, user can only select pre-set condition in list box.
  */
 Kekule.ChemWidget.ChemConditionComboBox = Class.create(Kekule.Widget.ComboBox,
 /** @lends Kekule.ChemWidget.ChemConditionComboBox# */
@@ -4032,6 +4032,10 @@ Kekule.ChemWidget.ChemConditionComboBox = Class.create(Kekule.Widget.ComboBox,
 				this.fillReactionConditionBox(this.getReactionConditionBox(), value);
 				this.updateDisplayedComponents();
 			}
+		});
+		this.defineProp('enableCustom', {'dataType': DataType.BOOL, 'serializable': false,
+			'getter': function() { return !this.getTextBox().getReadOnly(); },
+			'setter': function(value) { this.getTextBox().setReadOnly(!value); }
 		});
 		this.defineProp('isCustom', {'dataType': DataType.BOOL, 'setter': null, 'serializable': false,
 			'getter': function() {
@@ -4153,6 +4157,14 @@ Kekule.ChemWidget.ChemConditionSettingPanel = Class.create(Kekule.Widget.Panel, 
 				this.updateDisplayedComponents();
 			}
 		});
+		this.defineProp('enableCustomCondition', {'dataType': DataType.BOOL,
+			'setter': function(value) {
+				this.setPropStoreFieldValue('enableCustomCondition', value);
+				if (this.getChemConditionBox()) {
+					this.getChemConditionBox().setEnableCustom(value);
+				}
+			}
+		});
 		/*
 		this.defineProp('conditionGlyphSizeMin', {'dataType': DataType.NUMBER,
 			'setter': function(value) {
@@ -4260,6 +4272,7 @@ Kekule.ChemWidget.ChemConditionSettingPanel = Class.create(Kekule.Widget.Panel, 
 
 		// reaction condition selector
 		var conditionInputter = new Kekule.ChemWidget.ChemConditionComboBox(this.getDocument()); // new Kekule.Widget.ComboBox(this.getDocument());
+		conditionInputter.setEnableCustom(this.getEnableCustomCondition());
 		this.fillChemConditionBox(conditionInputter, this.getSelectableChemConditions());
 		conditionInputter.addClassName(CCNS.CHEM_CONDITION_SETTING_PANEL_CONDITION_BOX);
 		conditionInputter.setHint(Kekule.$L('ChemWidgetTexts.HINT_CHEM_CONDITION'));

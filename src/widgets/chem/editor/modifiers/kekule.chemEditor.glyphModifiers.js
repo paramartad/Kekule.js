@@ -1483,6 +1483,21 @@ Kekule.Editor.ObjModifier.ChemCondition = Class.create(Kekule.Editor.ObjModifier
 	},
 
 	/** @ignore */
+	doCreateWidget: function()
+	{
+		var result = this.tryApplySuper('doCreateWidget');
+		// listener to the result(dropdown button)'s dropDown event, when drop down, update the configs of condition setter
+		result.on('dropDown', function() {
+			var panel = this.getSettingsPanel();
+			if (panel)
+			{
+				this.doApplyConditionPanelConfigs(panel);
+			}
+		}, this);
+		return result;
+	},
+
+	/** @ignore */
 	doLoadFromTargets: function(editor, targets)
 	{
 		if (targets && targets.length)
@@ -1552,9 +1567,13 @@ Kekule.Editor.ObjModifier.ChemCondition = Class.create(Kekule.Editor.ObjModifier
 		panel.setComponents(compNames)
 			.setCaption(this.getModifierCaption());
 
+		this.doApplyConditionPanelConfigs(panel);
+		/*
 		panel.setSelectableChemConditions(
 			configs.getListedChemConditions()
 		);
+		panel.setEnableCustomCondition(configs.getEnableCustomCondition());
+		*/
 
 		/*
 		panel.setConditionGlyphSizeMin(configs.getConditionGlyphFontSizeMin())
@@ -1629,7 +1648,14 @@ Kekule.Editor.ObjModifier.ChemCondition = Class.create(Kekule.Editor.ObjModifier
 	{
 		var result = new Kekule.ChemWidget.ChemConditionSettingPanel(targetEditor);
 		return result;
+	},
 
+	/** @private */
+	doApplyConditionPanelConfigs(panel)
+	{
+		var configs = this.getEditorConfigs().getChemConditionSetterConfigs();
+		panel.setSelectableChemConditions(configs.getListedChemConditions());
+		panel.setEnableCustomCondition(configs.getEnableCustomCondition());
 	},
 
 	/** @ignore */

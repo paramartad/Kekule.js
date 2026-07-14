@@ -1284,7 +1284,7 @@ Kekule.Editor.EmbeddedSetter.ChemConditionSymbol = Class.create(Kekule.Editor.Em
 		// conditionInputter.addClassName(CCNS.CHEMEDITOR_CHEM_CONDITION_SETTER);
 		// conditionInputter.setDisplayed(false);
 		// conditionInputter.appendToElem(parentElem);
-		conditionInputter.setItems(configs.getListedChemConditions());
+		this.doApplyConditionInputterConfigs(conditionInputter);
 
 		// event handler
 		var self = this;
@@ -1310,6 +1310,13 @@ Kekule.Editor.EmbeddedSetter.ChemConditionSymbol = Class.create(Kekule.Editor.Em
 				result.dismiss();  // avoid call apply setter twice
 			});
 		return result;
+	},
+	/** @private */
+	doApplyConditionInputterConfigs(inputter)
+	{
+		var configs = this.getEditorConfigs().getChemConditionSetterConfigs();
+		inputter.setItems(configs.getListedChemConditions());
+		inputter.setEnableCustom(configs.getEnableCustomCondition());
 	},
 
 	/** @ignore */
@@ -1343,7 +1350,10 @@ Kekule.Editor.EmbeddedSetter.ChemConditionSymbol = Class.create(Kekule.Editor.Em
 		//var posAdjust = fontSize / 1.5;  // adjust position to align to atom center
 		var text = this.getConditionText(targetObj);
 
-		setterWidget.getChildWidgets()[0].setConditionText(text || '');
+		var configs = this.getEditorConfigs().getChemConditionSetterConfigs();
+		var conditionInputter = setterWidget.getChildWidgets()[0];
+		this.doApplyConditionInputterConfigs(conditionInputter);
+		conditionInputter.setConditionText(text || '');
 		// var sPlaceholder = text || Kekule.$L('ChemWidgetTexts.CAPTION_TEXTBLOCK_INIT');
 		// setterWidget.setPlaceholder(sPlaceholder);
 

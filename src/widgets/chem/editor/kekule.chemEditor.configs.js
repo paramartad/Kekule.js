@@ -592,6 +592,7 @@ Kekule.Editor.StyleSetterConfigs = Class.create(Kekule.AbstractConfigs,
  *
  * @property {Array} listedChemConditions Predefined reaction conditions (value and display text) displayed in selector.
  *   Each item is an object of {text, value}
+ * @property {Bool} enableCustomCondition Whether user can input custom condition text in condition editor.
  */
 Kekule.Editor.ChemConditionSetterConfigs = Class.create(Kekule.AbstractConfigs,
 /** @lends Kekule.Editor.ChemConditionSetterConfigs# */
@@ -605,6 +606,7 @@ Kekule.Editor.ChemConditionSetterConfigs = Class.create(Kekule.AbstractConfigs,
 		this.addNumConfigProp('conditionGlyphFontSizeMin', 4);
 		this.addNumConfigProp('conditionGlyphFontSizeMax', 32);
 		this.addNumConfigProp('conditionGlyphFontSizeStep', 1);
+		this.addBoolConfigProp('enableCustomCondition', true);
 	},
 	/** @private */
 	initPropValues: function(/*$super*/)
