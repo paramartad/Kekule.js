@@ -745,7 +745,7 @@ Kekule.IO.SmilesMolWriter = Class.create(Kekule.IO.ChemDataWriter,
 		{
 			var chargeStr = (charge > 0)? '+': '-';
 			if (charge > 1 || charge < -1)
-				chargeStr = Math.abs(charge) + chargeStr;
+				chargeStr = chargeStr + Math.abs(charge);
 			result += chargeStr;
 		}
 
