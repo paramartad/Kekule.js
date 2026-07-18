@@ -109,7 +109,12 @@ describe('Test of converting condensed formula to molecule', function(){
         {'text': 'C-(CH3)3', 'smiles': 'C[C-](C)C'},
         {'text': 'MeC-HCH2CH3', 'smiles': 'C[C-]CC'},
         {'text': 'MeC-2CH2CH3', 'smiles': 'C[C-2]CC'},
-        {'text': 'MeC+2CH2CH3', 'smiles': 'C[C+2]CC'}
+        {'text': 'MeC+2CH2CH3', 'smiles': 'C[C+2]CC'},
+
+        {'text': 'MgCl2', 'smiles': 'Cl[Mg]Cl'},
+        {'text': 'NaCl', 'smiles': '[Na]Cl'},
+        {'text': 'CuO', 'smiles': null},
+        {'text': 'CrO3', 'smiles': null}
     ];
 
     testCases.forEach(function(info){
