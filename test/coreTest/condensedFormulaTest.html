@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Condensed Formula Test</title>
+    <script src="../../src/kekule.js?min=false"></script>
+</head>
+<body>
+    <section>
+        <input id="inputFormula" type="text" placeholder="formula" style="min-width: 40em"/>
+        <button id="btnExec">Execute</button>
+        <button id="btnExecDirect">Execute Direct</button>
+    </section>
+    <section>
+        <p id="labelSmiles"></p>
+    </section>
+    <script>
+        function execute()
+        {
+            var formulaText = document.getElementById('inputFormula').value;
+            var analyzer = new Kekule.CondensedFormulaTextAnalyzer(formulaText);
+            analyzer.setSubgroupItems(Kekule.Editor.RepositoryData.subGroups);
+            var tokenTree = analyzer.getPossibleTokenInfoTree();
+            console.log(tokenTree);
+
+            var subgroupInfoMap = new Kekule.MapEx();
+            Kekule.CondensedFormulaUtils._fillFullPathTokenListsAndHandle(tokenTree, [], (tokenList) => {
+                try {
+                    var structUnitList = Kekule.CondensedFormulaUtils._convertTokenListToStructureUnitList(tokenList, {});
+                }
+                catch(e)
+                {
+                    console.error(e);
+                }
+                console.log(structUnitList);
+                if (structUnitList && structUnitList.length)
+                {
+                    try {
+                        var mol = Kekule.CondensedFormulaUtils._createStructureFragFromUnitListEx(structUnitList, 0, 0, {enableExplicitHydrogen: !true, ignoreAtomValence: !true}, subgroupInfoMap)?.frag;
+                        console.log(mol);
+                        if (mol) {
+                            var smiles = Kekule.IO.saveFormatData(mol, Kekule.IO.DataFormat.SMILES);
+                            document.getElementById('labelSmiles').innerText = smiles;
+                            console.log(smiles);
+                            //return {success: true};
+                        }
+                    } catch(e) {
+                        console.error(e);
+                    }
+                }
+            });
+        }
+
+        function executeDirect()
+        {
+            var formulaText = document.getElementById('inputFormula').value;
+            var mol = Kekule.CondensedFormulaUtils.textToStructureFragment(formulaText, 0, Kekule.Editor.RepositoryData.subGroups);
+            console.log(mol);
+            if (mol) {
+                var smiles = Kekule.IO.saveFormatData(mol, Kekule.IO.DataFormat.SMILES);
+                document.getElementById('labelSmiles').innerText = smiles;
+                console.log(smiles);
+                //return {success: true};
+            }
+        }
+        document.getElementById('btnExec').addEventListener('click', execute);
+        document.getElementById('btnExecDirect').addEventListener('click', executeDirect);
+    </script>
+</body>
+</html>
