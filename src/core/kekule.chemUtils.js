@@ -1882,6 +1882,16 @@ Kekule.CondensedFormulaUtils = {
 				atom.setCharge(-1 * (structUnit.chargeMultiple || 1));
 				implicitHCount = atom.getImplicitHydrogenCount();
 				failed = implicitHCount !== hCount;
+				if (failed)
+				{
+					// restore
+					atom.setCharge(0);
+				}
+				else
+				{
+					structUnit.chargeSignal = -1;
+					delete structUnit.possibleNegativeCharge;
+				}
 			}
 			if (failed)
 			{
