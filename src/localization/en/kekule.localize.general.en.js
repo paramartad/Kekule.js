@@ -70,6 +70,9 @@ Kekule.Localization.addResource('en', 'ErrorMsg', {
 	UNABLE_TO_REMOVE_IMPLICIT_REACTANT: 'Unable to remove an implicit reactant from the previous reaction step',
 	UNABLE_TO_INSERT_IMPLICIT_REACTANT: 'Unable to insert an implicit reactant',
 
+	// core/kekule.chemUtils.js
+	INVALID_CONDENSED_FORMULA_TEXT: 'Invalid condensed formula text',
+
 	// algorithm/kekule.structures.helpers.js
 	CANNOT_ADD_NON_NODE_NOR_CONNECTOR_TO_STRUCT_CONTAINER: 'Can not add object other than node or connector to structure object container',
 

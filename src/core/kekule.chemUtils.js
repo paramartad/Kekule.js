@@ -597,11 +597,11 @@ Kekule.TokenAnalyzer = Class.create(ObjectEx,
 				var v = value || '';
 				this.setPropStoreFieldValue('srcText', v);
 				this.setPropStoreFieldValue('srcLength', v.length);
-				this.setCurrPos(0);
+				// this.setCurrPos(0);
 			}
 		});
 		this.defineProp('srcLength', {'dataType': DataType.INT, 'setter': null, 'serializable': false})
-		this.defineProp('currPos', {'dataType': DataType.INT, 'serializable': false});
+		// this.defineProp('currPos', {'dataType': DataType.INT, 'serializable': false});
 	},
 	/**
 	 * Returns type of char. Neighboring char with same type can be merged into a token.
@@ -627,15 +627,15 @@ Kekule.TokenAnalyzer = Class.create(ObjectEx,
 		return currT === lastT;
 	},
 	/** @private */
-	nextCharInfo: function()
+	nextCharInfo: function(currPos)
 	{
-		var p = this.getCurrPos();
+		var p = currPos; // this.getCurrPos();
 		if (p >= this.getSrcLength())
 			return null;
 		else
 		{
 			var c = this.getSrcText().charAt(p);
-			this.setCurrPos(p + 1);
+			// this.setCurrPos(p + 1);
 			return {'char': c, 'charType': this.getCharType(c)};
 		}
 	},
@@ -644,22 +644,27 @@ Kekule.TokenAnalyzer = Class.create(ObjectEx,
 	 * @returns {Hash} {token, tokenType}
 	 * @private
 	 */
-	nextTokenInfo: function()
+	nextTokenInfo: function(currPos)
 	{
-		var lastCharInfo = this.nextCharInfo();
+		var lastCharInfo = this.nextCharInfo(currPos);
 		if (lastCharInfo)
 		{
 			var token = lastCharInfo['char'];  // .char will cause problem in YUI compressor
 			var tokenType = lastCharInfo.charType;
-			var currCharInfo = this.nextCharInfo();
+			var tokenLength = token.length;
+			var nextPos = currPos + tokenLength;
+			var currCharInfo = this.nextCharInfo(nextPos);
 			while (currCharInfo && this.isCharTypeMatched(currCharInfo.charType, lastCharInfo.charType))
 			{
+				nextPos += token.length;
 				token += currCharInfo['char'];
 				lastCharInfo = currCharInfo;
-				currCharInfo = this.nextCharInfo();
+				currCharInfo = this.nextCharInfo(nextPos);
 			}
+			/*
 			if (currCharInfo)  // now currCharInfo type is different from last, reverse a pos
 				this.setCurrPos(this.getCurrPos() - 1);
+			*/
 			return {'token': token, 'tokenType': tokenType};
 		}
 		else
@@ -669,14 +674,16 @@ Kekule.TokenAnalyzer = Class.create(ObjectEx,
 	 * Returns all token info in src text.
 	 * @returns {Array} Each item is a hash of {token, tokenType}.
 	 */
-	getAllTokenInfos: function()
+	getAllTokenInfos: function(startingPos)
 	{
 		var result = [];
-		var info = this.nextTokenInfo();
+		var currPos = startingPos || 0;
+		var info = this.nextTokenInfo(currPos);
 		while (info)
 		{
 			result.push(info);
-			info = this.nextTokenInfo();
+			currPos += info.token.length;
+			info = this.nextTokenInfo(currPos);
 		}
 		return result;
 	}
@@ -697,13 +704,19 @@ Kekule.ChemTextTypes = {
 	/** @private */
 	CT_NUMBER: 4,
 	/** @private */
+	CT_BOND: 6,  // '-', '=', '#' etc.
+	/** @private */
 	CT_BRACKET_LEADING: 10,  // '(', '[' and '{'
 	/** @private */
 	CT_BRACKET_TAILING: 11,  // ')', ']' and '}'
 	/** @private */
 	CT_SEPARATOR: 20,  // space to separate texts
 	/** @private */
-	CT_UNKNOWN: 0
+	CT_UNKNOWN: 0,
+
+	/** @private */
+	CT_SUBGROUP: 101,
+	CT_SINGLE_BOND_OR_NEGATIVE_CHARGE: 201,  // '-', as a single bond or negative charge?
 };
 var CT = Kekule.ChemTextTypes;
 
@@ -746,6 +759,322 @@ Kekule.ChemTextAnalyzer = Class.create(Kekule.TokenAnalyzer,
 		else
 			return (currT === lastT && lastT !== CT.CT_ATOM_SYMBOL_LEADING) ||
 				(lastT === CT.CT_ATOM_SYMBOL_LEADING && currT === CT.CT_ATOM_SYMBOL_FOLLOWING);
+	}
+});
+
+/**
+ * A helper class to analysis chem text (e.g. formula).
+ * @augments Kekule.ChemTextAnalyzer
+ * @class
+ *
+ * @property {Array} subgroupItems Array of subgroup items, e.g., get from Kekule.Editor.RepositoryData.subgroups
+ */
+Kekule.CondensedFormulaTextAnalyzer = Class.create(Kekule.ChemTextAnalyzer,
+/** @lends Kekule.CondensedFormulaTextAnalyzer# */
+{
+	/** @private */
+	CLASS_NAME: 'Kekule.CondensedFormulaTextAnalyzer',
+
+	/** @private */
+	initProperties: function()
+	{
+		// private properties
+		this.defineProp('subgroupItems', {
+			'dataType': DataType.ARRAY, serializable: false, scope: Class.PropertyScope.PRIVATE,
+			'setter': function(value)
+			{
+				this.setPropStoreFieldValue('subgroupItems', value);
+				this.updateSubgroupItemDetails();
+			}
+		});
+	},
+
+	updateSubgroupItemDetails: function()
+	{
+		var subgroupItems = this.getSubgroupItems() || [];
+		var subgroupItemDetails = [];
+		for (var i = 0, l = subgroupItems.length; i < l; ++i)
+		{
+			var item = subgroupItems[i];
+			var labelInfos = [];
+			if (item.inputTexts)
+			{
+				for (var j = 0, jj = item.inputTexts.length; j < jj; ++j)
+				{
+					var inputTextInfo = this.getSubgroupInputTextInfo(item.inputTexts[j]);
+					labelInfos.push(inputTextInfo);
+				}
+			}
+			if (item.abbr)
+			{
+				labelInfos.push(this.getSubgroupInputTextInfo(item.abbr, true));
+			}
+
+			var detail = {
+				subgroupItem: item,
+				labelInfos: labelInfos
+			};
+			subgroupItemDetails.push(detail);
+		}
+		this._subgroupItemDetails = subgroupItemDetails;
+	},
+
+	/** @ignore */
+	getCharType: function(c)
+	{
+		if (c === '-')
+			return CT.CT_SINGLE_BOND_OR_NEGATIVE_CHARGE;
+		else if (['=', '#', '𝄘'].indexOf(c) >= 0)
+			return CT.CT_BOND;
+		else
+			return this.tryApplySuper('getCharType', [c]);
+	},
+
+	/** @ignore */
+	isCharTypeMatched: function(currT, lastT)
+	{
+		if (currT.charType === CT.CT_SUBGROUP || lastT.charType === CT.CT_SUBGROUP)
+			return false;
+		else
+			return this.tryApplySuper('isCharTypeMatched', [currT, lastT]);
+	},
+	/** @ignore */
+	nextCharInfo: function(currPos)
+	{
+		return this.nextPossibleCharInfos(currPos)[0];
+	},
+
+	/** @ignore */
+	nextTokenInfo: function()
+	{
+		return this.nextPossibleTokenInfos(currPos)[0];
+	},
+
+	/** @private */
+	isAmbiguousSubgroupText: function(text)
+	{
+		// TODO: we may need a more general handle method for ambiguous subgroup
+		// CO has two possible parsing result, a C=O (e.g. MeCOMe, MeCOOEt) or C-O (e.g. Me3COH), where C=O is a repository group, we need to add C-O as two different tokens also
+		// CHO also has the problem: e.g. MeCHO for C=O, CH2=CHOH for C-O
+		// CH3 existed in repository, but we can also using atom to tokenize it
+		var ambiguousSubgroupTexts = [
+			'CO', 'OC',
+			'CHO', 'OHC',
+			'CH3', 'H3C'
+		];
+		for (var i = 0, l = ambiguousSubgroupTexts.length; i < l; ++i)
+		{
+			var t = ambiguousSubgroupTexts[i];
+			if (text.indexOf(t) >= 0)
+				return true;
+		}
+		return false;
+	},
+
+	/** @pivate */
+	nextPossibleCharInfos: function(currPos)
+	{
+		var p = currPos; // this.getCurrPos();
+		if (p >= this.getSrcLength())
+			return [];
+		else
+		{
+			var srcText = this.getSrcText();
+			var matchedSubgroupInfos = this.getMatchedSubgroupInfos(srcText, currPos, currPos === 0);
+			if (matchedSubgroupInfos && matchedSubgroupInfos.length)
+			{
+				var result = [];
+				var isAmbiguousSubgroup = false;
+				for (var i = 0, l = matchedSubgroupInfos.length; i < l; ++i)
+				{
+					var info = matchedSubgroupInfos[i];
+					result.push({'char': info.matchedText, 'subgroup': info.subgroup, 'charType': CT.CT_SUBGROUP, 'multipleEnabled': info.multipleEnabled});
+					if (this.isAmbiguousSubgroupText(info.matchedText))
+					{
+						isAmbiguousSubgroup = true;
+					}
+				}
+
+				if (isAmbiguousSubgroup)
+				{
+					result.push(this.tryApplySuper('nextCharInfo', [currPos]));
+				}
+
+				// sort by char length desc
+				result.sort(function(a, b) {
+					return -(a['char'].length - b['char'].length);
+				});
+				return result;
+			}
+			else
+			{
+				var charInfo = this.tryApplySuper('nextCharInfo', [currPos]);
+				if (charInfo)
+					return [charInfo];
+				else
+					return [];
+			}
+		}
+	},
+	/** @private */
+	nextPossibleTokenInfos: function(currPos)
+	{
+		var possibleCharInfos = this.nextPossibleCharInfos(currPos);
+		if (possibleCharInfos.length === 1 && possibleCharInfos[0].charType !== CT.CT_SUBGROUP)
+		{
+			// ordinary chars
+			var tokenInfo = this.tryApplySuper('nextTokenInfo', [currPos]);
+			return tokenInfo? [tokenInfo]: [];
+		}
+		else //if (possibleCharInfos.length >= 2 /*&& possibleCharInfos[0].charType === CT.CT_SUBGROUP*/)
+		{
+			// multiple possible subgroups
+			var result = [];
+			for (var i = 0, ii = possibleCharInfos.length; i < ii; ++i)
+			{
+				var charInfo = possibleCharInfos[i];
+				if (charInfo.charType === CT.CT_SUBGROUP)
+				{
+					result.push({
+						'token': charInfo['char'],
+						'tokenType': charInfo.charType,
+						'subgroup': charInfo.subgroup,
+						// 'valences': charInfo.subgroup.valences || [1],
+						'multipleEnabled': charInfo.multipleEnabled
+					});
+				}
+				else
+				{
+					// not subgroup, may be an element symbol / number that can be merged with following chars
+					var nextPos = currPos + charInfo['char'].length;
+					var nextCharInfos = this.nextPossibleCharInfos(nextPos);
+					for (var j = 0, jj = nextCharInfos.length; j < jj; ++j)
+					{
+						var currCharInfo = charInfo;
+						var token = charInfo['char'];
+						var tokenType = charInfo.charType;
+						var nextCharInfo = nextCharInfos[j];
+						while (nextCharInfo && this.isCharTypeMatched(nextCharInfo.charType, currCharInfo.charType))
+						{
+							nextPos += nextCharInfo['char'].length;
+							token += nextCharInfo['char'];
+							currCharInfo = nextCharInfo;
+							nextCharInfo = this.nextCharInfo(nextPos);
+						}
+						result.push({
+							'token': token, 'tokenType': tokenType
+						});
+					}
+				}
+			}
+			return result;
+		}
+	},
+	/** @private */
+	getPossibleTokenInfoTree: function(startingPos)
+	{
+		var root = {isRoot: true};
+		var currPos = startingPos || 0;
+		this._fillPossibleTokenInfoTree(currPos, root);
+		return root;
+	},
+	/** @private */
+	_fillPossibleTokenInfoTree: function(startingPos, rootNode)
+	{
+		var currPos = startingPos || 0;
+		var infos = this.nextPossibleTokenInfos(currPos);
+		if (infos && infos.length)
+		{
+			rootNode._children = infos;
+			for (var i = 0, l = infos.length; i < l; ++i)
+			{
+				this._fillPossibleTokenInfoTree(currPos + infos[i].token.length, infos[i]);
+			}
+		}
+	},
+
+	/** @private */
+	getMatchedSubgroupInfos: function(text, startingPos, allowReversedText)
+	{
+		var subgroupItemDetails = this._subgroupItemDetails;
+		if (!subgroupItemDetails || !subgroupItemDetails.length)
+		{
+			return [];
+		}
+		else
+		{
+			var result = [];
+			for (var i = 0, ii = subgroupItemDetails.length; i < ii; ++i)
+			{
+				var currGroupChecked = false;
+				var subgroupItem = subgroupItemDetails[i].subgroupItem;
+				var subgroupItemDetail = subgroupItemDetails[i];
+				if (subgroupItemDetail.labelInfos)
+				{
+					for (var j = 0, jj = subgroupItemDetail.labelInfos.length; j < jj; ++j)
+					{
+						var currLabels = [subgroupItemDetail.labelInfos[j].labelText];
+						if (allowReversedText && subgroupItemDetail.labelInfos[j].reversed)
+							currLabels.push(subgroupItemDetail.labelInfos[j].reversed);
+						for (var k = 0, kk = currLabels.length; k < kk; ++k)
+                        {
+							if (text.substr(startingPos, currLabels[k].length) === currLabels[k])
+							{
+								result.push({
+									'matchedText': currLabels[k],
+									'subgroup': subgroupItem,
+									// 'valences': subgroupItem.valences || [1],  // default valence is 1, connecting with one single bond
+									'multipleEnabled': subgroupItemDetail.labelInfos[j].multipleEnabled
+								});
+								currGroupChecked = true;
+								break;
+							}
+						}
+						if (currGroupChecked)
+							break;
+					}
+				}
+			}
+			return result;
+		}
+	},
+
+	getSubgroupInputTextInfo: function(inputText, isAbbr)
+	{
+		var result = {
+			labelText: inputText,
+			reversable: false,
+			sectionCount: 1,
+			multipleEnabled: true
+		};
+		if (!isAbbr)
+		{
+			// convert inputText to formula, then reverse the formula section and get the output text
+			try
+			{
+				var formula = Kekule.FormulaUtils.textToFormula(inputText);
+				if (formula)
+				{
+					result.sectionCount = formula.getSectionCount();
+					if (result.sectionCount > 1)
+					{
+						formula.reverseSections();
+						result.reversable = true;
+						result.reversed = Kekule.FormulaUtils.formulaToText(formula);
+						result.multipleEnabled = false;
+					}
+					else
+					{
+						result.multipleEnabled = !(formula.getSectionAt(0).count > 1);
+					}
+				}
+			}
+			catch(e)
+			{
+
+			}
+		}
+		return result;
 	}
 });
 
@@ -1103,5 +1432,684 @@ ClassEx.defineProp(Kekule.MolecularFormula, 'text', {
 		FU.textToFormula(value, this.getParent(), this);
 	}
 });
+
+/**
+ * Util class to manipulate condensed formula (e.g. EtOH, MeCOOH, PhCH2CH2COMe).
+ * @class
+ */
+Kekule.CondensedFormulaUtils = {
+	/**
+	 * Nestable brackets used to display formula.
+	 * @private
+	 */
+	FORMULA_BRACKETS: [['(', ')'], ['[', ']'], ['{', '}']],
+	/** @private */
+	FORMULA_BRACKET_TYPE_COUNT: 3,
+
+	/**
+	 * Convert condensed formula text to a structure fragment.
+	 * @param {String} text
+	 * @param {Int} linkedBondOrder If need to create a subgroup, this indicating the order of bond linked to main structure. Otherwise, the order should be 0.
+	 * //@param {Kekule.StructureFragment} parent Parent of the newly created structure fragment. If a standalone molecule need to be created, parent should be set to null.
+	 * @param {Array} subgroupItems	Repository subgroup items using for parsing the text.
+	 * @param {Hash} options
+	 * @returns {Kekule.StructureFragment}
+	 */
+	textToStructureFragment: function(text, linkedBondOrder, subgroupItems, options)
+	{
+		var createMolecule = !linkedBondOrder;
+		var op = Object.create(options || {});
+		if (createMolecule)
+			op.createMolecule = true;
+
+		var analyzer = new Kekule.CondensedFormulaTextAnalyzer(text);
+		analyzer.setSubgroupItems(subgroupItems || []);
+		try
+		{
+			var tokenInfoTreeRoot = analyzer.getPossibleTokenInfoTree();
+			// the root should be an empty node, we iterate its children
+			// var rootChildren = tokenInfoTreeRoot.getChildren();
+
+			// iterate possible tree paths and form token list, try to generate structure from these token lists, if one structure is generated, just skip out
+			var subgroupInfoMap = new Kekule.MapEx();
+			var creationResult = this._fillFullPathTokenListsAndHandle(tokenInfoTreeRoot, [], function(tokenList) {
+				try
+				{
+					var structUnitList = Kekule.CondensedFormulaUtils._convertTokenListToStructureUnitList(tokenList, op);
+					if (structUnitList && structUnitList.length)
+					{
+						var result = Kekule.CondensedFormulaUtils._createStructureFragFromUnitListEx(structUnitList, 0, 0, op, subgroupInfoMap);
+						var fragment = result && result.frag;  // .frag is type of SubGroup
+						if (fragment) {
+							if (!createMolecule)
+							{
+								// mark the anchor node of fragment
+								var anchorNodes = result.anchorNodes || result.anchorNodesLeading;
+								fragment.setAnchorNodes(anchorNodes);
+							}
+							// creation successful, skip out
+							return {success: true, result: fragment};
+						}
+					}
+				}
+				catch(e)
+				{
+					// ignore creation errors
+					// console.error(e);
+				}
+			});
+			if (creationResult && creationResult.success)
+			{
+				return creationResult.result;
+			}
+			else
+			{
+				throw new Error(Kekule.$L('ErrorMsg.INVALID_CONDENSED_FORMULA_TEXT'));
+			}
+		}
+		finally
+		{
+			analyzer.finalize();
+		}
+	},
+
+	_fillFullPathTokenListsAndHandle: function(startingTokenInfo, tokenList, handler)
+	{
+		var currTokenList = [].concat(tokenList);
+		currTokenList.push(startingTokenInfo);
+		var children = startingTokenInfo._children;
+		if (children && children.length)
+		{
+			for (var i = 0, l = children.length; i < l; ++i)
+			{
+				var child = children[i];
+				var handleResult = this._fillFullPathTokenListsAndHandle(child, currTokenList, handler);
+				if (handleResult && handleResult.success === true)
+					return handleResult;
+			}
+		}
+		else
+		{
+			// no child, the leaf node, we can now do the handling
+			// the handler returns {success: true, other} indicating the handle job is done, and no need to try other paths
+			return handler(currTokenList);
+		}
+	},
+
+	_loadSubgroup: function(subGroupItem)
+	{
+		var result = Kekule.IO.loadFormatData(subGroupItem.structData, subGroupItem.dataFormat || Kekule.IO.DataFormat.KEKULE_JSON);
+		return result;
+	},
+	_getBondOrder: function(bondChar)
+	{
+		if (bondChar === '-' || !bondChar)
+			return 1;
+		else if (bondChar === '=')
+			return 2;
+		else if (['#', '𝄘'].indexOf(bondChar) >= 0)
+			return 3;
+		else
+			return 0;
+	},
+
+	_convertTokenListToStructureUnitList: function(tokenInfoList, options)
+	{
+		var result = [];
+		var branchStack = [result];
+		var currStructUnitInfo = null;
+		var currStructure;
+
+		var pushBranch = function()
+		{
+			var result = [];
+			branchStack.push(result);
+			return result;
+		};
+		var popBranch = function()
+		{
+			return branchStack.pop();
+		};
+		var getCurrBranch = function()
+		{
+			return branchStack[branchStack.length - 1];
+		};
+
+		var createNewUnit = function()
+		{
+			currStructUnitInfo = {tokenSeq: []};
+			return currStructUnitInfo;
+		};
+		var getCurrUnit = function(canCreate)
+		{
+			var result = currStructUnitInfo;
+			if (!result && canCreate)
+				result = createNewUnit();
+			return result;
+		};
+		var wrapUpCurrUnit = function(explicitEnd)
+		{
+			if (!currStructUnitInfo)
+				return;
+			if (currStructUnitInfo.structType)
+			{
+				if (explicitEnd && currStructUnitInfo.structType === 'atom' && currStructUnitInfo.possibleNegativeCharge && currStructUnitInfo.tokenSeq[currStructUnitInfo.tokenSeq.length - 1] === CT.CT_SINGLE_BOND_OR_NEGATIVE_CHARGE)
+				{
+					// an explicity ending unit, last char is '-', then it is a negative charge
+					delete currStructUnitInfo.possibleNegativeCharge;
+					currStructUnitInfo.chargeSignal = -1;
+					currStructUnitInfo.tokenSeq[currStructUnitInfo.tokenSeq.length - 1] = CT.CT_CHARGE_SYMBOL;
+				}
+
+				var currBranch = getCurrBranch();
+				// try merge tailing atom units with H
+				var handled = false;
+				if (currStructUnitInfo.structType === 'atom')
+				{
+					var mergedUnit = tryMergeHAtomUnit(currStructUnitInfo, currBranch[currBranch.length - 1]);
+					if (mergedUnit)
+					{
+						currBranch[currBranch.length - 1] = mergedUnit;
+						handled = true;
+					}
+				}
+				if (!handled)
+				{
+					currBranch.push(currStructUnitInfo);
+				}
+				// force to create new unit
+				currStructUnitInfo = null;
+			}
+			else
+			{
+				// can not wrap up, throw error
+				throw new Error('Can not wrap up current structure unit');
+			}
+		};
+		var wrapUpCurrIfFulfillable = function()
+		{
+			if (!currStructUnitInfo)
+				return;
+			if (isUnitFulfillable(currStructUnitInfo))
+				wrapUpCurrUnit();
+		};
+		var isUnitFulfillable = function(unitInfo)
+		{
+			if (unitInfo.structType === 'subgroup')
+				return true;
+			else if (unitInfo.structType === 'atom')
+				return unitInfo.atomSymbol;
+			else if (unitInfo.structType === 'branch')
+				return unitInfo.branch && unitInfo.branch.length;
+			else
+				return false;
+		};
+
+		var tryMergeHAtomUnit = function(currUnit, prevUnit)
+		{
+			var result = null;
+			if (currUnit && prevUnit &&currUnit.structType === 'atom' && prevUnit.structType === 'atom')
+			{
+				var atomUnitH, atomUnitNonH, atomUnitHIndex;
+				// we may merge something like CH2, OH, etc. into one structure unit, H as HCount
+				if (currUnit.atomSymbol === 'H' && prevUnit.atomSymbol !== 'H')
+				{
+					atomUnitH = currUnit;
+					atomUnitNonH = prevUnit;
+				}
+				else if (currUnit.atomSymbol !== 'H' && prevUnit.atomSymbol === 'H')
+				{
+					atomUnitH = prevUnit;
+					atomUnitNonH = currUnit;
+				}
+				if (atomUnitH && atomUnitNonH)
+				{
+					if (atomUnitNonH.hCount === undefined && !atomUnitH.incomingBondOrder && !atomUnitH.chargeSignal &&!atomUnitH.massNum)
+					{
+						// do the merge
+						atomUnitNonH.hCount = atomUnitH.count || 1;
+						result = atomUnitNonH;
+					}
+				}
+			}
+			return result;
+		}
+
+		var concreteTokenInfoList = tokenInfoList;
+		if (tokenInfoList[0] && tokenInfoList[0].isRoot)
+		{
+			// leading is the root of original token tree,
+			// since the root does not represent a chem structure, we need to remove it
+			concreteTokenInfoList = tokenInfoList.slice(1);
+		}
+
+		for (var i = 0, l = concreteTokenInfoList.length; i < l; ++i)
+		{
+			var tokenInfo = concreteTokenInfoList[i];
+			var tokenType = tokenInfo.tokenType;
+
+			// special handle of CT_SINGLE_BOND_OR_NEGATIVE_CHARGE
+			if (tokenType === CT.CT_SINGLE_BOND_OR_NEGATIVE_CHARGE)
+			{
+				if (!currStructUnitInfo)
+				{
+					// no leading struct unit, then - will surely be an incoming bond
+					tokenType = CT.CT_BOND;
+				}
+				else if (currStructUnitInfo.chargeSignal > 0)
+				{
+					// already has a positive charge, then - will surely be an incoming bond
+					tokenType = CT.CT_BOND;
+				}
+			}
+
+			if (tokenType === CT.CT_SEPARATOR)
+			{
+				wrapUpCurrUnit(true);
+			}
+			else if (tokenType === CT.CT_SINGLE_BOND_OR_NEGATIVE_CHARGE)
+			{
+				// since the single bond is the default bonding type, we only need to handle the charge possibility
+				var unitInfo = getCurrUnit(false);
+				if (unitInfo && isUnitFulfillable(unitInfo))
+				{
+					unitInfo.possibleNegativeCharge = true;
+					unitInfo.tokenSeq.push(CT.CT_SINGLE_BOND_OR_NEGATIVE_CHARGE);
+				}
+				else
+					throw new Error('Invalid negative charge symbol');
+			}
+			else if (tokenType === CT.CT_BOND)
+			{
+				// incoming bond char must be at the beginning of a unit
+				wrapUpCurrUnit(true);
+				var bondOrder = Kekule.CondensedFormulaUtils._getBondOrder(tokenInfo.token);
+				if (bondOrder <= 0)
+					throw new Error('Invalid bond char: ' + tokenInfo.token);
+				else
+				{
+					var unitInfo = getCurrUnit(true);
+					unitInfo.incomingBondOrder = bondOrder;
+					unitInfo.tokenSeq.push(CT.CT_BOND);
+				}
+			}
+			else if (tokenType === CT.CT_BRACKET_LEADING)  // bracket, new branch
+			{
+				wrapUpCurrUnit(true);
+				var branch = pushBranch();
+			}
+			else if (tokenType === CT.CT_BRACKET_TAILING)
+			{
+				wrapUpCurrUnit(true);
+				var branch = popBranch();
+				var unitInfo = getCurrUnit(true);
+				unitInfo.branch = branch;
+				unitInfo.structType = 'branch';
+				unitInfo.multipleEnabled = true;
+				// check the first unit of branch, if it has incoming bond order, this should be the order of whole branch
+				if (branch.length && branch[0].incomingBondOrder)
+				{
+					unitInfo.incomingBondOrder = branch[0].incomingBondOrder;
+				}
+			}
+			else if (tokenType === CT.CT_SUBGROUP)
+			{
+				var unitInfo = getCurrUnit(false);
+				if (unitInfo)
+				{
+					if (isUnitFulfillable(unitInfo))
+						wrapUpCurrUnit();
+					else if (!(unitInfo.tokenSeq.length === 1 && unitInfo.incomingBondOrder))
+					{
+						// already has unit more than an incoming bond, throw error
+						throw new Error('Invalid structure format before a subgroup');
+					}
+				}
+
+				unitInfo = getCurrUnit(true);
+				unitInfo.originTokenInfo = tokenInfo; // record the original token, for storing in subgroup structure map
+				unitInfo.subgroup = tokenInfo.subgroup;
+				unitInfo.multipleEnabled = tokenInfo.multipleEnabled;
+				unitInfo.text = tokenInfo.token;
+				unitInfo.valences = tokenInfo.subgroup.valences || [1];  // default valence is 1, connecting with one single bond
+				unitInfo.structType = 'subgroup';
+				unitInfo.tokenSeq.push(CT.CT_SUBGROUP);
+			}
+			else if ([CT.CT_ATOM_SYMBOL_LEADING, CT.CT_ATOM_SYMBOL_FOLLOWING].indexOf(tokenType) >= 0)  // atom symbol
+			{
+				wrapUpCurrIfFulfillable();
+				var atomSymbol = tokenInfo.token;
+				/*
+				if (atomSymbol === 'H')
+				{
+					// hydrogen atom (but not D), may attach to other atom as explicit/implicit hydrogen
+					if (!currStructUnitInfo)
+						currStructUnitInfo = {};
+					currStructUnitInfo.attachHydrogens = true;
+				}
+				*/
+				var unitInfo = getCurrUnit(true);
+				unitInfo.structType = 'atom';
+				unitInfo.atomSymbol = atomSymbol;  // TODO: handle D, T?
+				unitInfo.multipleEnabled = true;
+
+				if (unitInfo.prefixNumber)
+				{
+					// number before atom symbol, should be a mass number
+					unitInfo.massNum = unitInfo.prefixNumber;
+					delete unitInfo.prefixNumber;
+				}
+
+				unitInfo.tokenSeq.push(CT.CT_ATOM_SYMBOL_LEADING);
+			}
+			else if (tokenType === CT.CT_CHARGE_SYMBOL)
+			{
+				var unitInfo = getCurrUnit(false);
+				if (!unitInfo || unitInfo.structType !== 'atom')
+				{
+					// charge can not set on subgroup, or unfulfilled struct unit
+					throw new Error('Charge must be attached to atom');
+				}
+				var chargeSignal = (tokenInfo.token === '+')? +1: -1;
+				unitInfo.chargeSignal = chargeSignal;
+				unitInfo.tokenSeq.push(CT.CT_CHARGE_SYMBOL);
+			}
+			else if (tokenType === CT.CT_NUMBER)
+			{
+				var num = parseInt(tokenInfo.token, 10);
+				var unitInfo = getCurrUnit(true);
+				if (unitInfo.tokenSeq[unitInfo.tokenSeq.length - 1] === CT.CT_CHARGE_SYMBOL)  // last token is charge
+				{
+					unitInfo.chargeMultiple = num;
+				}
+				else if (unitInfo.tokenSeq[unitInfo.tokenSeq.length - 1] === CT.CT_SINGLE_BOND_OR_NEGATIVE_CHARGE) // surely the prev '-' is a charge mark
+				{
+					unitInfo.tokenSeq[unitInfo.tokenSeq.length - 1] = CT.CT_CHARGE_SYMBOL;
+					unitInfo.chargeMultiple = num;
+					unitInfo.chargeSignal = -1;
+					delete unitInfo.possibleNegativeCharge;
+				}
+				else if (isUnitFulfillable(unitInfo))
+				{
+					if (unitInfo.multipleEnabled /* && getCurrBranch().length > 0*/) // atom symbol or subgroup already set /*, and not the first subgroup/atom of list, (e.g. Me3CH) */ number is count
+						unitInfo.count = num;
+					else  // should be next prefix
+					{
+						wrapUpCurrUnit();
+						var newUnitInfo = getCurrUnit(true);
+						newUnitInfo.prefixNumber = num;
+					}
+				}
+				else if (!unitInfo.structType)  // symbol/subgroup not set, this leading number should be the isotope number?
+				{
+					unitInfo.prefixNumber = num;
+				}
+				else  // do not know the use of number
+				{
+					throw new Error('Unknown number usage');
+				}
+			}
+		}
+		wrapUpCurrUnit();  // the tailing unit
+
+		return result;
+	},
+
+	_createStructureFragFromUnitListEx: function(structUnitList, incomingBondCount, incomingBondOrder, options, subgroupInfoMap)
+	{
+		var creationResult = Kekule.CondensedFormulaUtils._doCreateStructureFragFromUnitListEx(structUnitList, incomingBondCount, incomingBondOrder, options, subgroupInfoMap);
+		var createdAtomInfos = creationResult.createdAtomInfos;
+		var createdFragExs = creationResult.createdFragExs;
+		var fragment = creationResult.frag;
+
+		// check atom h count
+		for (var i = 0, l = createdAtomInfos.length; i < l; ++i)
+		{
+			var atom = createdAtomInfos[i].atom;
+			var structUnit = createdAtomInfos[i].structUnit;
+			var hCount = structUnit.hCount || 0;
+			// if hCount not matched with implicit hydrogen count, set explicit
+			var implicitHCount = atom.getImplicitHydrogenCount();
+			var failed = implicitHCount !== hCount;
+			if (failed && structUnit.possibleNegativeCharge)
+			{
+				// may the different is caused by charge, set charge and recheck
+				atom.setCharge(-1 * (structUnit.chargeMultiple || 1));
+				implicitHCount = atom.getImplicitHydrogenCount();
+				failed = implicitHCount !== hCount;
+			}
+			if (failed)
+			{
+				if (options.enableExplicitHydrogen)
+					atom.setExplicitHydrogenCount(hCount);
+				else
+				{
+					throw new Error('Wrong hydrogen count, expect ' + implicitHCount + ' , but got ' + hCount);
+					return null;
+				}
+			}
+		}
+
+		// do the final validation
+		// check subgroup and anchor node valences
+		for (var i = 0, l = createdFragExs.length; i < l; ++i)
+		{
+			var structNodeResult = createdFragExs[i];
+			var structUnit = createdFragExs[i].structUnit;
+			if (structUnit.structType === 'subgroup' || structUnit === 'branch')  // StructFragment created
+			{
+				if (!options.ignoreSubgroupValence)
+				{
+					//var frag = structNodeResult.frag;
+					//frag.crossConnectors();
+					var availValences = structUnit.valences || [1];
+					var externalBondOrder = structNodeResult.externalBondOrder;
+					if (availValences.indexOf(externalBondOrder) < 0)  // subgroup valence not matched, structure is abnormal
+					{
+						throw new Error('Wrong subgroup valence, expect ' + availValences.join(',') + ' , but got ' + externalBondOrder);
+						return null;
+					}
+				}
+			}
+			else if (structUnit.structType === 'atom')
+			{
+				var atomCheckFailed = false;
+				var atom = structNodeResult.frag;
+				var currValence = atom.getValence();
+				var charge = atom.getCharge() || 0;
+				var valenceInfo = Kekule.ValenceUtils.getPossibleMdlValenceInfo(atom.getAtomicNumber(), charge);
+				var possibleValences;
+				if (valenceInfo && valenceInfo.valences && !valenceInfo.unexpectedCharge)  // if abnormal charge is meet, we can not determinate the valence precisely, just ignore here
+				{
+					possibleValences = [].concat(valenceInfo.valences || []);
+				}
+				if (possibleValences.length && possibleValences.indexOf(currValence) < 0)  // current is abnormal, this structure should not exists
+					atomCheckFailed = true;
+
+				// if the above check is failed and atom may have a negative charge, we can try to check again
+				if (atomCheckFailed && structUnit.possibleNegativeCharge)
+				{
+					var charge = -1 * (structUnit.chargeMultiple || 1);
+					var valenceInfo = Kekule.ValenceUtils.getPossibleMdlValenceInfo(atom.getAtomicNumber(), charge);
+					if (valenceInfo.valences.indexOf(currValence) >= 0)
+					{
+						// passed, now we can set the charge
+						atom.setCharge(charge);
+						atomCheckFailed = false;
+					}
+				}
+
+				if (atomCheckFailed && !options.ignoreAtomValence)
+				{
+					throw new Error('Wrong atom valence, expect ' + possibleValences.join(',') + ' , but got ' + currValence);
+					return null;
+				}
+			}
+		}
+
+		// after the validation, flatten the structure
+		fragment.unmarshalAllSubFragments(true);
+		return {
+			frag: fragment,
+			anchorNodesLeading: creationResult.anchorNodesLeading, anchorNodesTailing: creationResult.anchorNodesTailing,
+			anchorNodes: creationResult.anchorNodes || creationResult.anchorNodesLeading,
+		};
+	},
+
+	_doCreateStructureFragFromUnitListEx: function(structUnitList, incomingBondCount, incomingBondOrder, options, subgroupInfoMap)
+	{
+		var createStructNodeEx = function(structUnit, incomingBondCount, incomingBondOrder, options, subgroupInfoMap)
+		{
+			var result;
+			if (structUnit.structType === 'branch')
+			{
+				result = Kekule.CondensedFormulaUtils._doCreateStructureFragFromUnitListEx(structUnit.branch, incomingBondCount, incomingBondOrder, options, subgroupInfoMap);
+				if (!result)  // abnormal
+					return null;
+
+			}
+			else if (structUnit.structType === 'subgroup')
+			{
+				/*
+				var frag = subgroupInfoMap.get(structUnit.originTokenInfo);
+				if (!frag)
+				{
+					frag = Kekule.CondensedFormulaUtils._loadSubgroup(structUnit.subgroup);
+					subgroupInfoMap.set(structUnit.originTokenInfo, frag);
+				}
+				*/
+				var frag = Kekule.CondensedFormulaUtils._loadSubgroup(structUnit.subgroup);
+				var anchorNodes = frag.getAnchorNodes();
+				if (!anchorNodes || !anchorNodes.length && frag.getNodeCount())
+					anchorNodes = [frag.getNodes()[0]];
+				result = {frag: frag, anchorNodes: [].concat(anchorNodes || [])};
+			}
+			else if (structUnit.structType === 'atom')
+			{
+				var atom = new Kekule.Atom(null, structUnit.atomSymbol, structUnit.massNum);
+				if (structUnit.chargeSignal)
+				{
+					atom.setCharge(structUnit.chargeSignal * (structUnit.chargeMultiple || 1));
+				}
+
+				result = {frag: atom, anchorNodes: [atom], createdAtomInfos: [{atom: atom, structUnit: structUnit}]}
+			}
+			result.externalBondCount = incomingBondCount;
+			result.externalBondOrder = incomingBondOrder;
+			// result.frag.__structUnit__ = structUnit;  // stores the original struct unit
+			return result;
+		}
+
+		var connectWithBond = function(currFragEx, prevFragEx, bondOrder, parent, anchorNodeList, prevFragExUsingTailingAnchor)
+		{
+			var prevAnchorNodes = (prevFragExUsingTailingAnchor? prevFragEx.anchorNodesTailing: prevFragEx.anchorNodesLeading) || prevFragEx.anchorNodes;
+			var currAnchorNodes = currFragEx.anchorNodes || currFragEx.anchorNodesLeading;
+			var prevAnchorNode = prevAnchorNodes[prevFragEx.externalBondCount % prevAnchorNodes.length];
+			var currAnchorNode = currAnchorNodes[currFragEx.externalBondCount % currAnchorNodes.length];
+			var bond = new Kekule.Bond(null, [prevAnchorNode, currAnchorNode], bondOrder);
+			parent.appendConnector(bond);
+			// bond.setConnectedObjs([prevAnchorNode, currAnchorNode]);
+			prevFragEx.externalBondOrder += bondOrder;
+			currFragEx.externalBondOrder += bondOrder;
+			++prevFragEx.externalBondCount;
+			++currFragEx.externalBondCount;
+			if (anchorNodeList.indexOf(currAnchorNode) < 0)
+				anchorNodeList.push(currAnchorNode);
+			if (anchorNodeList.indexOf(prevAnchorNode) < 0)
+				anchorNodeList.push(prevAnchorNode);
+		};
+
+		var op = Object.create(options || {});
+		var result;
+		result = op.createMolecule? new Kekule.Molecule(): new Kekule.SubGroup();
+
+		// the nested creation process should always create child subgroup
+		op.createMolecule = false;
+
+		// var groupAnchorNodes, groupIncomingBondOrder;
+		var prevFragEx = null;
+		var createdAtomInfos = [];
+		var anchorNodes = [];
+		var createdFragExs = [];
+		var pendingFragExs = [];  // structure fragment has not been connected to main structure, e.g. Me3CH, before creating the C atom, Me3 could not create a linking bond
+		var possibleGroupAnchorSeq = [];
+		for (var i = 0, l = structUnitList.length; i < l; ++i)
+		{
+			var currExternalBondCount = (i === 0)? incomingBondCount: 0;
+			var currExternalBondOrder = (i === 0)? incomingBondOrder: 0;
+			var structUnit = structUnitList[i];
+			var count = structUnit.count || 1;
+			var structNodeResult;
+			for (var j = 0; j < count; ++j)
+			{
+				structNodeResult = createStructNodeEx(structUnit, currExternalBondCount, currExternalBondOrder, options, subgroupInfoMap);
+				if (!structNodeResult)  //abnormal
+					return null;
+				structNodeResult.structUnit = structUnit;
+				createdAtomInfos = createdAtomInfos.concat(structNodeResult.createdAtomInfos || []);
+				result.appendNode(structNodeResult.frag);
+				if (prevFragEx)
+				{
+					// using bond to link prev frag and current frag
+					var bondOrder = structUnit.incomingBondOrder || 1;
+					/*
+					var prevAnchorNode = prevFragEx.anchorNodes[prevFragEx.externalBondCount % prevFragEx.anchorNodes.length];
+					var currAnchorNode = structNodeResult.anchorNodes[structNodeResult.externalBondCount % structNodeResult.anchorNodes.length];
+					var bond = new Kekule.Bond(null, [prevAnchorNode, currAnchorNode], bondOrder);
+					result.appendConnector(bond);
+					// bond.setConnectedObjs([prevAnchorNode, currAnchorNode]);
+					prevFragEx.externalBondOrder += bondOrder;
+					structNodeResult.externalBondOrder += bondOrder;
+					++prevFragEx.externalBondCount;
+					++structNodeResult.externalBondCount;
+					if (anchorNodes.indexOf(currAnchorNode) < 0)
+						anchorNodes.push(currAnchorNode);
+					if (anchorNodes.indexOf(prevAnchorNode) < 0)
+						anchorNodes.push(prevAnchorNode);
+					*/
+					connectWithBond(structNodeResult, prevFragEx, bondOrder, result, anchorNodes);
+				}
+				else
+				{
+					// no prev frag to connect, add to pending list
+					pendingFragExs.push(structNodeResult);
+				}
+				createdFragExs.push(structNodeResult);
+			}
+
+			// the first single unit should be the starting point of whole structure
+			if (count === 1 && structUnit.structType !== 'branch' && structNodeResult)
+			{
+				possibleGroupAnchorSeq.push(structNodeResult.anchorNodes);
+				//groupAnchorNodes = structNodeResult.anchorNodes;
+			}
+
+			if (count === 1 && pendingFragExs && structUnit.structType !== 'branch')
+			{
+				// if this is a single struct frag, and there are previous pending frags, try to connect them
+				for (var k = 0, kk = pendingFragExs.length; k < kk; ++k)
+				{
+					var bondOrder = structUnit.incomingBondOrder || 1;
+					var pendingFragEx = pendingFragExs[k];
+					if (pendingFragEx !== structNodeResult)
+					{
+						// connect the tailing of pending frag with current frag
+						connectWithBond(structNodeResult, pendingFragEx, bondOrder, result, anchorNodes, true);
+					}
+				}
+				pendingFragExs = [];
+
+				prevFragEx = structNodeResult;
+			}
+
+			/*
+			if (count === 1 && structUnit.structType !== 'branch' && structNodeResult)
+				prevFragEx = structNodeResult;
+			*/
+		}
+
+		return {frag: result, anchorNodesLeading: possibleGroupAnchorSeq[0], anchorNodesTailing: possibleGroupAnchorSeq[possibleGroupAnchorSeq.length - 1], createdFragExs: createdFragExs, createdAtomInfos: createdAtomInfos};
+	}
+};
 
 })();
