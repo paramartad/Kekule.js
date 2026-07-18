@@ -851,12 +851,16 @@ Kekule.CondensedFormulaTextAnalyzer = Class.create(Kekule.ChemTextAnalyzer,
 	},
 
 	/** @private */
-	isAmbiguousSubgroupText: function(text)
+	_isAmbiguousSubgroupText: function(text)
 	{
-		// TODO: we may need a more general handle method for ambiguous subgroup
 		// CO has two possible parsing result, a C=O (e.g. MeCOMe, MeCOOEt) or C-O (e.g. Me3COH), where C=O is a repository group, we need to add C-O as two different tokens also
 		// CHO also has the problem: e.g. MeCHO for C=O, CH2=CHOH for C-O
 		// CH3 existed in repository, but we can also using atom to tokenize it
+		// many other groups have the same problem
+		// TODO: we may need a more accurate handle method for ambiguous subgroup
+		// now simply return true
+		return true;
+		/*
 		var ambiguousSubgroupTexts = [
 			'CO', 'OC',
 			'CHO', 'OHC',
@@ -869,6 +873,7 @@ Kekule.CondensedFormulaTextAnalyzer = Class.create(Kekule.ChemTextAnalyzer,
 				return true;
 		}
 		return false;
+		*/
 	},
 
 	/** @pivate */
@@ -889,7 +894,7 @@ Kekule.CondensedFormulaTextAnalyzer = Class.create(Kekule.ChemTextAnalyzer,
 				{
 					var info = matchedSubgroupInfos[i];
 					result.push({'char': info.matchedText, 'subgroup': info.subgroup, 'charType': CT.CT_SUBGROUP, 'multipleEnabled': info.multipleEnabled});
-					if (this.isAmbiguousSubgroupText(info.matchedText))
+					if (this._isAmbiguousSubgroupText(info.matchedText))
 					{
 						isAmbiguousSubgroup = true;
 					}
