@@ -2826,6 +2826,26 @@ Kekule.MolecularFormula = Class.create(ObjectEx,
 		return this.getSections()[index];
 	},
 	/**
+	 * Reverse the order of sections in formula.
+	 * @param {Bool} cascade Whether the sub formula should also be reversed.
+	 */
+	reverseSections: function(cascade)
+	{
+		var sections = this.getSections();
+		sections.reverse();
+		if (cascade)
+		{
+			for (var i = 0, l = sections.length; i < l; ++i)
+			{
+				var sec = sections[i];
+				if (sec.obj instanceof Kekule.MolecularFormula)
+				{
+					sec.obj.reverseSections(cascade);
+				}
+			}
+		}
+	},
+	/**
 	 * Get charge of a section.
 	 * @param {Variant} itemOrIndex Section item or section index.
 	 */
