@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Condensed Formula Test</title>
-    <script src="../../src/kekule.js?min=false"></script>
+    <script src="../../src/kekule.js?min=false&modules=render,chemWidget"></script>
 </head>
 <body>
     <section>
@@ -13,10 +13,14 @@
     </section>
     <section>
         <p id="labelSmiles"></p>
+        <p id="labelFormula"></p>
     </section>
     <script>
         function execute()
         {
+            document.getElementById('labelSmiles').innerHtml = '';
+            document.getElementById('labelFormula').innerHTML = '';
+
             var formulaText = document.getElementById('inputFormula').value;
             var analyzer = new Kekule.CondensedFormulaTextAnalyzer(formulaText);
             analyzer.setSubgroupItems(Kekule.Editor.RepositoryData.subGroups);
@@ -36,12 +40,20 @@
                 if (structUnitList && structUnitList.length)
                 {
                     try {
-                        var mol = Kekule.CondensedFormulaUtils._createStructureFragFromUnitListEx(structUnitList, 0, 0, {enableExplicitHydrogen: !true, ignoreAtomValence: !true}, subgroupInfoMap)?.frag;
+                        var mol = Kekule.CondensedFormulaUtils._createStructureFragFromUnitListEx(structUnitList, 0, 0, {enableExplicitHydrogen: true, ignoreAtomValence: true}, subgroupInfoMap)?.frag;
                         console.log(mol);
                         if (mol) {
                             var smiles = Kekule.IO.saveFormatData(mol, Kekule.IO.DataFormat.SMILES);
-                            document.getElementById('labelSmiles').innerText = smiles;
+                            document.getElementById('labelSmiles').innerHtml += `<div>${smiles}</div>`;
                             console.log(smiles);
+
+                            var formula = Kekule.CondensedFormulaUtils._createFormulaFromUnitList(structUnitList, {});
+                            if (formula) {
+                                console.log(Kekule.FormulaUtils.formulaToText(formula), formula);
+                                var rt = Kekule.Render.ChemDisplayTextUtils.formulaToRichText(formula, true);
+                                var rtHtml = Kekule.Render.RichTextUtils.toSimpleHtmlCode(rt);
+                                document.getElementById('labelFormula').innerHTML += `<div>${rtHtml}</div>`;
+                            }
                             //return {success: true};
                         }
                     } catch(e) {
@@ -54,14 +66,28 @@
         function executeDirect()
         {
             var formulaText = document.getElementById('inputFormula').value;
-            var mol = Kekule.CondensedFormulaUtils.textToStructureFragment(formulaText, 0, Kekule.Editor.RepositoryData.subGroups);
+            var result = Kekule.CondensedFormulaUtils.parse(formulaText, 0, Kekule.Editor.RepositoryData.subGroups, {structure: true, structUnits: true, formula: true});
+            var mol = result.structure;
+            var formula = result.formula;
             console.log(mol);
+            console.log(result.structureUnits);
             if (mol) {
                 var smiles = Kekule.IO.saveFormatData(mol, Kekule.IO.DataFormat.SMILES);
                 document.getElementById('labelSmiles').innerText = smiles;
                 console.log(smiles);
                 //return {success: true};
             }
+            else
+                document.getElementById('labelSmiles').innerText = '';
+            if (formula)
+            {
+                console.log(Kekule.FormulaUtils.formulaToText(formula), formula);
+                var rt = Kekule.Render.ChemDisplayTextUtils.formulaToRichText(formula, true);
+                var rtHtml = Kekule.Render.RichTextUtils.toSimpleHtmlCode(rt);
+                document.getElementById('labelFormula').innerHTML = `<div>${rtHtml}</div>`;
+            }
+            else
+                document.getElementById('labelFormula').innerHTML = '';
         }
         document.getElementById('btnExec').addEventListener('click', execute);
         document.getElementById('btnExecDirect').addEventListener('click', executeDirect);

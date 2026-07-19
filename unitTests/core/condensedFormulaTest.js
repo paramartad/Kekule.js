@@ -23,11 +23,12 @@ describe('Test of converting condensed formula to molecule', function(){
     {
         it(formulaText, function(){
             if (!expectedSmiles) {
-                console.log('non test', formulaText);
-                expect(() => Kekule.CondensedFormulaUtils.textToStructureFragment(formulaText, 0, Kekule.Editor.RepositoryData.subGroups, options)).toThrow();
+                // console.log('non test', formulaText);
+                expect(() => Kekule.CondensedFormulaUtils.parse(formulaText, 0, Kekule.Editor.RepositoryData.subGroups, options)).toThrow();
             }
             else {
-                var mol1 = Kekule.CondensedFormulaUtils.textToStructureFragment(formulaText, 0, Kekule.Editor.RepositoryData.subGroups, options);
+                var mol1 = Kekule.CondensedFormulaUtils.parse(formulaText, 0, Kekule.Editor.RepositoryData.subGroups, options).structure;
+                console.log(mol1);
                 var mol2 = Kekule.IO.loadFormatData(expectedSmiles, Kekule.IO.DataFormat.SMILES);
                 expect(mol1.isSameStructureWith(mol2)).toBeTruthy();
             }
@@ -110,6 +111,13 @@ describe('Test of converting condensed formula to molecule', function(){
         {'text': 'MeC-HCH2CH3', 'smiles': 'C[C-]CC'},
         {'text': 'MeC-2CH2CH3', 'smiles': 'C[C-2]CC'},
         {'text': 'MeC+2CH2CH3', 'smiles': 'C[C+2]CC'},
+
+        {'text': '13CH4', 'smiles': '[13C]'},
+        {'text': 'CD4', 'smiles': '[2H]C([2H])([2H])[2H]'},
+        {'text': 'CH2=13CHCH2 18OMe', 'smiles': 'C=[13C]C[18O]C'},
+
+        {'text': 'PhI=O', 'smiles': 'c1ccccc1I=O'},
+        {'text': 'C6H5Br=O', 'smiles': 'c1ccccc1Br=O'},
 
         {'text': 'MgCl2', 'smiles': 'Cl[Mg]Cl'},
         {'text': 'NaCl', 'smiles': '[Na]Cl'},
