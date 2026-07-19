@@ -481,7 +481,7 @@ Kekule.Render.RichTextUtils = {
 	toText: function(richText)
 	{
 		var result = '';
-		if (richText.items)
+		if (richText && richText.items)
 		{
 			for (var i = 0, l = richText.items.length; i < l; ++i)
 			{
@@ -495,7 +495,7 @@ Kekule.Render.RichTextUtils = {
 			}
 		}
 		else
-			return richText.text || '';
+			return (richText && richText.text) || '';
 		return result;
 	},
 

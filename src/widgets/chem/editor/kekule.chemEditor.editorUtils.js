@@ -320,8 +320,8 @@ Kekule.Editor.StructureUtils = {
 		{
 			var node = nodes[i];
 			var currRichText = node.getCoreDisplayRichTextItem(hydrogenDisplayLevel, showCharge, labelConfigs);
-			var currHtmlCode = Kekule.Render.RichTextUtils.toSimpleHtmlCode(currRichText);
-			if (!result)
+			var currHtmlCode = currRichText && Kekule.Render.RichTextUtils.toSimpleHtmlCode(currRichText);
+			if (!result && currHtmlCode)
 				result = currHtmlCode;
 			else
 			{
