@@ -1357,24 +1357,28 @@ Kekule.ChemStructOperation.ClearCtab = Class.create(Kekule.ChemObjOperation.Base
 		this.tryApplySuper('doReverse')  /* $super() */;
 		var ctab = this.getTarget().getCtab();
 		var nodes = this.getNodes() || [];
-		var connetors = this.getConnectors() || [];
-		if (!ctab && (nodes.length || connetors.length))  // ctab is not exist, but nodes or connectors exist, must create it first
+		var connectors = this.getConnectors() || [];
+		if (!ctab && (nodes.length || connectors.length))  // ctab is not exist, but nodes or connectors exist, must create it first
 		{
 			ctab = this.getTarget().getCtab(true);
 		}
-		if (nodes.length || connetors.length)
+		if (nodes.length || connectors.length)
 		{
+			console.log('reverse clear ctab', nodes.length, connectors.length);
 			ctab.beginUpdate();
 			try
 			{
 				ctab.clear();
-				ctab.setNodes(this.getNodes() || []);
-				ctab.setConnectors(this.getConnectors() || []);
+				ctab.setNodes(nodes);
+				ctab.setConnectors(connectors);
 			}
 			finally
 			{
 				ctab.endUpdate();
 			}
+			// clear stored
+			this.setNodes(null);
+			this.setConnectors(null);
 		}
 	}
 });

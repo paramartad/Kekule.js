@@ -3752,10 +3752,20 @@ Kekule.StructureConnectionTable = Class.create(ObjectEx,
 	 */
 	clearNodes: function()
 	{
-		this.clearAnchorNodes();
-		this.setPropStoreFieldValue('nodes', []);
-		this.notifyAnchorNodesChanged();
-		this.notifyNodesChanged();
+		this.beginUpdate();
+		try
+		{
+			this.clearAnchorNodes();
+			for (var i = this.getNodeCount() - 1; i >= 0; --i)
+				this.removeNodeAt(i);
+			this.setPropStoreFieldValue('nodes', []);
+			// this.notifyAnchorNodesChanged();
+			this.notifyNodesChanged();
+		}
+		finally
+		{
+			this.endUpdate()
+		}
 	},
 
 	/**
@@ -4154,7 +4164,20 @@ Kekule.StructureConnectionTable = Class.create(ObjectEx,
 	 */
 	clearConnectors: function()
 	{
-		this.setPropStoreFieldValue('connectors', []);
+		//this.setPropStoreFieldValue('connectors', []);
+		this.beginUpdate();
+		try
+		{
+			for (var i = this.getConnectorCount() - 1; i >= 0; --i)
+			{
+				this.removeConnectorAt(i);
+			}
+		}
+		finally
+		{
+			this.endUpdate();
+		}
+
 		this.notifyConnectorsChanged();
 	},
 	/**
@@ -4407,8 +4430,8 @@ Kekule.StructureConnectionTable = Class.create(ObjectEx,
 	 */
 	clear: function()
 	{
-		this.clearNodes();
 		this.clearConnectors();
+		this.clearNodes();
 	},
 
 	/**
