@@ -1442,6 +1442,16 @@
 	ClassEx.extend(Kekule.StructureFragment,
 	/** @lends Kekule.StructureFragment# */
 	{
+		// When rendering structureFragment, whether the ctab should be displayed
+		isCtabExposed: function()
+		{
+			return this.hasCtab() && this.isExpanded();
+		},
+		// When rendering structureFragment, whether the formula should be displayed
+		isFormulaExposed: function()
+		{
+			return this.hasFormula() && !this.isCtabExposed();
+		},
 		// StructureFragment may has child nodes and can be expanded
 		isExpanded: function()
 		{
@@ -1487,14 +1497,14 @@
 		// Calculate the box to fit all exposed nodes in CTable.
 		getExposedContainerBox: function(coordMode, allowCoordBorrow)
 		{
-			if (this.hasCtab())
+			if (this.isCtabExposed())
 			{
 				var box = this.getCtab().getExposedContainerBox(coordMode, allowCoordBorrow);
 				if (!box)  // may be all sub nodes are not exposed
 					box = this.getContainerBox(coordMode, allowCoordBorrow);
 				return box;
 			}
-			else /*  if (this.hasFormula()) */
+			else /*  if (this.isFormulaExposed()) */
 			{
 				//return this.getFormula().getExposedContainerBox(coordMode);
 				return this.getContainerBox(coordMode, allowCoordBorrow);

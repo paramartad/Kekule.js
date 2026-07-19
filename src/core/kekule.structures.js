@@ -2716,8 +2716,16 @@ Kekule.MolecularFormula = Class.create(ObjectEx,
 	initProperties: function()
 	{
 		this.defineProp('parent', {
-			'dataType': 'Kekule.StructureFragment', 'serializable': false, 'setter': null,
-			'scope': Class.PropertyScope.PUBLIC
+			'dataType': 'Kekule.StructureFragment', 'serializable': false,
+			'scope': Class.PropertyScope.PUBLIC,
+			'setter': function(value)
+			{
+				if (value != this.getPropStoreFieldValue('parent'))
+				{
+					this.setPropStoreFieldValue('parent', value);
+					//this.parentChanged(value);
+				}
+			}
 		});
 		this.defineProp('sections', {'dataType': DataType.ARRAY, 'setter': null});
 		this.defineProp('charge', {'dataType': DataType.FLOAT, 'getter': function() { return this.getPropStoreFieldValue('charge') || 0; } });
@@ -5010,7 +5018,8 @@ Kekule.StructureFragment = Class.create(Kekule.ChemStructureNode,
 
 					if (value)
 					{
-						value.setPropValue('parent', this, true);
+						//value.setPropValue('parent', this, true);
+                        value.setParent(this);
 						value.addEventListener('change', function(e){
 							this.notifyPropSet('formula', this.getFormula());
 						}, this);
@@ -5069,7 +5078,8 @@ Kekule.StructureFragment = Class.create(Kekule.ChemStructureNode,
 
 				if (value)
 				{
-					value.setPropValue('parent', this, true);
+					//value.setPropValue('parent', this, true);
+					value.setParent(this);
 					value.setOwner(this.getOwner());
 					// install event listeners to ctab
 					value.addEventListener('propValueSet',
@@ -5636,11 +5646,11 @@ Kekule.StructureFragment = Class.create(Kekule.ChemStructureNode,
 	 */
 	getContainerBox: function(/*$super, */coordMode, allowCoordBorrow)
 	{
-		if (this.hasCtab())
+		if (this.isCtabExposed())
 		{
 			return this.getCtab().getContainerBox(coordMode, allowCoordBorrow);
 		}
-		else if (this.hasFormula())
+		else if (this.isFormulaExposed())
 		{
 			var coord = this.getAbsCoordOfMode(coordMode, allowCoordBorrow);
 			var formulaSize = this.getFormula().getSizeOfMode(coordMode) || {};

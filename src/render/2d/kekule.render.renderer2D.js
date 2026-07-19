@@ -4499,12 +4499,14 @@ Kekule.Render.StructFragment2DRenderer = Class.create(Kekule.Render.ChemObj2DRen
 		}
 		if (!this._concreteRenderer && chemObj)
 		{
-			if (chemObj.hasCtab())
+			//if (chemObj.hasCtab())
+			if (chemObj.isCtabExposed())
 			{
 				this._concreteChemObj = chemObj.getCtab();
 				this._concreteRenderer = new Kekule.Render.ChemCtab2DRenderer(chemObj.getCtab(), drawBridge, /*renderConfigs,*/ this);
 			}
-			else if (chemObj.hasFormula())
+			//else if (chemObj.hasFormula())
+			else if (chemObj.isFormulaExposed())
 			{
 				this._concreteChemObj = chemObj.getFormula();
 				this._concreteRenderer = new Kekule.Render.Formula2DRenderer(chemObj.getFormula(), drawBridge, /*renderConfigs,*/ this);
@@ -4515,9 +4517,23 @@ Kekule.Render.StructFragment2DRenderer = Class.create(Kekule.Render.ChemObj2DRen
 	/** @private */
 	_isRendererMismatch: function(renderer, chemObj)
 	{
+		if (renderer && !chemObj)
+			return true;
+		else if (chemObj.isCtabExposed())
+		{
+			return !(renderer instanceof Kekule.Render.ChemCtab2DRenderer)
+				|| (renderer.getChemObj() !== chemObj.getCtab());
+		}
+		else if (chemObj.isFormulaExposed())
+		{
+			return !(renderer instanceof Kekule.Render.Formula2DRenderer)
+				|| (renderer.getChemObj() !== chemObj.getFormula());
+		}
+		/*
 		return (renderer && !chemObj) ||
-			((renderer instanceof Kekule.Render.ChemCtab2DRenderer) && !chemObj.hasCtab()) ||
-			((renderer instanceof Kekule.Render.Formula2DRenderer) && !chemObj.hasFormula());
+			((renderer instanceof Kekule.Render.ChemCtab2DRenderer) && !chemObj.isCtabExposed()) ||
+			((renderer instanceof Kekule.Render.Formula2DRenderer) && !chemObj.isFormulaExposed());
+		*/
 	},
 	/** @private */
 	getConcreteRenderer: function()
