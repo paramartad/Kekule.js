@@ -762,6 +762,8 @@ Kekule.ChemTextAnalyzer = Class.create(Kekule.TokenAnalyzer,
 	}
 });
 
+var BO = Kekule.BondOrder;
+
 /**
  * A helper class to analysis chem text (e.g. formula).
  * @augments Kekule.ChemTextAnalyzer
@@ -822,9 +824,9 @@ Kekule.CondensedFormulaTextAnalyzer = Class.create(Kekule.ChemTextAnalyzer,
 	/** @ignore */
 	getCharType: function(c)
 	{
-		if (c === '-')
+		if (Kekule.CondensedFormulaUtils.SINGLE_BOND_OR_NEGATIVE_CHARGE_SYMBOLS.indexOf(c) >= 0)
 			return CT.CT_SINGLE_BOND_OR_NEGATIVE_CHARGE;
-		else if (['=', '#', '𝄘'].indexOf(c) >= 0)
+		else if (c in Kekule.CondensedFormulaUtils.BOND_CHAR_MAP)
 			return CT.CT_BOND;
 		else
 			return this.tryApplySuper('getCharType', [c]);
@@ -834,6 +836,10 @@ Kekule.CondensedFormulaTextAnalyzer = Class.create(Kekule.ChemTextAnalyzer,
 	isCharTypeMatched: function(currT, lastT)
 	{
 		if (currT.charType === CT.CT_SUBGROUP || lastT.charType === CT.CT_SUBGROUP)
+			return false;
+		else if (currT.charType === CT.CT_BOND || lastT.charType === CT.CT_BOND)
+			return false;
+		else if (currT.charType === CT.CT_SINGLE_BOND_OR_NEGATIVE_CHARGE || lastT.charType === CT.CT_SINGLE_BOND_OR_NEGATIVE_CHARGE)
 			return false;
 		else
 			return this.tryApplySuper('isCharTypeMatched', [currT, lastT]);
@@ -1451,6 +1457,22 @@ Kekule.CondensedFormulaUtils = {
 	/** @private */
 	FORMULA_BRACKET_TYPE_COUNT: 3,
 
+	/** @private */
+	BOND_CHAR_MAP: {
+		'-': BO.SINGLE,
+		'——': BO.SINGLE,
+		'－': BO.SINGLE,
+		'–': BO.SINGLE,
+		'=': BO.DOUBLE,
+		'＝': BO.DOUBLE,
+		'#': BO.TRIPLE,
+		'Ξ': BO.TRIPLE,
+		'𝄘': BO.TRIPLE,
+		'𝄙': BO.QUAD
+	},
+	/** @private */
+	SINGLE_BOND_OR_NEGATIVE_CHARGE_SYMBOLS: ['-', '－', '–'],
+
 	/**
 	 * Convert condensed formula text to a structure fragment.
 	 * @param {String} text
@@ -1548,12 +1570,8 @@ Kekule.CondensedFormulaUtils = {
 	},
 	_getBondOrder: function(bondChar)
 	{
-		if (bondChar === '-' || !bondChar)
-			return 1;
-		else if (bondChar === '=')
-			return 2;
-		else if (['#', '𝄘'].indexOf(bondChar) >= 0)
-			return 3;
+		if (bondChar in Kekule.CondensedFormulaUtils.BOND_CHAR_MAP)
+			return Kekule.CondensedFormulaUtils.BOND_CHAR_MAP[bondChar];
 		else
 			return 0;
 	},
