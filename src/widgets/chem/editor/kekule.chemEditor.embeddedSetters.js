@@ -1208,8 +1208,8 @@ Kekule.Editor.EmbeddedSetter.Formula = Class.create(Kekule.Editor.EmbeddedSetter
 					var parseResult = Kekule.CondensedFormulaUtils.parse(formulaText, 0, subgroupItems, options);
 					if (parseResult && parseResult.structure)  // condensed formula parse successful, using it
 					{
-						//parseResult.structure.setFormula(parseResult.formula);
-						//parseResult.structure.setExpanded(false);  // hide the ctab, only showing formula
+						parseResult.structure.setFormula(parseResult.formula);
+						parseResult.structure.setExpanded(false);  // hide the ctab, only showing formula
 						// console.log(formulaText, parseResult.structure, Kekule.Render.ChemDisplayTextUtils.formulaToRichText(parseResult.formula));
 						result = {'isCondensedFormula': true, 'formulaText': formulaText, 'structure': parseResult.structure, 'formula': parseResult.formula};
 					}
