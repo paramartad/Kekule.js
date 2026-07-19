@@ -6695,17 +6695,42 @@ Kekule.Editor.FormulaIaController = Class.create(Kekule.Editor.BaseEditorIaContr
 	 */
 	isValidMol: function(obj)
 	{
-		return (obj instanceof Kekule.StructureFragment) && obj.hasFormula() && !obj.hasCtab();
+		return (obj instanceof Kekule.StructureFragment) && obj.hasFormula() && obj.isFormulaExposed(); //!obj.hasCtab();
+	},
+	/**
+	 * Find the valid molecule containing interaction object.
+	 * @param {Kekule.ChemObject} obj
+	 * @returns {Kekule.Molecule}
+	 * @private
+	 */
+	getBelongedValidMol: function(obj)
+	{
+		if (!obj)
+			return null;
+		else if (this.isValidMol(obj))
+			return obj;
+		else if (obj.getParent)
+		{
+			return this.getBelongedValidMol(obj.getParent());
+		}
 	},
 
 	/** @private */
 	getEmbeddedSetter: function()
 	{
 		if (!this._embeddedSetter)
+		{
 			this._embeddedSetter = this.getEditor().getEmbeddedSetter(Kekule.Editor.EmbeddedSetter.Formula);
+			this._embeddedSetter.setRepositorySubgroupItems(Kekule.Editor.RepositoryData.subGroups);
+		}
 		return this._embeddedSetter
 	},
 
+	/** @private */
+	isCondensedFormulaEnabled: function()
+	{
+		return this.getEditorConfigs().getInteractionConfigs().getEnableCreateMoleculeFromCondensedFormula();
+	},
 	/** @private */
 	react_pointerup: function(e)
 	{
@@ -6728,7 +6753,8 @@ Kekule.Editor.FormulaIaController = Class.create(Kekule.Editor.BaseEditorIaContr
 				}
 				*/
 				var obj = this.getTopmostInteractableObjAtScreenCoord(coord);
-				mol = obj;
+				mol = this.getBelongedValidMol(obj);
+				// console.log('top most obj', obj && obj.getId(), obj && obj.isExposed(), obj);
 				var molBounds = obj && this.getEditor().getChemObjBounds(obj);
 				var boundItem = molBounds && molBounds[0];
 
@@ -6757,6 +6783,8 @@ Kekule.Editor.FormulaIaController = Class.create(Kekule.Editor.BaseEditorIaContr
 					//  and the setter will be closed immediately.
 
 					var self = this;
+					var embeddedSetter = this.getEmbeddedSetter();
+					embeddedSetter.setEnableCondensedFormula(this.isCondensedFormulaEnabled());
 					this.getEmbeddedSetter().execute(mol, baseCoord, function(applied, modifiedObjs){
 						if (applied)
 							self.doneInsertOrModifyBasicObjects(modifiedObjs);

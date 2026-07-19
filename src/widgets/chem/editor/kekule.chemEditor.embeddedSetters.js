@@ -1093,6 +1093,8 @@ Kekule.Editor.EmbeddedSetter.CreatableBlock = Class.create(Kekule.Editor.Embedde
  * Embedded to setter to add or edit formula based molecule in document.
  * @class
  * @augments Kekule.Editor.EmbeddedSetter.CreatableBlock
+ *
+ * @property {Bool} enableCondensedFormula Whether condensed formula text input is allowed.
  */
 Kekule.Editor.EmbeddedSetter.Formula = Class.create(Kekule.Editor.EmbeddedSetter.CreatableBlock,
 /** @lends Kekule.Editor.EmbeddedSetter.Formula# */
@@ -1103,6 +1105,12 @@ Kekule.Editor.EmbeddedSetter.Formula = Class.create(Kekule.Editor.EmbeddedSetter
 	initialize: function(editor)
 	{
 		this.tryApplySuper('initialize', [editor]);
+	},
+	/** @private */
+	initProperties: function()
+	{
+		this.defineProp('enableCondensedFormula', {'dataType': DataType.BOOL});
+		this.defineProp('repositorySubgroupItems', {'dataType': DataType.BOOL, 'serializable': false});
 	},
 
 	/** @ignore */
@@ -1185,8 +1193,39 @@ Kekule.Editor.EmbeddedSetter.Formula = Class.create(Kekule.Editor.EmbeddedSetter
 	/** @ignore */
 	getSetterWidgetModifiedValues: function(widget)
 	{
+		var result = null;
 		var formulaText = widget.getChildWidgets()[0].getValue();
-		return formulaText? {'formulaText': widget.getChildWidgets()[0].getValue()}: null;
+		if (formulaText)
+		{
+			var isCondensedFormulaEnabled = this.getEnableCondensedFormula();
+			if (isCondensedFormulaEnabled)
+			{
+				// try parsing the condensed formula first
+				try
+				{
+					var subgroupItems = this.getRepositorySubgroupItems() || Kekule.Editor.RepositoryData.subGroups;
+					var options = {structure: true, formula: true, structureClass: Kekule.SubGroup};  // create subgroup, not molecule, and at last add subgroup to existing molecule
+					var parseResult = Kekule.CondensedFormulaUtils.parse(formulaText, 0, subgroupItems, options);
+					if (parseResult && parseResult.structure)  // condensed formula parse successful, using it
+					{
+						//parseResult.structure.setFormula(parseResult.formula);
+						//parseResult.structure.setExpanded(false);  // hide the ctab, only showing formula
+						// console.log(formulaText, parseResult.structure, Kekule.Render.ChemDisplayTextUtils.formulaToRichText(parseResult.formula));
+						result = {'isCondensedFormula': true, 'formulaText': formulaText, 'structure': parseResult.structure, 'formula': parseResult.formula};
+					}
+				}
+				catch(e)
+				{
+					// ignore condensed formula parse error
+				}
+			}
+
+			if (!result)   // using the normal formula
+			{
+				result = {'isCondensedFormula': false, 'formulaText': formulaText};
+			}
+		}
+		return result;
 	},
 	/** @private */
 	needToModifyObj: function(obj, modifiedValues) {
@@ -1195,6 +1234,31 @@ Kekule.Editor.EmbeddedSetter.Formula = Class.create(Kekule.Editor.EmbeddedSetter
 
 	/** @ignore */
 	createTargetObjModifyOper: function(obj, modifiedValues)
+	{
+		if (modifiedValues.isCondensedFormula)
+		{
+			return this._doCreateCondensedFormulaModifyOper(obj, modifiedValues);
+		}
+		else
+		{
+			return this._doCreateFormulaModifyOper(obj, modifiedValues);
+		}
+	},
+	/** @private */
+	_doCreateCondensedFormulaModifyOper: function(obj, modifiedValues)
+	{
+		var newSubgroup = modifiedValues.structure;
+		var result = new Kekule.MacroOperation([
+			new Kekule.ChemStructOperation.ClearCtab(obj, this.getEditor()),
+			new Kekule.ChemStructOperation.AddNode(newSubgroup, obj, null, this.getEditor()),
+			new Kekule.ChemObjOperation.ModifyRenderOptions(obj, {'expanded': false}, false, this.getEditor()),  // ensure the ctab of mol is hidden
+			new Kekule.ChemObjOperation.Modify(obj, {'formula': modifiedValues.formula}, this.getEditor()),
+			// new Kekule.ChemObjOperation.Modify(obj.getFormula(), {'text': modifiedValues.formulaText}, this.getEditor()),
+		]);
+		return result;
+	},
+	/** @private */
+	_doCreateFormulaModifyOper: function(obj, modifiedValues)
 	{
 		return new Kekule.ChemObjOperation.Modify(obj.getFormula(), {'text': modifiedValues.formulaText}, this.getEditor());
 	},
@@ -1228,7 +1292,7 @@ Kekule.Editor.EmbeddedSetter.Formula = Class.create(Kekule.Editor.EmbeddedSetter
 /** @ignore */
 Kekule.Editor.EmbeddedSetter.Formula.isValidTarget = function(obj)
 {
-	return (obj instanceof Kekule.StructureFragment) && obj.hasFormula() && !obj.hasCtab();
+	return (obj instanceof Kekule.StructureFragment) && obj.hasFormula() && obj.isFormulaExposed(); // !obj.hasCtab();
 };
 
 

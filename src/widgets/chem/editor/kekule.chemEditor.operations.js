@@ -250,7 +250,7 @@ Kekule.ChemObjOperation.Modify = Class.create(Kekule.ChemObjOperation.Base,
  * @param {String} propName
  * @param {Hash} newPropValue New prop hash value.
  *
- * @param {String} propName
+ * @property {String} propName
  * @property {Hash} newPropValue New prop hash value.
  */
 Kekule.ChemObjOperation.ModifyHashProp = Class.create(Kekule.ChemObjOperation.Base,
@@ -980,6 +980,61 @@ Kekule.ChemObjOperation.Remove = Class.create(Kekule.ChemObjOperation.Base,
 });
 
 /**
+ * Operation of changing a chemObject's render/render3D options.
+ * Note that different from {@link Kekule.ChemObjOperation.Modify},
+ * only the fields existing in new value will be overwrited, other field in old value will remains intact.
+ * @class
+ * @augments Kekule.ChemObjOperation.ModifyHashProp
+ *
+ * @param {Kekule.ChemObject} chemObject Target chem object.
+ * @param {Hash} newPropValue New render option hash values.
+ * @param {Bool} is3DOptions
+ *
+ * @property {String} propName
+ * @property {Bool} is3DOptions
+ * @property {Hash} newPropValue New prop hash value.
+ */
+Kekule.ChemObjOperation.ModifyRenderOptions = Class.create(Kekule.ChemObjOperation.ModifyHashProp,
+/** @lends Kekule.ChemObjOperation.ModifyRenderOptions# */
+{
+	/** @private */
+	CLASS_NAME: 'Kekule.ChemObjOperation.ModifyRenderOptions',
+	/** @constructs */
+	initialize: function(chemObj, newPropValue, is3DOptions, editor)
+	{
+		var propName = is3DOptions? 'render3DOptions': 'renderOptions';
+		this.tryApplySuper('initialize', [chemObj, propName, newPropValue, editor]);
+		this.setIs3DOptions(is3DOptions);
+	},
+	/** @private */
+	initProperties: function()
+	{
+		this.defineProp('is3DOptions', {'dataType': DataType.Bool});
+	},
+	/** @private */
+	doExecute: function()
+	{
+		var obj = this.getTarget();
+		if (this.getIs3DOptions())
+		{
+			if (!obj.getRender3DOptions())
+				obj.setRender3DOptions({});
+		}
+		else
+		{
+			if (!obj.getRenderOptions())
+				obj.setRenderOptions({});
+		}
+		this.tryApplySuper('doExecute');
+	},
+	/** @private */
+	doReverse: function()
+	{
+		this.tryApplySuper('doReverse');
+	}
+});
+
+/**
  * A namespace for operation about Chem Structure instance.
  * @namespace
  */
@@ -1257,6 +1312,69 @@ Kekule.ChemStructOperation.RemoveConnector = Class.create(Kekule.ChemObjOperatio
 		if (connObjs && connObjs.length)
 		{
 			this.getTarget().setConnectedObjs(connObjs);
+		}
+	}
+});
+
+/**
+ * Operation of clearing all nodes / connectors from a structure fragment / molecule.
+ * @class
+ * @augments Kekule.ChemObjOperation.Base
+ *
+ * @property {Array} connectedObjs Objects that connected by this connector.
+ *   This property is used in operation reversing. If not set, value will be automatically calculated in operation executing.
+ */
+Kekule.ChemStructOperation.ClearCtab = Class.create(Kekule.ChemObjOperation.Base,
+/** @lends Kekule.ChemStructOperation.ClearCtab# */
+{
+	/** @private */
+	CLASS_NAME: 'Kekule.ChemStructOperation.ClearCtab',
+	/** @private */
+	initProperties: function()
+	{
+		this.defineProp('nodes', {'dataType': DataType.ARRAY, 'serializable': false});
+		this.defineProp('connectors', {'dataType': DataType.ARRAY, 'serializable': false});
+	},
+	/** @private */
+	doExecute: function(/*$super*/)
+	{
+		var ctab = this.getTarget().getCtab();
+		if (!this.getNodes() && ctab)
+		{
+			this.setNodes(Kekule.ArrayUtils.clone(ctab.getNodes()));
+		}
+		if (!this.getConnectors() && ctab)
+		{
+			this.setConnectors(Kekule.ArrayUtils.clone(ctab.getConnectors()));
+		}
+		if (ctab)
+			ctab.clear();
+		this.tryApplySuper('doExecute')  /* $super() */
+	},
+	/** @private */
+	doReverse: function(/*$super*/)
+	{
+		this.tryApplySuper('doReverse')  /* $super() */;
+		var ctab = this.getTarget().getCtab();
+		var nodes = this.getNodes() || [];
+		var connetors = this.getConnectors() || [];
+		if (!ctab && (nodes.length || connetors.length))  // ctab is not exist, but nodes or connectors exist, must create it first
+		{
+			ctab = this.getTarget().getCtab(true);
+		}
+		if (nodes.length || connetors.length)
+		{
+			ctab.beginUpdate();
+			try
+			{
+				ctab.clear();
+				ctab.setNodes(this.getNodes() || []);
+				ctab.setConnectors(this.getConnectors() || []);
+			}
+			finally
+			{
+				ctab.endUpdate();
+			}
 		}
 	}
 });
