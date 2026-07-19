@@ -1744,14 +1744,21 @@ Kekule.CondensedFormulaUtils = {
 			}
 			else if (tokenType === CT.CT_BOND)
 			{
-				// incoming bond char must be at the beginning of a unit
-				wrapUpCurrUnit(true);
 				var bondOrder = Kekule.CondensedFormulaUtils._getBondOrder(tokenInfo.token);
 				if (bondOrder <= 0)
 					throw new Error('Invalid bond char: ' + tokenInfo.token);
 				else
 				{
-					var unitInfo = getCurrUnit(true);
+					// mark the outgoing bond of prev unit, this information is not used currently
+					var unitInfo = getCurrUnit(false);
+					if (unitInfo && isUnitFulfillable(unitInfo))
+					{
+						unitInfo.outgoingBondOrder = bondOrder;
+					}
+
+					// incoming bond char must be at the beginning of a unit
+					wrapUpCurrUnit(true);
+					unitInfo = getCurrUnit(true);
 					unitInfo.incomingBondOrder = bondOrder;
 					unitInfo.tokenSeq.push(CT.CT_BOND);
 				}
