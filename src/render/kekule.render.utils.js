@@ -1001,7 +1001,7 @@ Kekule.Render.ChemDisplayTextUtils = {
 		var sections = formula.getSections();
 		if (showBracket)
 		{
-			var bracketIndex = formula.getMaxNestedLevel() % Kekule.FormulaUtils.FORMULA_BRACKET_TYPE_COUNT;
+			var bracketIndex = formula.getMaxNestedLevel(true) % Kekule.FormulaUtils.FORMULA_BRACKET_TYPE_COUNT;
 			var bracketStart = Kekule.FormulaUtils.FORMULA_BRACKETS[bracketIndex][0];
 			var bracketEnd = Kekule.FormulaUtils.FORMULA_BRACKETS[bracketIndex][1];
 			result = Kekule.Render.RichTextUtils.appendText(result, bracketStart);
@@ -1014,7 +1014,10 @@ Kekule.Render.ChemDisplayTextUtils = {
 			if (obj instanceof Kekule.MolecularFormula)  // a sub-formula
 			{
 				// TODO: sometimes bracket is unessential, such as SO42- and so on, need more judge here
-				subgroup = Kekule.Render.ChemDisplayTextUtils._convFormulaToRichTextGroup(obj, true, false, false, partialChargeDecimalsLength, displayConfigs, chargeMarkType); // do not show charge right after, we will add it later
+				// now we use a special implicitSubgroup flag
+				var implicitSubgroup = !!sections[i].implicitSubgroup;
+				var showSectionBracket = !implicitSubgroup;
+				subgroup = Kekule.Render.ChemDisplayTextUtils._convFormulaToRichTextGroup(obj, showSectionBracket, false, false, partialChargeDecimalsLength, displayConfigs, chargeMarkType); // do not show charge right after, we will add it later
 			}
 			else if (obj.getDisplayRichText) // an atom/isotope
 			{
@@ -1023,6 +1026,11 @@ Kekule.Render.ChemDisplayTextUtils = {
 
 			if (subgroup)
 			{
+				// incoming bond
+				if (sections[i].incomingBondOrder && sections[i].incomingBondOrder > Kekule.BondOrder.SINGLE)
+				{
+					Kekule.Render.RichTextUtils.insertText(subgroup, 0, Kekule.FormulaUtils.getBondSymbol(sections[i].incomingBondOrder));
+				}
 				// count
 				if (sections[i].count != 1)
 				{

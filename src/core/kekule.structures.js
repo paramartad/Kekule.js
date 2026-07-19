@@ -2944,9 +2944,10 @@ Kekule.MolecularFormula = Class.create(ObjectEx,
 	/**
 	 * Returns max nested level of current formula object.
 	 * For example, [Cu(NH3)2]2+SO42-, level of [Cu(NH3)2] is 1 and (NH3) is 0.
+	 * @param {Bool} ignoreImplicits If true, the implicit subgroups will be create a new level.
 	 * @returns {Int}
 	 */
-	getMaxNestedLevel: function()
+	getMaxNestedLevel: function(ignoreImplicits)
 	{
 		var result = 0;
 		for (var i = 0, l = this.getSectionCount(); i < l; ++i)
@@ -2954,7 +2955,8 @@ Kekule.MolecularFormula = Class.create(ObjectEx,
 			var section = this.getSectionAt(i);
 			if (section.obj instanceof Kekule.MolecularFormula)
 			{
-				var nestLevel = section.obj.getMaxNestedLevel() + 1;
+				var delta = (ignoreImplicits && section.implicitSubgroup)? 0: 1;
+				var nestLevel = section.obj.getMaxNestedLevel(ignoreImplicits) + delta;
 				if (nestLevel > result)
 					result = nestLevel;
 			}

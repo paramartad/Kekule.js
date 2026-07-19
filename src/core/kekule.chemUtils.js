@@ -1101,6 +1101,18 @@ Kekule.FormulaUtils = {
 	FORMULA_BRACKETS: [['(', ')'], ['[', ']'], ['{', '}']],
 	/** @private */
 	FORMULA_BRACKET_TYPE_COUNT: 3,
+
+	/**
+	 * Symbols to represent bond, used for handle the incomingBondOrder field of formula section.
+	 * @private
+	 */
+	BOND_SYMBOLS: [null, '-', '=', '𝄘'],
+
+	getBondSymbol: function(bondOrder, bondType)
+	{
+		return FU.BOND_SYMBOLS[bondOrder] || '';
+	},
+
 	/**
 	 * Create a formula object from plain text.
 	 * @param {String} text
@@ -1292,7 +1304,7 @@ Kekule.FormulaUtils = {
 		var sections = formula.getSections();
 		if (showBracket)
 		{
-			var bracketIndex = formula.getMaxNestedLevel() % FU.FORMULA_BRACKET_TYPE_COUNT;
+			var bracketIndex = formula.getMaxNestedLevel(true) % FU.FORMULA_BRACKET_TYPE_COUNT;
 			var bracketStart =FU.FORMULA_BRACKETS[bracketIndex][0];
 			var bracketEnd = FU.FORMULA_BRACKETS[bracketIndex][1];
 			result += bracketStart;
@@ -1305,7 +1317,10 @@ Kekule.FormulaUtils = {
 			if (obj instanceof Kekule.MolecularFormula)  // a sub-formula
 			{
 				// TODO: sometimes bracket is unessential, such as SO42- and so on, need more judge here
-				subgroup = FU._convFormulaToText(obj, true, false, false, partialChargeDecimalsLength); // do not show charge right after, we will add it later
+				// now we use a special implicitSubgroup flag
+				var implicitSubgroup = !!sections[i].implicitSubgroup;
+				var showSectionBracket = !implicitSubgroup;
+				subgroup = FU._convFormulaToText(obj, showSectionBracket, false, false, partialChargeDecimalsLength); // do not show charge right after, we will add it later
 			}
 			else if (obj.getLabel) // an atom/isotope
 			{
@@ -1316,6 +1331,12 @@ Kekule.FormulaUtils = {
 
 			if (subgroup)
 			{
+				if (sections[i].incomingBondOrder)
+				{
+					var bondSymbol = FU.getBondSymbol(sections[i].incomingBondOrder);
+					if (bondSymbol)
+						subgroup = bondSymbol + subgroup;
+				}
 				var explicitCount = false;
 				// count
 				if (sections[i].count != 1)
@@ -1474,20 +1495,24 @@ Kekule.CondensedFormulaUtils = {
 	SINGLE_BOND_OR_NEGATIVE_CHARGE_SYMBOLS: ['-', '－', '–'],
 
 	/**
-	 * Convert condensed formula text to a structure fragment.
+	 * Parse the condensed formula text and generate concrete structure/molecule formula object representation.
 	 * @param {String} text
 	 * @param {Int} linkedBondOrder If need to create a subgroup, this indicating the order of bond linked to main structure. Otherwise, the order should be 0.
-	 * //@param {Kekule.StructureFragment} parent Parent of the newly created structure fragment. If a standalone molecule need to be created, parent should be set to null.
 	 * @param {Array} subgroupItems	Repository subgroup items using for parsing the text.
-	 * @param {Hash} options
+	 * @param {Hash} options May have field {formula: bool, structure: bool(default true), structureClass: Class}.
 	 * @returns {Kekule.StructureFragment}
 	 */
-	textToStructureFragment: function(text, linkedBondOrder, subgroupItems, options)
+	parse: function(text, linkedBondOrder, subgroupItems, options)
 	{
-		var createMolecule = !linkedBondOrder;
 		var op = Object.create(options || {});
-		if (createMolecule)
-			op.createMolecule = true;
+		if (op.structure === undefined)
+			op.structure = true;
+		var createMolecule = !linkedBondOrder;
+		if (createMolecule && !op.structureClass)
+			op.structureClass = Kekule.Molecule;
+		var outputStructure = op.structure;
+		var outputFormula = op.formula;
+		var outputStructUnits = op.structureUnits;
 
 		var analyzer = new Kekule.CondensedFormulaTextAnalyzer(text);
 		analyzer.setSubgroupItems(subgroupItems || []);
@@ -1508,14 +1533,15 @@ Kekule.CondensedFormulaUtils = {
 						var result = Kekule.CondensedFormulaUtils._createStructureFragFromUnitListEx(structUnitList, 0, 0, op, subgroupInfoMap);
 						var fragment = result && result.frag;  // .frag is type of SubGroup
 						if (fragment) {
-							if (!createMolecule)
+							//if (!createMolecule)
+							if (fragment.setAnchorNodes)
 							{
 								// mark the anchor node of fragment
 								var anchorNodes = result.anchorNodes || result.anchorNodesLeading;
 								fragment.setAnchorNodes(anchorNodes);
 							}
 							// creation successful, skip out
-							return {success: true, result: fragment};
+							return {success: true, result: {fragment: fragment, structureUnits: structUnitList}};
 						}
 					}
 				}
@@ -1527,7 +1553,19 @@ Kekule.CondensedFormulaUtils = {
 			});
 			if (creationResult && creationResult.success)
 			{
-				return creationResult.result;
+				// we successfully create a structure, now returns the final result;
+				var result = {};
+				if (outputStructure)
+					result.structure = creationResult.result.fragment;
+				if (outputStructUnits)
+					result.structuredUnits = creationResult.result.structureUnits;
+				if (outputFormula)
+				{
+					var formula = Kekule.CondensedFormulaUtils._doCreateFormulaFromUnitList(creationResult.result.structureUnits, op);
+					if (formula)
+						result.formula = formula;
+				}
+				return result;
 			}
 			else
 			{
@@ -1538,6 +1576,21 @@ Kekule.CondensedFormulaUtils = {
 		{
 			analyzer.finalize();
 		}
+	},
+
+	/**
+	 * Convert condensed formula text to a structure fragment.
+	 * @param {String} text
+	 * @param {Int} linkedBondOrder If need to create a subgroup, this indicating the order of bond linked to main structure. Otherwise, the order should be 0.
+	 * //@param {Kekule.StructureFragment} parent Parent of the newly created structure fragment. If a standalone molecule need to be created, parent should be set to null.
+	 * @param {Array} subgroupItems	Repository subgroup items using for parsing the text.
+	 * @param {Hash} options
+	 * @returns {Kekule.StructureFragment}
+	 */
+	textToStructureFragment: function(text, linkedBondOrder, subgroupItems, options)
+	{
+		var parseResult = Kekule.CondensedFormulaUtils.parse(text, linkedBondOrder, subgroupItems, options);
+		return parseResult && parseResult.structure;
 	},
 
 	_fillFullPathTokenListsAndHandle: function(startingTokenInfo, tokenList, handler)
@@ -1822,6 +1875,7 @@ Kekule.CondensedFormulaUtils = {
 				unitInfo.structType = 'atom';
 				unitInfo.atomSymbol = atomSymbol;  // TODO: handle D, T?
 				unitInfo.multipleEnabled = true;
+				unitInfo.text = tokenInfo.token;
 
 				if (unitInfo.prefixNumber)
 				{
@@ -1998,47 +2052,7 @@ Kekule.CondensedFormulaUtils = {
 
 	_doCreateStructureFragFromUnitListEx: function(structUnitList, incomingBondCount, incomingBondOrder, options, subgroupInfoMap)
 	{
-		var createStructNodeEx = function(structUnit, incomingBondCount, incomingBondOrder, options, subgroupInfoMap)
-		{
-			var result;
-			if (structUnit.structType === 'branch')
-			{
-				result = Kekule.CondensedFormulaUtils._doCreateStructureFragFromUnitListEx(structUnit.branch, incomingBondCount, incomingBondOrder, options, subgroupInfoMap);
-				if (!result)  // abnormal
-					return null;
-
-			}
-			else if (structUnit.structType === 'subgroup')
-			{
-				/*
-				var frag = subgroupInfoMap.get(structUnit.originTokenInfo);
-				if (!frag)
-				{
-					frag = Kekule.CondensedFormulaUtils._loadSubgroup(structUnit.subgroup);
-					subgroupInfoMap.set(structUnit.originTokenInfo, frag);
-				}
-				*/
-				var frag = Kekule.CondensedFormulaUtils._loadSubgroup(structUnit.subgroup);
-				var anchorNodes = frag.getAnchorNodes();
-				if (!anchorNodes || !anchorNodes.length && frag.getNodeCount())
-					anchorNodes = [frag.getNodes()[0]];
-				result = {frag: frag, anchorNodes: [].concat(anchorNodes || [])};
-			}
-			else if (structUnit.structType === 'atom')
-			{
-				var atom = new Kekule.Atom(null, structUnit.atomSymbol, structUnit.massNum);
-				if (structUnit.chargeSignal)
-				{
-					atom.setCharge(structUnit.chargeSignal * (structUnit.chargeMultiple || 1));
-				}
-
-				result = {frag: atom, anchorNodes: [atom], createdAtomInfos: [{atom: atom, structUnit: structUnit}]}
-			}
-			result.externalBondCount = incomingBondCount;
-			result.externalBondOrder = incomingBondOrder;
-			// result.frag.__structUnit__ = structUnit;  // stores the original struct unit
-			return result;
-		}
+		var createStructNodeEx = Kekule.CondensedFormulaUtils._doCreateStructNodeFromUnitEx;
 
 		var connectWithBond = function(currFragEx, prevFragEx, bondOrder, parent, anchorNodeList, prevFragExUsingTailingAnchor)
 		{
@@ -2060,8 +2074,9 @@ Kekule.CondensedFormulaUtils = {
 		};
 
 		var op = Object.create(options || {});
-		var result;
-		result = op.createMolecule? new Kekule.Molecule(): new Kekule.SubGroup();
+		//result = op.createMolecule? new Kekule.Molecule(): new Kekule.SubGroup();
+		var fragClass = op.structureClass || Kekule.SubGroup;
+		var result = new fragClass();
 
 		// the nested creation process should always create child subgroup
 		op.createMolecule = false;
@@ -2149,6 +2164,90 @@ Kekule.CondensedFormulaUtils = {
 		}
 
 		return {frag: result, anchorNodesLeading: possibleGroupAnchorSeq[0], anchorNodesTailing: possibleGroupAnchorSeq[possibleGroupAnchorSeq.length - 1], createdFragExs: createdFragExs, createdAtomInfos: createdAtomInfos};
+	},
+	_doCreateStructNodeFromUnitEx: function(structUnit, incomingBondCount, incomingBondOrder, options, subgroupInfoMap)
+	{
+		var result;
+		if (structUnit.structType === 'branch')
+		{
+			result = Kekule.CondensedFormulaUtils._doCreateStructureFragFromUnitListEx(structUnit.branch, incomingBondCount, incomingBondOrder, options, subgroupInfoMap);
+			if (!result)  // abnormal
+				return null;
+
+		}
+		else if (structUnit.structType === 'subgroup')
+		{
+			/*
+            var frag = subgroupInfoMap.get(structUnit.originTokenInfo);
+            if (!frag)
+            {
+                frag = Kekule.CondensedFormulaUtils._loadSubgroup(structUnit.subgroup);
+                subgroupInfoMap.set(structUnit.originTokenInfo, frag);
+            }
+            */
+			var frag = Kekule.CondensedFormulaUtils._loadSubgroup(structUnit.subgroup);
+			var anchorNodes = frag.getAnchorNodes();
+			if (!anchorNodes || !anchorNodes.length && frag.getNodeCount())
+				anchorNodes = [frag.getNodes()[0]];
+			result = {frag: frag, anchorNodes: [].concat(anchorNodes || [])};
+		}
+		else if (structUnit.structType === 'atom')
+		{
+			var atom = new Kekule.Atom(null, structUnit.atomSymbol, structUnit.massNum);
+			if (structUnit.chargeSignal)
+			{
+				atom.setCharge(structUnit.chargeSignal * (structUnit.chargeMultiple || 1));
+			}
+
+			result = {frag: atom, anchorNodes: [atom], createdAtomInfos: [{atom: atom, structUnit: structUnit}]}
+		}
+		result.externalBondCount = incomingBondCount;
+		result.externalBondOrder = incomingBondOrder;
+		// result.frag.__structUnit__ = structUnit;  // stores the original struct unit
+		return result;
+	},
+
+	_createFormulaFromUnitList: function(structUnitList, options)
+	{
+		return Kekule.CondensedFormulaUtils._doCreateFormulaFromUnitList(structUnitList, options);
+	},
+	_doCreateFormulaFromUnitList: function(structUnitList, options)
+	{
+		var result = new Kekule.MolecularFormula();
+		for (var i = 0, l = structUnitList.length; i < l; ++i)
+		{
+			var subObj = null;
+			var structUnit = structUnitList[i];
+			if (structUnit.structType === 'branch')
+			{
+				// create sub formula
+				subObj = Kekule.CondensedFormulaUtils._doCreateFormulaFromUnitList(structUnit.branch, options);
+			}
+			else if (structUnit.structType === 'subgroup')
+			{
+				subObj = Kekule.FormulaUtils.textToFormula(structUnit.text);
+			}
+			else if (structUnit.structType === 'atom')
+			{
+				var fragResult = Kekule.CondensedFormulaUtils._doCreateStructNodeFromUnitEx(structUnit, 0, 0, options, null);
+				subObj = fragResult && fragResult.frag;  // get the concrete atom object
+			}
+			if (subObj)
+			{
+				var section = result.appendSection(subObj, structUnit.count || 1, (structUnit.chargeSignal || 0) * (structUnit.chargeMultiple || 1));
+				if (structUnit.structType === 'subgroup')
+					section.implicitSubgroup = true;
+				if (structUnit.incomingBondOrder && structUnit.incomingBondOrder > BO.SINGLE)
+					section.incomingBondOrder = structUnit.incomingBondOrder;
+				if (structUnit.hCount)
+				{
+					var hAtom = new Kekule.Atom(null, 1);
+					result.appendSection(hAtom, structUnit.hCount, 0);
+				}
+			}
+		}
+
+		return result;
 	}
 };
 
