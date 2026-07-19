@@ -1018,7 +1018,7 @@ Kekule.Render.ChemDisplayTextUtils = {
 			}
 			else if (obj.getDisplayRichText) // an atom/isotope
 			{
-				var subgroup = obj.getDisplayRichText(Kekule.Render.HydrogenDisplayLevel.NONE, false, null, displayConfigs, partialChargeDecimalsLength, chargeMarkType);  // do not show charge right after symbol
+				subgroup = obj.getDisplayRichText(Kekule.Render.HydrogenDisplayLevel.NONE, false, null, displayConfigs, partialChargeDecimalsLength, chargeMarkType);  // do not show charge right after symbol
 			}
 
 			if (subgroup)
