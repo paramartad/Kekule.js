@@ -209,10 +209,13 @@ Kekule.Editor.ObjModifier.Atom = Class.create(Kekule.Editor.ObjModifier.ChemStru
 		for (var i = 0, l = nodes.length; i < l; ++i)
 		{
 			var node = nodes[i];
-			if (node instanceof Kekule.StructureFragment && node.isExpanded())  // actually modify children node in expanded group
+			if (node instanceof Kekule.StructureFragment)
 			{
-				var children = this._getActualModificationNodes(node.getNodes(), true);
-				AU.pushUnique(result, children);
+				if (node.isExpanded())  // actually modify children node in expanded group
+				{
+					var children = this._getActualModificationNodes(node.getNodes(), true);
+					AU.pushUnique(result, children);
+				}
 			}
 			else
 				result.push(node);
@@ -771,10 +774,13 @@ Kekule.Editor.ObjModifier.Charge = Class.create(Kekule.Editor.ObjModifier.ChemSt
 		for (var i = 0, l = nodes.length; i < l; ++i)
 		{
 			var node = nodes[i];
-			if (node instanceof Kekule.StructureFragment && node.isExpanded())  // actually modify children node in expanded group
+			if (node instanceof Kekule.StructureFragment)
 			{
-				var children = this._getActualModificationNodes(node.getNodes(), true);
-				AU.pushUnique(result, children);
+				if (node.isExpanded())  // actually modify children node in expanded group
+				{
+					var children = this._getActualModificationNodes(node.getNodes(), true);
+					AU.pushUnique(result, children);
+				}
 			}
 			else
 				result.push(node);
