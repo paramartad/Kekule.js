@@ -1531,7 +1531,7 @@ Kekule.CondensedFormulaUtils = {
 					var structUnitList = Kekule.CondensedFormulaUtils._convertTokenListToStructureUnitList(tokenList, op);
 					if (structUnitList && structUnitList.length)
 					{
-						var result = Kekule.CondensedFormulaUtils._createStructureFragFromUnitListEx(structUnitList, 0, 0, op, subgroupInfoMap);
+						var result = Kekule.CondensedFormulaUtils._createStructureFragFromUnitListEx(structUnitList, 0, linkedBondOrder, op, subgroupInfoMap);
 						var fragment = result && result.frag;  // .frag is type of SubGroup
 						if (fragment) {
 							//if (!createMolecule)
@@ -1962,6 +1962,7 @@ Kekule.CondensedFormulaUtils = {
 		var fragment = creationResult.frag;
 
 		// check atom h count
+		var anchorNodes = creationResult.anchorNodes || [];
 		for (var i = 0, l = createdAtomInfos.length; i < l; ++i)
 		{
 			var atom = createdAtomInfos[i].atom;
@@ -1969,6 +1970,11 @@ Kekule.CondensedFormulaUtils = {
 			var hCount = structUnit.hCount || 0;
 			// if hCount not matched with implicit hydrogen count, set explicit
 			var implicitHCount = atom.getImplicitHydrogenCount();
+			if (atom === anchorNodes[0])
+			{
+				// is the anchor nodes linked to external molecule, should consider the incomingBondOrder when calculate hCount
+				implicitHCount -= (incomingBondOrder || 0);
+			}
 			var failed = implicitHCount !== hCount;
 			if (failed && structUnit.possibleNegativeCharge)
 			{
@@ -2178,7 +2184,12 @@ Kekule.CondensedFormulaUtils = {
 			*/
 		}
 
-		return {frag: result, anchorNodesLeading: possibleGroupAnchorSeq[0], anchorNodesTailing: possibleGroupAnchorSeq[possibleGroupAnchorSeq.length - 1], createdFragExs: createdFragExs, createdAtomInfos: createdAtomInfos};
+		return {
+			frag: result,
+			anchorNodes: possibleGroupAnchorSeq[0],
+			anchorNodesLeading: possibleGroupAnchorSeq[0], anchorNodesTailing: possibleGroupAnchorSeq[possibleGroupAnchorSeq.length - 1],
+			createdFragExs: createdFragExs, createdAtomInfos: createdAtomInfos
+		};
 	},
 	_doCreateStructNodeFromUnitEx: function(structUnit, incomingBondCount, incomingBondOrder, options, subgroupInfoMap)
 	{

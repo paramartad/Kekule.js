@@ -7,6 +7,8 @@
 </head>
 <body>
     <section>
+        <input id="inputBondOrder" type="number" placeholder="incoming bond order" style="min-width: 10em"/>
+        <br />
         <input id="inputFormula" type="text" placeholder="formula" style="min-width: 40em"/>
         <button id="btnExec">Execute</button>
         <button id="btnExecDirect">Execute Direct</button>
@@ -23,6 +25,7 @@
             document.getElementById('labelFormula').innerHTML = '';
             document.getElementById('labelRichText').innerHTML = '';
 
+            var incomingBondOrder = parseInt(document.getElementById('inputBondOrder').value);
             var formulaText = document.getElementById('inputFormula').value;
             var analyzer = new Kekule.CondensedFormulaTextAnalyzer(formulaText);
             analyzer.setSubgroupItems(Kekule.Editor.RepositoryData.subGroups);
@@ -42,7 +45,7 @@
                 if (structUnitList && structUnitList.length)
                 {
                     try {
-                        var mol = Kekule.CondensedFormulaUtils._createStructureFragFromUnitListEx(structUnitList, 0, 0, {enableExplicitHydrogen: true, ignoreAtomValence: true}, subgroupInfoMap)?.frag;
+                        var mol = Kekule.CondensedFormulaUtils._createStructureFragFromUnitListEx(structUnitList, 1, incomingBondOrder, {enableExplicitHydrogen: !true, ignoreAtomValence: !true}, subgroupInfoMap)?.frag;
                         console.log(mol);
                         if (mol) {
                             var smiles = Kekule.IO.saveFormatData(mol, Kekule.IO.DataFormat.SMILES);
@@ -67,8 +70,9 @@
 
         function executeDirect()
         {
+            var incomingBondOrder = parseInt(document.getElementById('inputBondOrder').value);
             var formulaText = document.getElementById('inputFormula').value;
-            var result = Kekule.CondensedFormulaUtils.parse(formulaText, 0, Kekule.Editor.RepositoryData.subGroups, {structure: true, structureUnits: true, formula: true, richText: true});
+            var result = Kekule.CondensedFormulaUtils.parse(formulaText, incomingBondOrder, Kekule.Editor.RepositoryData.subGroups, {structure: true, structureUnits: true, formula: true, richText: true});
             var mol = result.structure;
             var formula = result.formula;
             console.log(mol);
