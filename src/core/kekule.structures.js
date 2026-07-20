@@ -2733,7 +2733,7 @@ Kekule.MolecularFormula = Class.create(ObjectEx,
 
 		// special property, indicate whether the block has been changed and
 		// the size should be recalculated
-		this.defineProp('needRecalcSize', {'dataType': DataType.BOOL});
+		this.defineProp('needRecalcSize', {'dataType': DataType.BOOL, 'scope': Class.PropertyScope.PUBLIC});
 	},
 	/** @private */
 	getHigherLevelObj: function()
