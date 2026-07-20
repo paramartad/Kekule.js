@@ -66,7 +66,7 @@
         function executeDirect()
         {
             var formulaText = document.getElementById('inputFormula').value;
-            var result = Kekule.CondensedFormulaUtils.parse(formulaText, 0, Kekule.Editor.RepositoryData.subGroups, {structure: true, structUnits: true, formula: true});
+            var result = Kekule.CondensedFormulaUtils.parse(formulaText, 0, Kekule.Editor.RepositoryData.subGroups, {structure: true, structureUnits: true, formula: true});
             var mol = result.structure;
             var formula = result.formula;
             console.log(mol);
@@ -88,6 +88,8 @@
             }
             else
                 document.getElementById('labelFormula').innerHTML = '';
+
+            console.log(result.structureUnits);
         }
         document.getElementById('btnExec').addEventListener('click', execute);
         document.getElementById('btnExecDirect').addEventListener('click', executeDirect);
