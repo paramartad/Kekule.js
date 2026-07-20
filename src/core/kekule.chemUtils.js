@@ -1512,6 +1512,7 @@ Kekule.CondensedFormulaUtils = {
 			op.structureClass = Kekule.Molecule;
 		var outputStructure = op.structure;
 		var outputFormula = op.formula;
+		var outputRichText = op.richText;
 		var outputStructUnits = op.structureUnits;
 
 		var analyzer = new Kekule.CondensedFormulaTextAnalyzer(text);
@@ -1564,6 +1565,12 @@ Kekule.CondensedFormulaUtils = {
 					var formula = Kekule.CondensedFormulaUtils._doCreateFormulaFromUnitList(creationResult.result.structureUnits, op);
 					if (formula)
 						result.formula = formula;
+				}
+				if (outputRichText)
+				{
+					var rt = Kekule.CondensedFormulaUtils._createRichTextLabelFromUnitList(creationResult.result.structureUnits, op);
+					if (rt)
+						result.richText = rt;
 				}
 				return result;
 			}
@@ -2260,6 +2267,82 @@ Kekule.CondensedFormulaUtils = {
 		}
 
 		return result;
+	},
+
+	_createRichTextLabelFromUnitList: function(structUnitList, options)
+	{
+		return Kekule.CondensedFormulaUtils._doCreateRichTextLabelFromUnitListEx(structUnitList, options).richText;
+	},
+	_doCreateRichTextLabelFromUnitListEx: function(structUnitList, options)
+	{
+		if (!Kekule.Render || !Kekule.Render.RichTextUtils)
+			return null;
+
+		var hAtom = new Kekule.Atom(null, 1);  // used for attached hCoutn
+		var maxBranchLevel = 0;
+
+		var resultRt = Kekule.Render.RichTextUtils.create();
+		for (var i = 0, l = structUnitList.length; i < l; ++i)
+		{
+			var RTU = Kekule.Render.RichTextUtils;
+			var subRt = null;
+			var structUnit = structUnitList[i];
+			if (structUnit.structType === 'branch')
+			{
+				// create sub rich text
+				var branchResult = Kekule.CondensedFormulaUtils._doCreateRichTextLabelFromUnitListEx(structUnit.branch, options);
+				var subRt = branchResult.richText;
+				var insideBranchLevel = branchResult.maxBranchLevel;
+				if (maxBranchLevel < insideBranchLevel + 1)
+					maxBranchLevel = insideBranchLevel + 1;
+
+				// surround it with bracket
+				var bracketPairs = Kekule.CondensedFormulaUtils.FORMULA_BRACKETS;
+				var bracketPair = bracketPairs[insideBranchLevel % bracketPairs.length];
+				RTU.insertText(subRt, 0,bracketPair[0], null, false);
+				RTU.appendText(subRt, bracketPair[1], null, false);
+			}
+			else if (structUnit.structType === 'subgroup')
+			{
+				if (structUnit.text.match(/.+\d/))  // has number in text, may be formula
+				{
+					var formula = Kekule.FormulaUtils.textToFormula(structUnit.text);
+					subRt = Kekule.Render.ChemDisplayTextUtils.formulaToRichText(formula, true);
+				}
+				else   // can use plain text
+				{
+					subRt = RTU.strToRichText(structUnit.text);
+				}
+			}
+			else if (structUnit.structType === 'atom')
+			{
+				var fragResult = Kekule.CondensedFormulaUtils._doCreateStructNodeFromUnitEx(structUnit, 0, 0, options, null);
+				var atom = fragResult && fragResult.frag;  // get the concrete atom object
+
+				if (atom)
+				{
+					var formula = new Kekule.MolecularFormula();
+					if (structUnit.hCount && structUnit.hOrder < 0)
+						formula.appendSection(hAtom, structUnit.hCount, 0);
+					formula.appendSection(atom, structUnit.count || 1, (structUnit.chargeSignal || 0) * (structUnit.chargeMultiple || 1));
+					if (structUnit.hCount && structUnit.hOrder > 0)
+						formula.appendSection(hAtom, structUnit.hCount, 0);
+					subRt = Kekule.Render.ChemDisplayTextUtils.formulaToRichText(formula, true);
+				}
+			}
+
+			if (subRt)
+			{
+				if (structUnit.incomingBondOrder && structUnit.incomingBondOrder > BO.SINGLE)
+				{
+					var bondSymbol = Kekule.FormulaUtils.getBondSymbol(structUnit.incomingBondOrder);
+					RTU.insertText(subRt, 0, bondSymbol, false);
+				}
+				RTU.append(resultRt, subRt);
+			}
+		}
+
+		return {richText: resultRt, maxBranchLevel: maxBranchLevel};
 	}
 };
 

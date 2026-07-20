@@ -1127,7 +1127,8 @@ Kekule.Editor.EmbeddedSetter.Formula = Class.create(Kekule.Editor.EmbeddedSetter
 	 */
 	getFormulaText: function(mol)
 	{
-		return mol.hasFormula()? mol.getFormula().getText(): '';
+		//return mol.hasFormula()? mol.getFormula().getText(): '';
+		return mol.getDisplayLabelText();
 	},
 
 	/** @ignore */
@@ -1204,14 +1205,15 @@ Kekule.Editor.EmbeddedSetter.Formula = Class.create(Kekule.Editor.EmbeddedSetter
 				try
 				{
 					var subgroupItems = this.getRepositorySubgroupItems() || Kekule.Editor.RepositoryData.subGroups;
-					var options = {structure: true, formula: true, structureClass: Kekule.SubGroup};  // create subgroup, not molecule, and at last add subgroup to existing molecule
+					var options = {structure: true, /*formula: true,*/ richText: true, structureClass: Kekule.SubGroup};  // create subgroup, not molecule, and at last add subgroup to existing molecule
 					var parseResult = Kekule.CondensedFormulaUtils.parse(formulaText, 0, subgroupItems, options);
 					if (parseResult && parseResult.structure)  // condensed formula parse successful, using it
 					{
-						parseResult.structure.setFormula(parseResult.formula);
+						//parseResult.structure.setFormula(parseResult.formula);
+						parseResult.structure.setCustomRtLabel(parseResult.richText);
 						parseResult.structure.setExpanded(false);  // hide the ctab, only showing formula
 						// console.log(formulaText, parseResult.structure, Kekule.Render.ChemDisplayTextUtils.formulaToRichText(parseResult.formula));
-						result = {'isCondensedFormula': true, 'formulaText': formulaText, 'structure': parseResult.structure, 'formula': parseResult.formula};
+						result = {'isCondensedFormula': true, 'formulaText': formulaText, 'rtLabel': parseResult.richText, 'structure': parseResult.structure /*, 'formula': parseResult.formula*/};
 					}
 				}
 				catch(e)
@@ -1251,8 +1253,11 @@ Kekule.Editor.EmbeddedSetter.Formula = Class.create(Kekule.Editor.EmbeddedSetter
 		var result = new Kekule.MacroOperation([
 			new Kekule.ChemStructOperation.ClearCtab(obj, this.getEditor()),
 			new Kekule.ChemStructOperation.AddNode(newSubgroup, obj, null, this.getEditor()),
-			new Kekule.ChemObjOperation.ModifyRenderOptions(obj, {'expanded': false}, false, this.getEditor()),  // ensure the ctab of mol is hidden
-			new Kekule.ChemObjOperation.Modify(obj, {'formula': modifiedValues.formula}, this.getEditor()),
+			new Kekule.ChemObjOperation.ModifyRenderOptions(obj, {
+				'expanded': false,
+				'customRtLabel': modifiedValues.rtLabel
+			}, false, this.getEditor()),  // ensure the ctab of mol is hidden
+			//new Kekule.ChemObjOperation.Modify(obj, {'formula': modifiedValues.formula}, this.getEditor()),
 			// new Kekule.ChemObjOperation.Modify(obj.getFormula(), {'text': modifiedValues.formulaText}, this.getEditor()),
 		]);
 		return result;
@@ -1262,7 +1267,10 @@ Kekule.Editor.EmbeddedSetter.Formula = Class.create(Kekule.Editor.EmbeddedSetter
 	{
 		return new Kekule.MacroOperation([
 			new Kekule.ChemStructOperation.ClearCtab(obj, this.getEditor()),   // clear the existing ctab structure first
-			new Kekule.ChemObjOperation.Modify(obj.getFormula(), {'text': modifiedValues.formulaText}, this.getEditor())
+			new Kekule.ChemObjOperation.Modify(obj.getFormula(), {'text': modifiedValues.formulaText}, this.getEditor()),
+			new Kekule.ChemObjOperation.ModifyRenderOptions(obj, {
+				'customRtLabel': null
+			}, false, this.getEditor()),  // clear the rtLabel to display the formula
 		]);
 	},
 
@@ -1295,7 +1303,7 @@ Kekule.Editor.EmbeddedSetter.Formula = Class.create(Kekule.Editor.EmbeddedSetter
 /** @ignore */
 Kekule.Editor.EmbeddedSetter.Formula.isValidTarget = function(obj)
 {
-	return (obj instanceof Kekule.StructureFragment) && obj.hasFormula() && obj.isFormulaExposed(); // !obj.hasCtab();
+	return (obj instanceof Kekule.StructureFragment) && obj.isLabelExposed(); // && obj.hasFormula() && obj.isFormulaExposed(); // !obj.hasCtab();
 };
 
 
