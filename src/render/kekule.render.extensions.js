@@ -19,6 +19,36 @@
 	var CM = Kekule.CoordMode;
 	//var C = Kekule.Render.getRenderConfigs();
 
+	// /**
+	//  * A rich text label stored in the renderOptions property of a chem object.
+	//  * The renderer may draw the content of this label for representing the chem object.
+	//  * @type {Class}
+	//  *
+	//  * //@param {Kekule.ChemObject} parent
+	//  *
+	//  * //@property {Kekule.ChemObject} parent
+	//  * @property {Object} content The rich text content.
+	//  */
+	// Kekule.Render.RtLabel = Class.create(ObjectEx,
+	// /** @lends Kekule.Render.RtLabel# */
+	// {
+	// 	/** @private */
+	// 	CLASS_NAME: 'Kekule.Render.RtLabel',
+	// 	/** @constructs */
+	// 	initialize: function()
+	// 	{
+	// 		this.setPropStoreFieldValue('content', Kekule.RichTextUtils.create());
+	// 		this.tryApplySuper('initialize');
+	// 	},
+	// 	/** @private */
+	// 	initProperties: function()
+	// 	{
+	// 		// this.defineProp('parent', {'dataType': 'Kekule.ChemObject'});
+	// 		this.defineProp('content', {'dataType': DataType.OBJECT});
+	// 	},
+	// });
+	// Kekule.ClassDefineUtils.addStandardSizeSupport(Kekule.Render.RtLabel);
+
 	/** @ignore */
 	ClassEx.extend(Kekule.ChemObject,
 	/** @lends Kekule.ChemObject# */
@@ -339,6 +369,25 @@
 			}
 			return result;
 		},
+
+		/**
+		 * Get the custom rich text label of current object.
+		 * @returns {Object}
+		 */
+		getCustomRtLabel: function()
+		{
+			return this.getRenderOption('customRtLabel');
+		},
+		/**
+		 * Set the custom rich text label of current object.
+		 * @param {Object} value
+		 */
+		setCustomRtLabel: function(value)
+		{
+			this.setRenderOption('customRtLabel', value);
+			return this;
+		},
+
 		/**
 		 * Get base coord (coord that deciding the position) of object. Param coordMode determinate which coord (2D or 3D) will be returned.
 		 * @param {Int} coordMode
@@ -638,6 +687,12 @@
 		{'name': 'coordPos3D', 'dataType': DataType.INT, 'scope':  Class.PropertyScope.PUBLIC,
 			'getter': function() { return this.getCoordPos(Kekule.CoordMode.COORD3D); }
 		},
+		// stores the size to render object label (formula or custo label)
+		{'name': 'labelSize2D', 'dataType': DataType.HASH, 'scope': Class.PropertyScope.PUBLISHED},
+		{'name': 'labelSize3D', 'dataType': DataType.HASH, 'scope': Class.PropertyScope.PUBLISHED},
+		// special property, indicate whether the label has been changed and the size of label should be recalculated
+		{name: 'needRecalcSize', 'dataType': DataType.BOOL, 'scope': Class.PropertyScope.PUBLIC},
+
 		// new property, decide the 2D render style of a object (node or connector)
 		{'name': 'renderOptions', 'dataType': DataType.OBJECT},
 		// new property, decide the 3D render style of a object (node or connector)
@@ -980,11 +1035,11 @@
 				showCharge = true;
 
 			var result = R.RichTextUtils.create();
+			var displayLabelRtItem = this.getDisplayLabelRichTextItem(hydrogenDisplayLevel, showCharge, displayLabelConfigs, partialChargeDecimalsLength, chargeMarkType, distinguishSingletAndTripletRadical);
 			var coreItem;
-			var customLabel = this.getRenderOption('customLabel');
-			if (customLabel)
+			if (displayLabelRtItem)
 			{
-				coreItem = R.RichTextUtils.strToRichText(customLabel);
+				coreItem = displayLabelRtItem;
 			}
 			else
 			{
@@ -1033,6 +1088,36 @@
 		getCoreDisplayRichTextItem: function(hydrogenDisplayLevel, showCharge, displayLabelConfigs, partialChargeDecimalsLength){
 			// do nothing here, descendants need to override this method.
 			return null;
+		},
+		/** @private */
+		getDisplayLabelRichTextItem: function(hydrogenDisplayLevel, showCharge, displayLabelConfigs, partialChargeDecimalsLength, chargeMarkType, distinguishSingletAndTripletRadical)
+		{
+			var R = Kekule.Render;
+			var result;
+			var customLabel = this.getRenderOption('customLabel');
+			var rtLabel = this.getCustomRtLabel();
+			if (rtLabel)
+			{
+				result = R.RichTextUtils.clone(rtLabel);
+			}
+			else if (customLabel)
+			{
+				result = R.RichTextUtils.strToRichText(customLabel);
+			}
+			return result;
+		},
+		/**
+		 * Returns the text string of display label (custom label or rich text label).
+		 * @return {string}
+		 */
+		getDisplayLabelText: function()
+		{
+
+			var rtLabel = this.getCustomRtLabel();
+			if (rtLabel)
+				return Kekule.Render.RichTextUtils.toText(rtLabel);
+			else
+				return this.getRenderOption('customLabel') || '';
 		},
 
 		appendElectronStateDisplayText: function(coreItem, partialChargeDecimalsLength, chargeMarkType, distinguishSingletAndTripletRadical, electronicBiasMark)
@@ -1452,6 +1537,11 @@
 		{
 			return this.hasFormula() && !this.isCtabExposed();
 		},
+		// When rendering structureFragment, whether the label (custom label or formula) should be displayed
+		isLabelExposed: function()
+		{
+			return !this.isCtabExposed();
+		},
 		// StructureFragment may has child nodes and can be expanded
 		isExpanded: function()
 		{
@@ -1551,14 +1641,137 @@
 				return this.getCtab().getAllAutoScaleRefLengths(coordMode, allowCoordBorrow);
 			else
 				return null;
+		},
+
+		/** @ignore */
+		getDisplayLabelRichTextItem: function(hydrogenDisplayLevel, showCharge, displayLabelConfigs, partialChargeDecimalsLength, chargeMarkType, distinguishSingletAndTripletRadical) {
+			var R = Kekule.Render;
+			var result = this.tryApplySuper('getDisplayLabelRichTextItem', [hydrogenDisplayLevel, showCharge, displayLabelConfigs, partialChargeDecimalsLength, chargeMarkType, distinguishSingletAndTripletRadical]);
+			// check formula
+			if (!result)
+			{
+				var formula = this.getFormula(false) || this.calcFormula();
+				if (formula && !formula.isEmpty())
+				{
+					result = formula.getDisplayRichText(showCharge, displayLabelConfigs, partialChargeDecimalsLength);
+					/*
+                    // first normal section of result usually should be the anchor section
+                    var section = Kekule.Render.RichTextUtils.getFirstNormalTextSection(result);
+                    if (!section)
+                        section = result.items[0];
+                    result.anchorItem = section;
+                    */
+					// a standalone molecule do not need an anchor item
+				}
+			}
+			return result;
+		},
+
+		/** @ignore */
+		getDisplayLabelText: function()
+		{
+			var result = this.tryApplySuper('getDisplayLabelText');
+			if (!result)
+			{
+				var formula = this.getFormula(false) || this.calcFormula();
+				if (formula && !formula.isEmpty())
+				{
+					result = formula.getText();
+				}
+			}
+			return result || '';
 		}
+	});
+
+	ClassEx.extendMethod(Kekule.StructureFragment, 'doObjectChange', function($origin, modifiedPropNames) {
+		// when formula changed, or custom label in renderOptions changed, label size may need to be recalculated
+		if (Kekule.ArrayUtils.intersect(['formula', 'renderOptions'], modifiedPropNames).length)
+			this.setNeedRecalcSize(true);
 	});
 
 	ClassEx.extend(Kekule.SubGroup,
 	/** @lends Kekule.SubGroup# */
 	{
 		/** @ignore */
-		getCoreDisplayRichTextItem: function(hydrogenDisplayLevel, showCharge, displayLabelConfigs, partialChargeDecimalsLength)
+		getDisplayLabelRichTextItem: function(hydrogenDisplayLevel, showCharge, displayLabelConfigs, partialChargeDecimalsLength, chargeMarkType, distinguishSingletAndTripletRadical)
+		{
+			var R = Kekule.Render;
+			var result;
+			var caption = this.getAbbr();
+			var formulaText = this.getFormulaText();
+
+			// use caption and formula text first, then check the inherited method
+			if (!caption && !formulaText)
+				result = this.tryApplySuper('getDisplayLabelRichTextItem', [hydrogenDisplayLevel, showCharge, displayLabelConfigs, partialChargeDecimalsLength, chargeMarkType, distinguishSingletAndTripletRadical]);
+
+			// if all not set, use the default subgroup caption
+			if (!result && !formulaText && !caption)
+			{
+				caption = (displayLabelConfigs && displayLabelConfigs.getRgroup()) || NL.SUBGROUP;
+			}
+
+			if (caption)
+			{
+				if (caption.length <= 3)  // to short caption, e.g. Me, all regard as one section and aligns to the center
+				{
+					result = R.RichTextUtils.createGroup();
+					result = R.RichTextUtils.append(result, R.RichTextUtils.createSection(caption));
+					result.charDirection = Kekule.Render.TextDirection.LTR;
+				}
+				else // to long, e.g. t-Bu, usually the first uppercase letter (or first letter) should be the anchor section
+				{
+					var anchorIndex = this._indexOfFirstUppercaseLetter(caption);
+					if (anchorIndex < 0)  // no uppercase, use first letter
+						anchorIndex = 0;
+					result = R.RichTextUtils.createGroup();
+					result.charDirection = Kekule.Render.TextDirection.LTR;
+					// heading section
+					if (anchorIndex > 0)
+					{
+						section = R.RichTextUtils.createSection(caption.substring(0, anchorIndex));
+						section.charDirection = Kekule.Render.TextDirection.INHERIT;
+						result = R.RichTextUtils.append(result, section);
+					}
+					// anchor section
+					var section = R.RichTextUtils.createSection(caption.charAt(anchorIndex));
+					result = R.RichTextUtils.append(result, section);
+					result.anchorItem = section;
+					// tailing section
+					if (anchorIndex < caption.length - 1)
+					{
+						section = R.RichTextUtils.createSection(caption.substring(anchorIndex + 1));
+						section.charDirection = Kekule.Render.TextDirection.INHERIT;
+						result = R.RichTextUtils.append(result, section);
+					}
+					//console.log(caption, result);
+				}
+			}
+			else if (formulaText)
+			{
+				var formula = Kekule.FormulaUtils.textToFormula(this.getFormulaText());
+				result = formula.getDisplayRichText(showCharge, displayLabelConfigs, partialChargeDecimalsLength);
+			}
+
+			if (result && !result.anchorItem)
+			{
+				// first normal section of result usually should be the anchor section
+				var section = R.RichTextUtils.getFirstNormalTextSection(result);
+				if (!section)
+					section = result.items[0];
+				result.anchorItem = /* anchorItem; // */ section;
+			}
+
+			return result;
+		},
+		/** @ignore */
+		getDisplayLabelText: function()
+		{
+			var result = this.getAbbr() || this.getFormulaText() || this.tryApplySuper('getDisplayLabelText');
+			return result || '';
+		},
+
+		/** @ignore */
+		getCoreDisplayRichTextItem_deprecated: function(hydrogenDisplayLevel, showCharge, displayLabelConfigs, partialChargeDecimalsLength)
 		{
 			var R = Kekule.Render;
 			//var result = R.RichTextUtils.create();

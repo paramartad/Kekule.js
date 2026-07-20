@@ -1415,7 +1415,7 @@ Kekule.Render.RichTextBased2DRenderer = Class.create(Kekule.Render.ChemObj2DRend
 	{
 		if (this.__$isRecalculatingSize)  // avoid recursion
 			return;
-		if (chemObj.hasProperty('size2D') && chemObj.setNeedRecalcSize)
+		if (this.capableOfAutoCalculateObjSize(chemObj) && chemObj.setNeedRecalcSize)
 		{
 			this.__$isRecalculatingSize = true;
 			try
@@ -1424,16 +1424,39 @@ Kekule.Render.RichTextBased2DRenderer = Class.create(Kekule.Render.ChemObj2DRend
 				var objCoord1 = this.transformCoordToObj(context, chemObj, coords[0]);
 				var objCoord2 = this.transformCoordToObj(context, chemObj, coords[1]);
 				var delta = Kekule.CoordUtils.substract(objCoord2, objCoord1);
-				// must not use setSize2D, otherwise a new object change event will be triggered and a new update process will be launched
-				chemObj.setPropStoreFieldValue('size2D', {'x': Math.abs(delta.x), 'y': Math.abs(delta.y)});
-				//textBlock.setSize2D({'x': Math.abs(delta.x), 'y': Math.abs(delta.y)});
-				//delete textBlock.__$needRecalcSize__;
+				var size = {'x': Math.abs(delta.x), 'y': Math.abs(delta.y)};
+				this.updateAutoCalculatedObjSize(chemObj, size);
+				if (chemObj.updateAutoCalculatedSizeOfModeSliently)
+				{
+					// use special method of chemObj to update and not trigger change event
+					chemObj.updateAutoCalculatedSizeOfModeSliently(size, Kekule.CoordMode.COORD2D);
+				}
+				else
+				{
+					this.updateAutoCalculatedObjSize(chemObj, size);
+				}
 				chemObj.setNeedRecalcSize(false);
 			}
 			finally
 			{
 				this.__$isRecalculatingSize = false;
 			}
+		}
+	},
+
+	/** @private */
+	capableOfAutoCalculateObjSize: function(chemObj)
+	{
+		return chemObj.hasProperty('size2D');
+	},
+
+	/** @private */
+	updateAutoCalculatedObjSize: function(chemObj, size)
+	{
+		if (chemObj.hasProperty('size2D'))
+		{
+			// must not use setSize2D, otherwise a new object change event will be triggered and a new update process will be launched
+			chemObj.setPropStoreFieldValue('size2D', size);
 		}
 	}
 });
@@ -4449,8 +4472,77 @@ Kekule.Render.ChemCtab2DRenderer = Class.create(Kekule.Render.Ctab2DRenderer,
 });
 
 /**
+ * A class to render label/formula of a chem node.
+ * @class
+ * @augments Kekule.Render.RichTextBased2DRenderer
+ */
+Kekule.Render.ChemNodeLabel2DRenderer = Class.create(Kekule.Render.RichTextBased2DRenderer,
+/** @lends Kekule.Render.ChemNodeLabel2DRenderer# */
+{
+	/** @private */
+	CLASS_NAME: 'Kekule.Render.ChemNodeLabel2DRenderer',
+
+	/** @private */
+	getRichText: function(chemObj, drawOptions)
+	{
+		return chemObj.getDisplayRichText(null, true, drawOptions.displayLabelConfigs, drawOptions.partialChargeDecimalsLength, drawOptions.chargeMarkType);  // show charge
+	},
+
+	/** @private */
+	doEstimateSelfObjBox: function(context, options, allowCoordBorrow)
+	{
+		var chemObj = this.getChemObj();
+		if (chemObj)
+		{
+			var coord = chemObj.getAbsBaseCoord2D(allowCoordBorrow);
+			var size2D = chemObj.getLabelSize2D ? chemObj.getLabelSize2D() : {x: 0, y: 0};
+			var xDelta = (size2D.x || 0) / 2;
+			var yDelta = (size2D.y || 0) / 2;
+			return BU.createBox({'x': coord.x - xDelta, 'y': coord.y - yDelta}, {'x': coord.x + xDelta, 'y': coord.y + yDelta});
+		}
+		else
+			return null;
+	},
+
+	/** private */
+	extractRichTextDrawOptions: function(/*$super, */options)
+	{
+		//var ops = Kekule.Render.RenderOptionUtils.extractRichTextDraw2DOptions(renderConfigs, options || {});
+		var ops = this.tryApplySuper('extractRichTextDrawOptions', [options])  /* $super(options) */;
+		/*
+		ops.fontSize = oneOf(ops.atomFontSize, ops.fontSize);
+		ops.fontFamily = oneOf(ops.atomFontFamily, ops.fontFamily);
+		*/
+		ops.fontSize = oneOf(ops.fontSize, ops.atomFontSize);
+		ops.fontFamily = oneOf(ops.fontFamily, ops.atomFontFamily);
+		ops.color = oneOf(ops.color, ops.labelColor, ops.atomColor);
+		ops.textBoxXAlignment = Kekule.Render.BoxXAlignment.CENTER;
+		ops.textBoxYAlignment = Kekule.Render.BoxYAlignment.CENTER;
+
+		return ops;
+	},
+
+	/** @ignore */
+	capableOfAutoCalculateObjSize: function(chemObj)
+	{
+		return chemObj.hasProperty('labelSize2D');
+	},
+	/** @ignore */
+	updateAutoCalculatedObjSize: function(chemObj, size)
+	{
+		if (chemObj.hasProperty('labelSize2D'))
+		{
+			// must not use setSize2D, otherwise a new object change event will be triggered and a new update process will be launched
+			chemObj.setPropStoreFieldValue('labelSize2D', size);
+		}
+		else
+			this.tryApplySuper('updateAutoCalculatedObjSize', [chemObj, size]);
+	}
+});
+
+/**
  * Class to render for {@link Kekule.StructureFragment}.
- * The class will use {@link Kekule.Render.ChemCtab2DRenderer} or {@link Kekule.Render.Formula2DRenderer} to draw actual structure.
+ * The class will use {@link Kekule.Render.ChemCtab2DRenderer} or {@link Kekule.Render.ChemNodeLabel2DRenderer} to draw actual structure.
  * @class
  * @augments Kekule.Render.ChemObj2DRenderer
  *
@@ -4519,7 +4611,8 @@ Kekule.Render.StructFragment2DRenderer = Class.create(Kekule.Render.ChemObj2DRen
 			else if (chemObj.isFormulaExposed())
 			{
 				this._concreteChemObj = chemObj.getFormula();
-				this._concreteRenderer = new Kekule.Render.Formula2DRenderer(chemObj.getFormula(), drawBridge, /*renderConfigs,*/ this);
+				//this._concreteRenderer = new Kekule.Render.Formula2DRenderer(chemObj.getFormula(), drawBridge, /*renderConfigs,*/ this);
+				this._concreteRenderer = new Kekule.Render.ChemNodeLabel2DRenderer(chemObj, drawBridge, /*renderConfigs,*/ this);
 			}
 		}
 		return this._concreteRenderer;
@@ -4534,10 +4627,14 @@ Kekule.Render.StructFragment2DRenderer = Class.create(Kekule.Render.ChemObj2DRen
 			return !(renderer instanceof Kekule.Render.ChemCtab2DRenderer)
 				|| (renderer.getChemObj() !== chemObj.getCtab());
 		}
-		else if (chemObj.isFormulaExposed())
+		else if (chemObj.isLabelExposed())  // (chemObj.isFormulaExposed())
 		{
+			/*
 			return !(renderer instanceof Kekule.Render.Formula2DRenderer)
 				|| (renderer.getChemObj() !== chemObj.getFormula());
+			*/
+			return !(renderer instanceof Kekule.Render.ChemNodeLabel2DRenderer)
+				|| (renderer.getChemObj() !== chemObj);
 		}
 		/*
 		return (renderer && !chemObj) ||
@@ -4749,7 +4846,8 @@ Kekule.Render.StructFragment2DRenderer = Class.create(Kekule.Render.ChemObj2DRen
 		var actualBaseCoord = baseCoord;
 		var r = this.getConcreteRenderer();
 		//console.log('actualBaseCoord before', actualBaseCoord, options.transformParams);
-		if ((!actualBaseCoord) && (r instanceof Kekule.Render.Formula2DRenderer))  // need calc center coord for formula manually
+		//if ((!actualBaseCoord) && (r instanceof Kekule.Render.Formula2DRenderer))  // need calc center coord for formula manually
+		if ((!actualBaseCoord) && (r instanceof Kekule.Render.ChemNodeLabel2DRenderer))
 		{
 			if (chemObj.getAbsBaseCoord2D)
 			{
@@ -4764,7 +4862,8 @@ Kekule.Render.StructFragment2DRenderer = Class.create(Kekule.Render.ChemObj2DRen
 			console.log('baseCoord set', baseCoord);
 		*/
 
-		if (!chemObj.hasFormula() && !chemObj.hasCtab())  // no context, need not to draw
+		//if (!chemObj.hasFormula() && !chemObj.hasCtab())  // no context, need not to draw
+		if (!chemObj.isCtabExposed() && !chemObj.isLabelExposed())
 			return null;
 		else if (r)
 		{

@@ -6695,7 +6695,7 @@ Kekule.Editor.FormulaIaController = Class.create(Kekule.Editor.BaseEditorIaContr
 	 */
 	isValidMol: function(obj)
 	{
-		return (obj instanceof Kekule.StructureFragment) && obj.hasFormula() && obj.isFormulaExposed(); //!obj.hasCtab();
+		return (obj instanceof Kekule.StructureFragment) && /*obj.hasFormula() &&*/ obj.isLabelExposed(); //!obj.hasCtab();
 	},
 	/**
 	 * Find the valid molecule containing interaction object.

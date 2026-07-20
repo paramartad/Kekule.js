@@ -2688,6 +2688,7 @@ Kekule.Render.RenderOptionUtils = {
 			{'name': 'verticalAlign', dataType: DataType.INT, 'enumSource': Kekule.Render.TextAlign},
 			{'name': 'charDirection', dataType: DataType.INT, 'enumSource': Kekule.Render.TextDirection},
 			{'name': 'customLabel', dataType: DataType.STRING, 'targetClass': Kekule.ChemStructureNode},
+			{'name': 'customRtLabel', dataType: DataType.OBJECT, 'targetClass': Kekule.ChemStructureNode},
 
 			{'name': 'bondLineWidth', dataType: DataType.NUMBER, 'targetClass': Kekule.ChemStructureObject},
 			{'name': 'boldBondLineWidth', dataType: DataType.NUMBER, 'targetClass': Kekule.ChemStructureObject},

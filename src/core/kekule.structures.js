@@ -5673,13 +5673,14 @@ Kekule.StructureFragment = Class.create(Kekule.ChemStructureNode,
 		{
 			return this.getCtab().getContainerBox(coordMode, allowCoordBorrow);
 		}
-		else if (this.isFormulaExposed())
+		else if (this.isLabelExposed())
 		{
 			var coord = this.getAbsCoordOfMode(coordMode, allowCoordBorrow);
-			var formulaSize = this.getFormula().getSizeOfMode(coordMode) || {};
+			//var formulaSize = this.getFormula().getSizeOfMode(coordMode) || {};
+			var labelSize = ((coordMode === Kekule.CoordMode.COORD2D)? this.getLabelSize2D(): this.getLabelSize3D()) || {};
 			var result = Kekule.BoxUtils.createBox(coord, coord);
 			result = Kekule.BoxUtils.inflateBox(result,
-				(formulaSize.x || 0) / 2, (formulaSize.y || 0) / 2, (formulaSize.z || 0) / 2);
+				(labelSize.x || 0) / 2, (labelSize.y || 0) / 2, (labelSize.z || 0) / 2);
 			return result;
 		}
 		else
