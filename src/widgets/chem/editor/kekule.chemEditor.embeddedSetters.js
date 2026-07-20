@@ -1260,7 +1260,10 @@ Kekule.Editor.EmbeddedSetter.Formula = Class.create(Kekule.Editor.EmbeddedSetter
 	/** @private */
 	_doCreateFormulaModifyOper: function(obj, modifiedValues)
 	{
-		return new Kekule.ChemObjOperation.Modify(obj.getFormula(), {'text': modifiedValues.formulaText}, this.getEditor());
+		return new Kekule.MacroOperation([
+			new Kekule.ChemStructOperation.ClearCtab(obj, this.getEditor()),   // clear the existing ctab structure first
+			new Kekule.ChemObjOperation.Modify(obj.getFormula(), {'text': modifiedValues.formulaText}, this.getEditor())
+		]);
 	},
 
 	/** @ignore */
