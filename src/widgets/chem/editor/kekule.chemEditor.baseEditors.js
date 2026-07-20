@@ -7538,6 +7538,23 @@ Kekule.Editor.BasicManipulationIaController = Class.create(Kekule.Editor.BaseEdi
 	/** @private */
 	_calcManipulateObjsMoveInfo: function(manipulatingObjs, endScreenCoord)
 	{
+		var objHasSizeBox = function(obj)
+		{
+			var result = (obj.getSizeOfMode && obj.getSizeOfMode(editor.getCoordMode(), editor.getAllowCoordBorrow()));
+			if (!result)
+			{
+				// check the actual exposed container box of obj
+				var containerBox = obj.getExposedContainerBox && obj.getExposedContainerBox();
+				if (containerBox)
+				{
+					var isEmptyBox = Kekule.NumUtils.isFloatEqual(containerBox.x1, containerBox.x2)
+						&& Kekule.NumUtils.isFloatEqual(containerBox.y1, containerBox.y2);
+					result = !isEmptyBox;
+				}
+			}
+			return result;
+		};
+
 		var C = Kekule.CoordUtils;
 		var newInfoMap = this.getManipulateObjCurrInfoMap();
 		var editor = this.getEditor();
@@ -7546,7 +7563,8 @@ Kekule.Editor.BasicManipulationIaController = Class.create(Kekule.Editor.BaseEdi
 
 		var isDirectManipulateSingleObj = this.isDirectManipulating() && (manipulatingObjs.length === 1);
 		var manipulatingObjHasSize = isDirectManipulateSingleObj?
-			(manipulatingObjs[0] && manipulatingObjs[0].getSizeOfMode && manipulatingObjs[0].getSizeOfMode(editor.getCoordMode(), editor.getAllowCoordBorrow())):
+			//(manipulatingObjs[0] && manipulatingObjs[0].getSizeOfMode && manipulatingObjs[0].getSizeOfMode(editor.getCoordMode(), editor.getAllowCoordBorrow())):
+			manipulatingObjs[0] && objHasSizeBox(manipulatingObjs[0]):
 			true;
 		var followPointerCoord = isDirectManipulateSingleObj && !manipulatingObjHasSize   // when the object has size, it can not follow the pointer coord
 			&& this.getEditorConfigs().getInteractionConfigs().getFollowPointerCoordOnDirectManipulatingSingleObj();

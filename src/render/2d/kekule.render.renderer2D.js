@@ -1529,7 +1529,17 @@ Kekule.Render.Formula2DRenderer = Class.create(Kekule.Render.RichTextBased2DRend
 		if (parent)
 		{
 			var coord = (parent) ? parent.getAbsBaseCoord2D(allowCoordBorrow) : {'x': 0, 'y': 0};
-			return BU.createBox(coord, coord);  // formula has no box in chem object scope, only a point
+			var size2D = this.getChemObj().getSize2D();  // formula may record size information
+			if (size2D)
+			{
+				var xDelta = (size2D.x || 0) / 2;
+				var yDelta = (size2D.y || 0) / 2;
+				return BU.createBox({'x': coord.x - xDelta, 'y': coord.y - yDelta}, {'x': coord.x + xDelta, 'y': coord.y + yDelta});
+			}
+			else
+			{
+				return BU.createBox(coord, coord);  // formula has no box in chem object scope, only a point
+			}
 		}
 		else
 			return null;
