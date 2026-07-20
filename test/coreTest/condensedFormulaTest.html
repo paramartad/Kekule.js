@@ -14,12 +14,14 @@
     <section>
         <p id="labelSmiles"></p>
         <p id="labelFormula"></p>
+        <p id="labelRichText"></p>
     </section>
     <script>
         function execute()
         {
             document.getElementById('labelSmiles').innerHtml = '';
             document.getElementById('labelFormula').innerHTML = '';
+            document.getElementById('labelRichText').innerHTML = '';
 
             var formulaText = document.getElementById('inputFormula').value;
             var analyzer = new Kekule.CondensedFormulaTextAnalyzer(formulaText);
@@ -66,11 +68,12 @@
         function executeDirect()
         {
             var formulaText = document.getElementById('inputFormula').value;
-            var result = Kekule.CondensedFormulaUtils.parse(formulaText, 0, Kekule.Editor.RepositoryData.subGroups, {structure: true, structureUnits: true, formula: true});
+            var result = Kekule.CondensedFormulaUtils.parse(formulaText, 0, Kekule.Editor.RepositoryData.subGroups, {structure: true, structureUnits: true, formula: true, richText: true});
             var mol = result.structure;
             var formula = result.formula;
             console.log(mol);
             console.log(result.structureUnits);
+            console.log(result.richText);
             if (mol) {
                 var smiles = Kekule.IO.saveFormatData(mol, Kekule.IO.DataFormat.SMILES);
                 document.getElementById('labelSmiles').innerText = smiles;
@@ -88,6 +91,14 @@
             }
             else
                 document.getElementById('labelFormula').innerHTML = '';
+
+            if (result.richText)
+            {
+                var rtHtml = Kekule.Render.RichTextUtils.toSimpleHtmlCode(result.richText);
+                document.getElementById('labelRichText').innerHTML = rtHtml;
+            }
+            else
+                document.getElementById('labelRichText').innerHTML = '';
 
             console.log(result.structureUnits);
         }
