@@ -1558,7 +1558,7 @@ Kekule.CondensedFormulaUtils = {
 				if (outputStructure)
 					result.structure = creationResult.result.fragment;
 				if (outputStructUnits)
-					result.structuredUnits = creationResult.result.structureUnits;
+					result.structureUnits = creationResult.result.structureUnits;
 				if (outputFormula)
 				{
 					var formula = Kekule.CondensedFormulaUtils._doCreateFormulaFromUnitList(creationResult.result.structureUnits, op);
@@ -1726,17 +1726,19 @@ Kekule.CondensedFormulaUtils = {
 			var result = null;
 			if (currUnit && prevUnit &&currUnit.structType === 'atom' && prevUnit.structType === 'atom')
 			{
-				var atomUnitH, atomUnitNonH, atomUnitHIndex;
+				var atomUnitH, atomUnitNonH, order;
 				// we may merge something like CH2, OH, etc. into one structure unit, H as HCount
 				if (currUnit.atomSymbol === 'H' && prevUnit.atomSymbol !== 'H')
 				{
 					atomUnitH = currUnit;
 					atomUnitNonH = prevUnit;
+					order = 1;
 				}
 				else if (currUnit.atomSymbol !== 'H' && prevUnit.atomSymbol === 'H')
 				{
 					atomUnitH = prevUnit;
 					atomUnitNonH = currUnit;
+					order = -1;
 				}
 				if (atomUnitH && atomUnitNonH)
 				{
@@ -1744,7 +1746,13 @@ Kekule.CondensedFormulaUtils = {
 					{
 						// do the merge
 						atomUnitNonH.hCount = atomUnitH.count || 1;
+						atomUnitNonH.hOrder = order;  // record in the original text, H is before or after non-H atom, useful when converting to formula
 						result = atomUnitNonH;
+						// copy the tokenSeq from atomUnitH to atomUnitNonH
+						if (order > 0)
+							result.tokenSeq = atomUnitNonH.tokenSeq.concat(atomUnitH.tokenSeq);
+						else
+							result.tokenSeq = atomUnitH.tokenSeq.concat(atomUnitNonH.tokenSeq);
 					}
 				}
 			}
@@ -2234,16 +2242,20 @@ Kekule.CondensedFormulaUtils = {
 			}
 			if (subObj)
 			{
+				var hAtom = null;
+				if (structUnit.hCount)  // has attached hydrogen
+				{
+					hAtom = new Kekule.Atom(null, 1);
+				}
+				if (hAtom && structUnit.hOrder < 0)
+					result.appendSection(hAtom, structUnit.hCount, 0);
 				var section = result.appendSection(subObj, structUnit.count || 1, (structUnit.chargeSignal || 0) * (structUnit.chargeMultiple || 1));
 				if (structUnit.structType === 'subgroup')
 					section.implicitSubgroup = true;
 				if (structUnit.incomingBondOrder && structUnit.incomingBondOrder > BO.SINGLE)
 					section.incomingBondOrder = structUnit.incomingBondOrder;
-				if (structUnit.hCount)
-				{
-					var hAtom = new Kekule.Atom(null, 1);
+				if (hAtom && structUnit.hOrder > 0)
 					result.appendSection(hAtom, structUnit.hCount, 0);
-				}
 			}
 		}
 
