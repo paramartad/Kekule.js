@@ -688,8 +688,8 @@
 			'getter': function() { return this.getCoordPos(Kekule.CoordMode.COORD3D); }
 		},
 		// stores the bound box size to render object label (formula or custom label)
-		{'name': 'labelBoundBox2D', 'dataType': DataType.HASH, 'scope': Class.PropertyScope.PUBLISHED},
-		{'name': 'labelBoundBox3D', 'dataType': DataType.HASH, 'scope': Class.PropertyScope.PUBLISHED},
+		{'name': 'labelBoundBox2D', 'dataType': DataType.HASH, 'scope': Class.PropertyScope.PUBLIC},
+		{'name': 'labelBoundBox3D', 'dataType': DataType.HASH, 'scope': Class.PropertyScope.PUBLIC},
 		// special property, indicate whether the label has been changed and the size of label should be recalculated
 		{name: 'needRecalcSize', 'dataType': DataType.BOOL, 'scope': Class.PropertyScope.PUBLIC},
 
