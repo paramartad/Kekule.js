@@ -4725,9 +4725,10 @@ Kekule.StructureConnectionTable = Class.create(ObjectEx,
 	 * @param {Array} nodes
 	 * @param {Int} coordMode Determine to calculate 2D or 3D box. Value from {@link Kekule.CoordMode}.
 	 * @param {Bool} allowCoordBorrow
+	 * @param {Bool} calcNodeCoordOnly If true, the box is merely calculated from node coords and the node size is totally ignored.
 	 * @returns {Hash} Box information. {x1, y1, z1, x2, y2, z2} (in 2D mode z1 and z2 will not be set).
 	 */
-	getNodesContainBox: function(nodes, coordMode, allowCoordBorrow)
+	getNodesContainBox: function(nodes, coordMode, allowCoordBorrow, calcNodeCoordOnly)
 	{
 		//console.log('begin');
 		var is3D = (coordMode === Kekule.CoordMode.COORD3D);
@@ -4735,6 +4736,17 @@ Kekule.StructureConnectionTable = Class.create(ObjectEx,
 		for (var i = 0, l = nodes.length; i < l; ++i)
 		{
 			var node = nodes[i];
+
+			if (node instanceof Kekule.StructureFragment && !calcNodeCoordOnly)  // if is a sub fragment, get the box of sub fragment
+			{
+				var nodeBox = node.getContainerBox(coordMode, allowCoordBorrow);
+				if (nodeBox)
+				{
+					result = Kekule.BoxUtils.getContainerBox(result, nodeBox);
+				}
+				continue;
+			}
+
 			//var coord = is3D? node.getCoord3D(): node.getCoord2D();
 			//var coord = is3D? node.getAbsCoord3D(allowCoordBorrow): node.getAbsCoord2D(allowCoordBorrow);
 			var coord = node.getAbsCoordOfMode(coordMode, allowCoordBorrow);
@@ -5051,6 +5063,7 @@ Kekule.StructureFragment = Class.create(Kekule.ChemStructureNode,
 					this.setPropStoreFieldValue('formula', value);
 				}
 		});
+		/*
 		this.defineProp('formulaSize2D', {
 			'dataType': DataType.HASH, 'serializable': false,
 			'getter': function()
@@ -5079,6 +5092,7 @@ Kekule.StructureFragment = Class.create(Kekule.ChemStructureNode,
 					f.setSize3D(value);
 			}
 		});
+		*/
 		this.defineProp('ctab', {
 			'dataType': 'Kekule.StructureConnectionTable',
 			'getter': function(allowCreate)
@@ -5672,16 +5686,6 @@ Kekule.StructureFragment = Class.create(Kekule.ChemStructureNode,
 		if (this.isCtabExposed())
 		{
 			return this.getCtab().getContainerBox(coordMode, allowCoordBorrow);
-		}
-		else if (this.isLabelExposed())
-		{
-			var coord = this.getAbsCoordOfMode(coordMode, allowCoordBorrow);
-			//var formulaSize = this.getFormula().getSizeOfMode(coordMode) || {};
-			var labelSize = ((coordMode === Kekule.CoordMode.COORD2D)? this.getLabelSize2D(): this.getLabelSize3D()) || {};
-			var result = Kekule.BoxUtils.createBox(coord, coord);
-			result = Kekule.BoxUtils.inflateBox(result,
-				(labelSize.x || 0) / 2, (labelSize.y || 0) / 2, (labelSize.z || 0) / 2);
-			return result;
 		}
 		else
 			return this.tryApplySuper('getContainerBox', [coordMode, allowCoordBorrow]);

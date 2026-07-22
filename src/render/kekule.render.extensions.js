@@ -687,9 +687,9 @@
 		{'name': 'coordPos3D', 'dataType': DataType.INT, 'scope':  Class.PropertyScope.PUBLIC,
 			'getter': function() { return this.getCoordPos(Kekule.CoordMode.COORD3D); }
 		},
-		// stores the size to render object label (formula or custo label)
-		{'name': 'labelSize2D', 'dataType': DataType.HASH, 'scope': Class.PropertyScope.PUBLISHED},
-		{'name': 'labelSize3D', 'dataType': DataType.HASH, 'scope': Class.PropertyScope.PUBLISHED},
+		// stores the bound box size to render object label (formula or custom label)
+		{'name': 'labelBoundBox2D', 'dataType': DataType.HASH, 'scope': Class.PropertyScope.PUBLISHED},
+		{'name': 'labelBoundBox3D', 'dataType': DataType.HASH, 'scope': Class.PropertyScope.PUBLISHED},
 		// special property, indicate whether the label has been changed and the size of label should be recalculated
 		{name: 'needRecalcSize', 'dataType': DataType.BOOL, 'scope': Class.PropertyScope.PUBLIC},
 
@@ -1688,6 +1688,42 @@
 		if (Kekule.ArrayUtils.intersect(['formula', 'renderOptions'], modifiedPropNames).length)
 			this.setNeedRecalcSize(true);
 	});
+
+	// overwrite the original method, using labelBoundBox to calculate the box when label is showing
+	ClassEx.extendMethod(Kekule.StructureFragment, 'getContainerBox', function($origin, coordMode, allowCoordBorrow) {
+		if (this.isCtabExposed())
+		{
+			return this.getCtab().getContainerBox(coordMode, allowCoordBorrow);
+		}
+		else if (this.isLabelExposed())
+		{
+			var baseCoord = this.getAbsCoordOfMode(coordMode, allowCoordBorrow);
+			//var formulaSize = this.getFormula().getSizeOfMode(coordMode) || {};
+			var labelBoundBox = ((coordMode === Kekule.CoordMode.COORD3D)? this.getLabelBoundBox3D(): this.getLabelBoundBox2D()) || {};
+			var result = {
+				x1: baseCoord.x + (labelBoundBox.x1 || 0), x2: baseCoord.x + (labelBoundBox.x2 || 0),
+				y1: baseCoord.y + (labelBoundBox.y1 || 0), y2: baseCoord.y + (labelBoundBox.y2 || 0)
+			};
+			if (coordMode === Kekule.CoordMode.COORD3D) {
+				result.z1 = labelBoundBox.z1 + baseCoord;
+				result.z2 = labelBoundBox.z2 + baseCoord;
+			}
+			return result;
+			/*
+            var result = Kekule.BoxUtils.createBox(coord, coord);
+            result = Kekule.BoxUtils.inflateBox(result,
+                (labelSize.x || 0) / 2, (labelSize.y || 0) / 2, (labelSize.z || 0) / 2);
+            // console.log('struct frag label size', labelSize, result);
+            return result;
+            */
+		}
+		else
+		{
+			return $origin(coordMode, allowCoordBorrow);
+			//return this.tryApplySuper('getContainerBox', [coordMode, allowCoordBorrow]);
+		}
+	});
+
 
 	ClassEx.extend(Kekule.SubGroup,
 	/** @lends Kekule.SubGroup# */

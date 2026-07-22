@@ -793,6 +793,15 @@ Kekule.Render.ChemObj2DRenderer = Class.create(Kekule.Render.Base2DRenderer,
 	/** @private */
 	CLASS_NAME: 'Kekule.Render.ChemObj2DRenderer',
 
+	/** @constructs */
+	initialize: function(/*$super, */chemObj, drawBridge, parent)
+	{
+		this.tryApplySuper('initialize', [chemObj, drawBridge, parent])  /* $super(chemObj, drawBridge, parent) */;
+		// flags about size auto recalculation
+		this.__$alwaysRecalcSize__ = false;
+		this.__$isRecalculatingObjBound = false;
+	},
+
 	/** @ignore */
 	_getRenderSortIndex: function(/*$super*/)
 	{
@@ -988,7 +997,6 @@ Kekule.Render.ChemObj2DRenderer = Class.create(Kekule.Render.Base2DRenderer,
 				result.translateX = baseCoord.x - boxCenter.x;
 				result.translateY = baseCoord.y - boxCenter.y;
 			}
-			//console.log('calc translate', baseCoord, boxCenter);
 		}
 		else
 		{
@@ -1159,8 +1167,6 @@ Kekule.Render.ChemObj2DRenderer = Class.create(Kekule.Render.Base2DRenderer,
 		result = this.getFinalTransformParams(context, result);
 		result.initialTransformOptions = initialTransformOptions;
 
-		//console.log('final render params: ', result);
-
 		return result;
 	},
 
@@ -1283,6 +1289,86 @@ Kekule.Render.ChemObj2DRenderer = Class.create(Kekule.Render.Base2DRenderer,
 	{
 		var matrix = this.getRenderCache(context).transformMatrix;
 		return Kekule.CoordUtils.transform2DByMatrix(coord, matrix);
+	},
+
+	/** @private */
+	_isChemObjNeedRecalcSize: function(chemObj)
+	{
+		return chemObj.getNeedRecalcSize && chemObj.getNeedRecalcSize();
+	},
+
+	/** @private */
+	_autosetObjSize: function(context, chemObj, rectBoundInfo, allowCoordBorrow, customObjBoundSetter)
+	{
+		if (this.__$isRecalculatingObjBound)  // avoid recursion
+			return;
+		if (this.capableOfAutoCalculateObjSize(chemObj) && chemObj.setNeedRecalcSize)
+		{
+			this.__$isRecalculatingObjBound = true;
+			try
+			{
+				var chemObjAbsCoord = chemObj.getAbsBaseCoord2D(allowCoordBorrow);
+				var coords = rectBoundInfo.coords;  // context coords
+				var objCoord1 = this.transformCoordToObj(context, chemObj, coords[0]);
+				var objCoord2 = this.transformCoordToObj(context, chemObj, coords[1]);
+				objCoord1 = CU.substract(objCoord1, chemObjAbsCoord);
+				objCoord2 = CU.substract(objCoord2, chemObjAbsCoord);
+				var boundBox = BU.createBox(objCoord1, objCoord2);
+
+				// var delta = Kekule.CoordUtils.substract(objCoord2, objCoord1);
+				// var size = {'x': Math.abs(delta.x), 'y': Math.abs(delta.y)};
+				if (customObjBoundSetter)
+				{
+					customObjBoundSetter(chemObj, boundBox);
+				}
+				else if (chemObj.updateAutoCalculatedBoundBoxOfModeSliently)
+				{
+					// use special method of chemObj to update and not trigger change event
+					chemObj.updateAutoCalculatedBoundBoxOfModeSliently(boundBox, Kekule.CoordMode.COORD2D);
+				}
+				else
+				{
+					this.updateAutoCalculatedObjBoundBox(chemObj, boundBox);
+				}
+				chemObj.setNeedRecalcSize(false);
+			}
+			finally
+			{
+				this.__$isRecalculatingObjBound = false;
+			}
+		}
+	},
+
+	/** @private */
+	autosetObjSizeIfNeeded: function(context, chemObj, rectBoundInfo, allowCoordBorrow, customObjSizeSetter)
+	{
+		// some chem object (e.g. text block) may need to set size automatically when drawing
+		if (this.getCanModifyTargetObj() && this._isChemObjNeedRecalcSize(chemObj) || (this.__$alwaysRecalcSize__))
+		{
+			this._autosetObjSize(context, chemObj, rectBoundInfo, allowCoordBorrow, customObjSizeSetter);
+		}
+	},
+
+	/** @private */
+	capableOfAutoCalculateObjSize: function(chemObj)
+	{
+		return chemObj.hasProperty('size2D') || chemObj.hasProperty('boundBox2D');
+	},
+
+	/** @private */
+	updateAutoCalculatedObjBoundBox: function(chemObj, boundBox)
+	{
+		if (chemObj.hasProperty('boundBox2D'))
+		{
+			// must not use setBoundBox2D, otherwise a new object change event will be triggered and a new update process will be launched
+			chemObj.setPropStoreFieldValue('boundBox2D', boundBox);
+		}
+		if (chemObj.hasProperty('size2D'))
+		{
+			var size = {'x': boundBox.x2 - boundBox.x1, 'y': boundBox.y2 - boundBox.y1};
+			// must not use setSize2D, otherwise a new object change event will be triggered and a new update process will be launched
+			chemObj.setPropStoreFieldValue('size2D', size);
+		}
 	}
 });
 
@@ -1302,9 +1388,6 @@ Kekule.Render.RichTextBased2DRenderer = Class.create(Kekule.Render.ChemObj2DRend
 	initialize: function(/*$super, */chemObj, drawBridge, parent)
 	{
 		this.tryApplySuper('initialize', [chemObj, drawBridge, parent])  /* $super(chemObj, drawBridge, parent) */;
-		// flags about size auto recalculation
-		this.__$alwaysRecalcSize__ = false;
-		this.__$isRecalculatingSize = false;
 	},
 	/** @private */
 	getDrawnObj: function(context)
@@ -1395,70 +1478,20 @@ Kekule.Render.RichTextBased2DRenderer = Class.create(Kekule.Render.ChemObj2DRend
 		this.getRenderCache(context).drawnObj = result.drawnObj;
 		this.setDrawnObj(context, result.drawnObj);
 
+		this.autosetObjSizeIfNeeded(context, chemObj, rectBoundInfo, options.allowCoordBorrow);
+
+		/*
 		// some chem object (e.g. text block) may need to set size automatically when drawing
 		if (this.getCanModifyTargetObj() && this._isChemObjNeedRecalcSize(chemObj) || (this.__$alwaysRecalcSize__))
 		{
 			this._autosetObjSize(context, chemObj, rectBoundInfo);
 		}
+		*/
 
 		return result.drawnObj;
 	},
 
-	/** @private */
-	_isChemObjNeedRecalcSize: function(chemObj)
-	{
-		return chemObj.getNeedRecalcSize && chemObj.getNeedRecalcSize();
-	},
 
-	/** @private */
-	_autosetObjSize: function(context, chemObj, rectBoundInfo)
-	{
-		if (this.__$isRecalculatingSize)  // avoid recursion
-			return;
-		if (this.capableOfAutoCalculateObjSize(chemObj) && chemObj.setNeedRecalcSize)
-		{
-			this.__$isRecalculatingSize = true;
-			try
-			{
-				var coords = rectBoundInfo.coords;  // context coords
-				var objCoord1 = this.transformCoordToObj(context, chemObj, coords[0]);
-				var objCoord2 = this.transformCoordToObj(context, chemObj, coords[1]);
-				var delta = Kekule.CoordUtils.substract(objCoord2, objCoord1);
-				var size = {'x': Math.abs(delta.x), 'y': Math.abs(delta.y)};
-				this.updateAutoCalculatedObjSize(chemObj, size);
-				if (chemObj.updateAutoCalculatedSizeOfModeSliently)
-				{
-					// use special method of chemObj to update and not trigger change event
-					chemObj.updateAutoCalculatedSizeOfModeSliently(size, Kekule.CoordMode.COORD2D);
-				}
-				else
-				{
-					this.updateAutoCalculatedObjSize(chemObj, size);
-				}
-				chemObj.setNeedRecalcSize(false);
-			}
-			finally
-			{
-				this.__$isRecalculatingSize = false;
-			}
-		}
-	},
-
-	/** @private */
-	capableOfAutoCalculateObjSize: function(chemObj)
-	{
-		return chemObj.hasProperty('size2D');
-	},
-
-	/** @private */
-	updateAutoCalculatedObjSize: function(chemObj, size)
-	{
-		if (chemObj.hasProperty('size2D'))
-		{
-			// must not use setSize2D, otherwise a new object change event will be triggered and a new update process will be launched
-			chemObj.setPropStoreFieldValue('size2D', size);
-		}
-	}
 });
 
 /**
@@ -3008,6 +3041,9 @@ Kekule.Render.ChemCtab2DRenderer = Class.create(Kekule.Render.Ctab2DRenderer,
 			boundInfo = this.createRectBoundInfo({x: rect.left, y: rect.top}, {x: rect.left + rect.width, y: rect.top + rect.height});
 			//console.log(rect);
 			result = elem;
+
+			// autoset size of this labeled subgroup
+			this.autosetObjSizeIfNeeded(context, node, boundInfo, options.allowCoordBorrow, this.updateAutoCalculatedSubNodeSize);
 		}
 		else
 		{
@@ -4468,6 +4504,24 @@ Kekule.Render.ChemCtab2DRenderer = Class.create(Kekule.Render.Ctab2DRenderer,
 		var result = {'element': elem};
 		result.boundInfo = this.createLineBoundInfo(coord1, coord2, arcRadius);
 		return result;
+	},
+
+	// we may need to auto set the size of child subgroups (by label), so these auto size calculation methods are needed
+	/** @ignore */
+	capableOfAutoCalculateObjSize: function(chemObj)
+	{
+		return chemObj.hasProperty('labelBoundBox2D') || this.tryApplySuper('capableOfAutoCalculateObjSize', [chemObj]);
+	},
+	/** @ignore */
+	updateAutoCalculatedSubNodeSize: function(chemObj, boundBox)
+	{
+		if (chemObj.hasProperty('labelBoundBox2D'))
+		{
+			// must not use setSize2D, otherwise a new object change event will be triggered and a new update process will be launched
+			chemObj.setPropStoreFieldValue('labelBoundBox2D', boundBox);
+		}
+		else
+			this.tryApplySuper('updateAutoCalculatedObjBoundBox', [chemObj, boundBox]);
 	}
 });
 
@@ -4495,10 +4549,18 @@ Kekule.Render.ChemNodeLabel2DRenderer = Class.create(Kekule.Render.RichTextBased
 		if (chemObj)
 		{
 			var coord = chemObj.getAbsBaseCoord2D(allowCoordBorrow);
+			var boundBox = chemObj.getLabelBoundBox2D? chemObj.getLabelBoundBox2D(): {x1: 0, y1: 0, x2: 0, y2: 0};
+			var result = {
+				x1: coord.x + (boundBox.x1 || 0), x2: coord.x + (boundBox.x2 || 0),
+				y1: coord.y + (boundBox.y1 || 0), y2: coord.y + (boundBox.y2 || 0)
+			};
+			/*
 			var size2D = chemObj.getLabelSize2D ? chemObj.getLabelSize2D() : {x: 0, y: 0};
 			var xDelta = (size2D.x || 0) / 2;
 			var yDelta = (size2D.y || 0) / 2;
-			return BU.createBox({'x': coord.x - xDelta, 'y': coord.y - yDelta}, {'x': coord.x + xDelta, 'y': coord.y + yDelta});
+			var result = BU.createBox({'x': coord.x - xDelta, 'y': coord.y - yDelta}, {'x': coord.x + xDelta, 'y': coord.y + yDelta});
+			*/
+			return result;
 		}
 		else
 			return null;
@@ -4525,18 +4587,18 @@ Kekule.Render.ChemNodeLabel2DRenderer = Class.create(Kekule.Render.RichTextBased
 	/** @ignore */
 	capableOfAutoCalculateObjSize: function(chemObj)
 	{
-		return chemObj.hasProperty('labelSize2D');
+		return chemObj.hasProperty('labelBoundBox2D') || this.tryApplySuper('capableOfAutoCalculateObjSize', [chemObj]);
 	},
 	/** @ignore */
-	updateAutoCalculatedObjSize: function(chemObj, size)
+	updateAutoCalculatedObjBoundBox: function(chemObj, boundBox)
 	{
-		if (chemObj.hasProperty('labelSize2D'))
+		if (chemObj.hasProperty('labelBoundBox2D'))
 		{
-			// must not use setSize2D, otherwise a new object change event will be triggered and a new update process will be launched
-			chemObj.setPropStoreFieldValue('labelSize2D', size);
+			// must not use setLabelBoundBox2D, otherwise a new object change event will be triggered and a new update process will be launched
+			chemObj.setPropStoreFieldValue('labelBoundBox2D', boundBox);
 		}
 		else
-			this.tryApplySuper('updateAutoCalculatedObjSize', [chemObj, size]);
+			this.tryApplySuper('updateAutoCalculatedObjBoundBox', [chemObj, boundBox]);
 	}
 });
 
