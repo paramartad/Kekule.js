@@ -1035,7 +1035,10 @@
 				showCharge = true;
 
 			var result = R.RichTextUtils.create();
-			var displayLabelRtItem = this.getDisplayLabelRichTextItem(hydrogenDisplayLevel, showCharge, displayLabelConfigs, partialChargeDecimalsLength, chargeMarkType, distinguishSingletAndTripletRadical);
+			var displayLabelRtItem = this.getCustomDisplayLabelRichTextItem(hydrogenDisplayLevel, showCharge, displayLabelConfigs, partialChargeDecimalsLength, chargeMarkType, distinguishSingletAndTripletRadical);
+			if (!displayLabelRtItem)
+				displayLabelRtItem = this.getDisplayLabelRichTextItem(hydrogenDisplayLevel, showCharge, displayLabelConfigs, partialChargeDecimalsLength, chargeMarkType, distinguishSingletAndTripletRadical);
+
 			var coreItem;
 			if (displayLabelRtItem)
 			{
@@ -1091,6 +1094,11 @@
 		},
 		/** @private */
 		getDisplayLabelRichTextItem: function(hydrogenDisplayLevel, showCharge, displayLabelConfigs, partialChargeDecimalsLength, chargeMarkType, distinguishSingletAndTripletRadical)
+		{
+			return null;
+		},
+		/** @private */
+		getCustomDisplayLabelRichTextItem: function(hydrogenDisplayLevel, showCharge, displayLabelConfigs, partialChargeDecimalsLength, chargeMarkType, distinguishSingletAndTripletRadical)
 		{
 			var R = Kekule.Render;
 			var result;
