@@ -517,14 +517,15 @@ Object.extend(Kekule.Isotope,
  */
 Kekule.IsotopeFactory = {
 	/** @private */
-	GENERIC_ELEMENT_ID: '__GENERIC__',
+	//GENERIC_ELEMENT_ID: '__GENERIC__',
 	/** @private */
 	_isotopes: {},
 	/** @private */
 	getIsotopeId: function(symbolOrAtomicNumber, massNumber)
 	{
 		if (!symbolOrAtomicNumber)  // an generic element
-			return Kekule.IsotopeFactory.GENERIC_ELEMENT_ID;
+			return null;
+			//return Kekule.IsotopeFactory.GENERIC_ELEMENT_ID;
 		else
 			return Kekule.IsotopesDataUtil.getIsotopeId(symbolOrAtomicNumber, massNumber);
 	},
@@ -537,6 +538,8 @@ Kekule.IsotopeFactory = {
 	getIsotope: function(symbolOrAtomicNumber, massNumber)
 	{
 		var id = Kekule.IsotopeFactory.getIsotopeId(symbolOrAtomicNumber, massNumber);
+		if (!id)
+			Kekule.chemError(Kekule.$L('ErrorMsg.INVALID_ISOTOPE'));
 		if (!Kekule.IsotopeFactory._isotopes[id])
 		{
 			var isotope = new Kekule.Isotope(symbolOrAtomicNumber, massNumber);
