@@ -1538,7 +1538,7 @@ Kekule.CondensedFormulaUtils = {
 	 * @param {String} text
 	 * @param {Int} linkedBondOrder If need to create a subgroup, this indicating the order of bond linked to main structure. Otherwise, the order should be 0.
 	 * @param {Array} subgroupItems	Repository subgroup items using for parsing the text.
-	 * @param {Hash} options May have field {formula: bool, structure: bool(default true), structureClass: Class}.
+	 * @param {Hash} options May have field {formula: bool, structure: bool(default true), structureClass: Class, atomSymbolWhitelist: []}.
 	 * @returns {Kekule.StructureFragment}
 	 */
 	parse: function(text, linkedBondOrder, subgroupItems, options)
@@ -1927,6 +1927,14 @@ Kekule.CondensedFormulaUtils = {
 				*/
 				var unitInfo = getCurrUnit(true);
 				unitInfo.structType = 'atom';
+
+				// check if the atom symbol is in white list
+				if (options.atomSymbolWhitelist && options.atomSymbolWhitelist.length)
+				{
+					if (!options.atomSymbolWhitelist.indexOf(atomSymbol) >= 0)
+						throw new Error(Kekule.$L(ErrorMsg.ATOM_SYMBOL_NOT_IN_CONDENSED_FORMULA_WHITELIST).replaceAll('{0}', atomSymbol));
+				}
+
 				// check of the atom symbol is correct
 				if (!Kekule.IsotopesDataUtil.getIsotopeId(atomSymbol))
 				{
