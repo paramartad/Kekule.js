@@ -4935,7 +4935,10 @@ Kekule.Editor.MolAtomIaController = Class.create(Kekule.Editor.BaseEditorIaContr
 	getEmbeddedSetter: function()
 	{
 		if (!this._embeddedSetter)
+		{
 			this._embeddedSetter = this.getEditor().getEmbeddedSetter(Kekule.Editor.EmbeddedSetter.MolAtom);
+			this._embeddedSetter.setRepositorySubgroupItems(Kekule.Editor.RepositoryData.subGroups);
+		}
 		return this._embeddedSetter
 	},
 

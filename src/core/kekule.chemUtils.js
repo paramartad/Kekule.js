@@ -23,6 +23,45 @@ var AU = Kekule.ArrayUtils;
  */
 Kekule.ChemStructureUtils = {
 	/**
+	 * Returns the cross connectors of subgroup, or connectors of a normal node.
+	 * All these returned connectors are connecting a internal point of node to a external point.
+	 * @param {Kekule.ChemStructureNode} node
+	 * @returns {Array}
+	 */
+	getChemNodeXConnectors: function(node)
+	{
+		var connectors = [];
+		if (node instanceof Kekule.StructureFragment)
+		{
+			connectors = node.getCrossConnectors();
+		}
+		else if (node instanceof Kekule.ChemStructureNode)
+		{
+			connectors = node.getLinkedConnectors();
+		}
+		return connectors;
+	},
+	/**
+	 * Returns the order sum of all cross connectors of a node.
+	 * @param {Kekule.ChemStructureNode} node
+	 * @returns {Int}
+	 */
+	getChemNodeXConnectorsOrderSum: function(node)
+	{
+		var connectors = Kekule.ChemStructureUtils.getChemNodeXConnectors(node);
+		var result = 0;
+		for (var i = 0, l = connectors.length; i < l; ++i)
+		{
+			var connector = connectors[i];
+			if (connector instanceof Kekule.Bond && connector.isCovalentBond())
+			{
+				var bondOrder = connector.getBondOrder() || 0;
+				result += bondOrder;
+			}
+		}
+		return result;
+	},
+	/**
 	 * Returns median of all input connector lengths.
 	 * @param {Array} connectors
 	 * @param {Int} coordMode
@@ -1562,13 +1601,13 @@ Kekule.CondensedFormulaUtils = {
 					result.structureUnits = creationResult.result.structureUnits;
 				if (outputFormula)
 				{
-					var formula = Kekule.CondensedFormulaUtils._doCreateFormulaFromUnitList(creationResult.result.structureUnits, op);
+					var formula = Kekule.CondensedFormulaUtils._doCreateFormulaFromUnitList(creationResult.result.structureUnits, op, subgroupInfoMap);
 					if (formula)
 						result.formula = formula;
 				}
 				if (outputRichText)
 				{
-					var rt = Kekule.CondensedFormulaUtils._createRichTextLabelFromUnitList(creationResult.result.structureUnits, op);
+					var rt = Kekule.CondensedFormulaUtils._createRichTextLabelFromUnitList(creationResult.result.structureUnits, op, subgroupInfoMap);
 					if (rt)
 						result.richText = rt;
 				}
@@ -2064,6 +2103,17 @@ Kekule.CondensedFormulaUtils = {
 
 		// after the validation, flatten the structure
 		fragment.unmarshalAllSubFragments(true);
+
+		// and marks the anchorNodes
+		if (incomingBondOrder > 0 && anchorNodes.length)
+		{
+			//fragment.setAnchorNodes(anchorNodes);
+			for (var i = 0, l = anchorNodes.length; i < l; ++i)
+			{
+				anchorNodes[i].setIsAnchor(true);
+			}
+		}
+
 		return {
 			frag: fragment,
 			anchorNodesLeading: creationResult.anchorNodesLeading, anchorNodesTailing: creationResult.anchorNodesTailing,
@@ -2092,6 +2142,24 @@ Kekule.CondensedFormulaUtils = {
 				anchorNodeList.push(currAnchorNode);
 			if (anchorNodeList.indexOf(prevAnchorNode) < 0)
 				anchorNodeList.push(prevAnchorNode);
+		};
+
+		var markChildNotApplicableForAutoRefLength = function(structFrag)
+		{
+			// TODO: we simply use visible to do the flag
+			for (var i = 0, l = structFrag.getChildCount(); i < l; ++i)
+			{
+				var child = structFrag.getChildAt(i);
+				if (child instanceof Kekule.StructureFragment)
+				{
+					markChildNotApplicableForAutoRefLength(child);
+					child.setVisible(false);
+				}
+				else if (child instanceof Kekule.ChemStructureNode || child instanceof Kekule.ChemStructureConnector)
+				{
+					child.setVisible(false);
+				}
+			}
 		};
 
 		var op = Object.create(options || {});
@@ -2184,6 +2252,10 @@ Kekule.CondensedFormulaUtils = {
 			*/
 		}
 
+		// since we do not consider the coords of atoms in the struct frag generation, mark all connectors/nodes as not usable in auto ref length calculation
+		if (result)
+			markChildNotApplicableForAutoRefLength(result);
+
 		return {
 			frag: result,
 			anchorNodes: possibleGroupAnchorSeq[0],
@@ -2203,15 +2275,13 @@ Kekule.CondensedFormulaUtils = {
 		}
 		else if (structUnit.structType === 'subgroup')
 		{
-			/*
-            var frag = subgroupInfoMap.get(structUnit.originTokenInfo);
-            if (!frag)
+            var srcFrag = subgroupInfoMap.get(structUnit);
+            if (!srcFrag)
             {
-                frag = Kekule.CondensedFormulaUtils._loadSubgroup(structUnit.subgroup);
-                subgroupInfoMap.set(structUnit.originTokenInfo, frag);
+                srcFrag = Kekule.CondensedFormulaUtils._loadSubgroup(structUnit.subgroup);
+                subgroupInfoMap.set(structUnit, srcFrag);
             }
-            */
-			var frag = Kekule.CondensedFormulaUtils._loadSubgroup(structUnit.subgroup);
+			var frag = srcFrag.clone();
 			var anchorNodes = frag.getAnchorNodes();
 			if (!anchorNodes || !anchorNodes.length && frag.getNodeCount())
 				anchorNodes = [frag.getNodes()[0]];
@@ -2233,11 +2303,11 @@ Kekule.CondensedFormulaUtils = {
 		return result;
 	},
 
-	_createFormulaFromUnitList: function(structUnitList, options)
+	_createFormulaFromUnitList: function(structUnitList, options, subgroupInfoMap)
 	{
-		return Kekule.CondensedFormulaUtils._doCreateFormulaFromUnitList(structUnitList, options);
+		return Kekule.CondensedFormulaUtils._doCreateFormulaFromUnitList(structUnitList, options, subgroupInfoMap);
 	},
-	_doCreateFormulaFromUnitList: function(structUnitList, options)
+	_doCreateFormulaFromUnitList: function(structUnitList, options, subgroupInfoMap)
 	{
 		var result = new Kekule.MolecularFormula();
 		for (var i = 0, l = structUnitList.length; i < l; ++i)
@@ -2247,7 +2317,7 @@ Kekule.CondensedFormulaUtils = {
 			if (structUnit.structType === 'branch')
 			{
 				// create sub formula
-				subObj = Kekule.CondensedFormulaUtils._doCreateFormulaFromUnitList(structUnit.branch, options);
+				subObj = Kekule.CondensedFormulaUtils._doCreateFormulaFromUnitList(structUnit.branch, options, subgroupInfoMap);
 			}
 			else if (structUnit.structType === 'subgroup')
 			{
@@ -2255,7 +2325,7 @@ Kekule.CondensedFormulaUtils = {
 			}
 			else if (structUnit.structType === 'atom')
 			{
-				var fragResult = Kekule.CondensedFormulaUtils._doCreateStructNodeFromUnitEx(structUnit, 0, 0, options, null);
+				var fragResult = Kekule.CondensedFormulaUtils._doCreateStructNodeFromUnitEx(structUnit, 0, 0, options, subgroupInfoMap);
 				subObj = fragResult && fragResult.frag;  // get the concrete atom object
 			}
 			if (subObj)
@@ -2280,11 +2350,11 @@ Kekule.CondensedFormulaUtils = {
 		return result;
 	},
 
-	_createRichTextLabelFromUnitList: function(structUnitList, options)
+	_createRichTextLabelFromUnitList: function(structUnitList, options, subgroupInfoMap)
 	{
-		return Kekule.CondensedFormulaUtils._doCreateRichTextLabelFromUnitListEx(structUnitList, options).richText;
+		return Kekule.CondensedFormulaUtils._doCreateRichTextLabelFromUnitListEx(structUnitList, options, subgroupInfoMap).richText;
 	},
-	_doCreateRichTextLabelFromUnitListEx: function(structUnitList, options)
+	_doCreateRichTextLabelFromUnitListEx: function(structUnitList, options, subgroupInfoMap)
 	{
 		if (!Kekule.Render || !Kekule.Render.RichTextUtils)
 			return null;
@@ -2296,13 +2366,15 @@ Kekule.CondensedFormulaUtils = {
 		for (var i = 0, l = structUnitList.length; i < l; ++i)
 		{
 			var RTU = Kekule.Render.RichTextUtils;
-			var subRt = null;
+			var subRts = [];
 			var structUnit = structUnitList[i];
 			if (structUnit.structType === 'branch')
 			{
+				var subRt = RTU.createGroup('group', {'charDirection': Kekule.Render.TextDirection.LTR});
 				// create sub rich text
-				var branchResult = Kekule.CondensedFormulaUtils._doCreateRichTextLabelFromUnitListEx(structUnit.branch, options);
-				var subRt = branchResult.richText;
+				var branchResult = Kekule.CondensedFormulaUtils._doCreateRichTextLabelFromUnitListEx(structUnit.branch, options, subgroupInfoMap);
+				RTU.append(subRt, branchResult.richText);
+				// var subRt = branchResult.richText;
 				var insideBranchLevel = branchResult.maxBranchLevel;
 				if (maxBranchLevel < insideBranchLevel + 1)
 					maxBranchLevel = insideBranchLevel + 1;
@@ -2310,20 +2382,34 @@ Kekule.CondensedFormulaUtils = {
 				// surround it with bracket
 				var bracketPairs = Kekule.CondensedFormulaUtils.FORMULA_BRACKETS;
 				var bracketPair = bracketPairs[insideBranchLevel % bracketPairs.length];
-				RTU.insertText(subRt, 0,bracketPair[0], null, false);
-				RTU.appendText(subRt, bracketPair[1], null, false);
+				RTU.insertText(subRt, 0, bracketPair[0], {_noAnchor: true}, false);
+				RTU.appendText(subRt, bracketPair[1], {_noAnchor: true}, false);
+				//subRt._noAnchor = true;
+				subRts.push(subRt);
 			}
 			else if (structUnit.structType === 'subgroup')
 			{
-				if (structUnit.text.match(/.+\d/))  // has number in text, may be formula
+				var subRt = null;
+				var subgroup = subgroupInfoMap.get(structUnit);
+				var textIsPlain = false;
+				if (subgroup)
+				{
+					textIsPlain = (subgroup.formulaText !== structUnit.text) && (subgroup.abbr === structUnit.text);
+				}
+				else
+				{
+					textIsPlain = !structUnit.text.match(/.+\d/);  // has number in text, may be formula
+				}
+				if (!textIsPlain)  // has number in text, may be formula
 				{
 					var formula = Kekule.FormulaUtils.textToFormula(structUnit.text);
 					subRt = Kekule.Render.ChemDisplayTextUtils.formulaToRichText(formula, true);
 				}
 				else   // can use plain text
 				{
-					subRt = RTU.strToRichText(structUnit.text);
+					subRt = RTU.strToRichText(structUnit.text, {'charDirection': Kekule.Render.TextDirection.LTR});
 				}
+				subRts.push(subRt);
 			}
 			else if (structUnit.structType === 'atom')
 			{
@@ -2333,23 +2419,66 @@ Kekule.CondensedFormulaUtils = {
 				if (atom)
 				{
 					var formula = new Kekule.MolecularFormula();
+					// get the Hx part
+					var hPart = null;
+					if (structUnit.hCount) {
+						formula.appendSection(hAtom, structUnit.hCount, 0);
+						hPart = Kekule.Render.ChemDisplayTextUtils.formulaToRichText(formula, true);
+					}
+					// the main part
+					formula.clear();
+					formula.appendSection(atom, structUnit.count || 1, (structUnit.chargeSignal || 0) * (structUnit.chargeMultiple || 1));
+					var mainPart = Kekule.Render.ChemDisplayTextUtils.formulaToRichText(formula, true);
+
+					if (structUnit.hOrder < 0)
+						subRts.push(hPart);
+					subRts.push(mainPart)
+					if (structUnit.hOrder > 0)
+						subRts.push(hPart);
+					/*
+					subRt = Kekule.Render.RichTextUtils.create();
+					if (structUnit.hOrder < 0)
+						Kekule.Render.RichTextUtils.append(subRt, hPart);
+					Kekule.Render.RichTextUtils.append(subRt, mainPart);
+					if (structUnit.hOrder > 0)
+						Kekule.Render.RichTextUtils.append(subRt, hPart);
+					subRt.anchorItem = mainPart;
+					*/
+					/*
 					if (structUnit.hCount && structUnit.hOrder < 0)
 						formula.appendSection(hAtom, structUnit.hCount, 0);
 					formula.appendSection(atom, structUnit.count || 1, (structUnit.chargeSignal || 0) * (structUnit.chargeMultiple || 1));
 					if (structUnit.hCount && structUnit.hOrder > 0)
 						formula.appendSection(hAtom, structUnit.hCount, 0);
 					subRt = Kekule.Render.ChemDisplayTextUtils.formulaToRichText(formula, true);
+					*/
 				}
 			}
 
-			if (subRt)
+			if (subRts && subRts.length)
 			{
 				if (structUnit.incomingBondOrder && structUnit.incomingBondOrder > BO.SINGLE)
 				{
 					var bondSymbol = Kekule.FormulaUtils.getBondSymbol(structUnit.incomingBondOrder);
-					RTU.insertText(subRt, 0, bondSymbol, false);
+					//RTU.insertText(subRt, 0, bondSymbol, false);
+					RTU.insertText(subRts[0], 0, bondSymbol, false);
 				}
-				RTU.append(resultRt, subRt);
+				if (structUnit.count && structUnit.count > 1)
+				{
+					var countPart = RTU.strToRichText(structUnit.count.toString(), {'textType': Kekule.Render.RichText.SUB});
+					subRts.push(countPart);
+				}
+
+				if (subRts.length <= 1)
+					RTU.append(resultRt, subRts[0]);
+				else
+				{
+					var rtGroup = RTU.createGroup('group', {'charDirection': Kekule.Render.TextDirection.LTR});
+					RTU.appendItems(rtGroup, subRts)
+					RTU.append(resultRt, rtGroup);
+				}
+
+				//RTU.appendItems(resultRt, subRts);
 			}
 		}
 

@@ -1302,7 +1302,7 @@ Kekule.Render.ChemObj2DRenderer = Class.create(Kekule.Render.Base2DRenderer,
 	{
 		if (this.__$isRecalculatingObjBound)  // avoid recursion
 			return;
-		if (this.capableOfAutoCalculateObjSize(chemObj) && chemObj.setNeedRecalcSize)
+		if (this.capableOfAutoCalculateObjSize(chemObj) && chemObj.hasProperty('needRecalcSize'))
 		{
 			this.__$isRecalculatingObjBound = true;
 			try
@@ -1330,7 +1330,8 @@ Kekule.Render.ChemObj2DRenderer = Class.create(Kekule.Render.Base2DRenderer,
 				{
 					this.updateAutoCalculatedObjBoundBox(chemObj, boundBox);
 				}
-				chemObj.setNeedRecalcSize(false);
+				//chemObj.setNeedRecalcSize(false);
+				chemObj.setPropStoreFieldValue('needRecalcSize', false);
 			}
 			finally
 			{
@@ -2641,6 +2642,14 @@ Kekule.Render.ChemCtab2DRenderer = Class.create(Kekule.Render.Ctab2DRenderer,
 	//* @private */
 	//OBJ_HIDDEN_FIELD: '__$hidden__',
 
+	/** @constructs */
+	initialize: function(chemObj, drawBridge, parent)
+	{
+		this.tryApplySuper('initialize', [chemObj, drawBridge, parent])  /* $super(chemObj, drawBridge, parent) */;
+		// since any little change of a structure fragment may affect the drawing direction of subgroup labels, so set this flag always true
+		this.__$alwaysRecalcSize__ = false;
+	},
+
 	/*
 	 * Note: param passing to this function may be node or connector.
 	 * @private
@@ -3019,6 +3028,10 @@ Kekule.Render.ChemCtab2DRenderer = Class.create(Kekule.Render.Ctab2DRenderer,
 			//console.log('nodeCharDirection', nodeRenderOptions.charDirection);
 			//label.charDirection = !nodeRenderOptions.charDirection ? this._decideNodeLabelCharDirection(context, node) : nodeRenderOptions.charDirection;
 			var labelCharDirection = !nodeRenderOptions.charDirection ? this._decideNodeLabelCharDirection(context, node) : nodeRenderOptions.charDirection;
+
+			// explicitly set the anchor item (drawing on the coord)
+			label = Kekule.Render.RichTextUtils.clone(label);
+			Kekule.Render.RichTextUtils.autoSetAnchorItem(label, true);
 
 			// recalc font size to px
 			//richTextDrawOptions.fontSize *= localLabelDrawOptions.unitLength || renderConfigs.getLengthConfigs().getUnitLength();

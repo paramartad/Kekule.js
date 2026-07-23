@@ -716,7 +716,7 @@
 
 .K-ChemEditor-Atom-Setter
 {
-    width: 8em;
+    width: 15em;
 }
 
 .K-ChemEditor-Formula-Setter,
@@ -1054,6 +1054,13 @@
     font-size: 1.2em;
     /*line-height: 0.833em;*/
     vertical-align: middle;  /* solve the align problem of modifier buttons in Chrome */
+}
+.K-Chem-Composer-ObjModifier-Toolbar .K-Chem-Composer-AtomModifier-Button .K-Text-Content
+{
+    max-width: 5em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
 }
 .K-Chem-Composer-ObjModifier-Toolbar .K-Chem-Composer-AtomModifier-Button .K-Text-Content,
 .K-Chem-Composer-ObjModifier-Toolbar .K-Chem-Composer-ChargeModifier-Button .K-Text-Content

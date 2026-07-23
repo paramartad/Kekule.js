@@ -545,11 +545,37 @@ Kekule.Editor.OperationUtils = {
 			operGroup = new Kekule.MacroOperation();
 			if (!newNode)
 				newNode = new newNodeClass();
+			else
+			{
+				// important, do not use the original newNode, since this modification data may be applied to multiple target nodes, each modification should have a unique newNode instance
+				newNode = newNode.clone();
+			}
 			var tempNode = new Kekule.ChemStructureNode();
 			tempNode.assign(node);
-			newNode.assign(tempNode);  // copy some basic info of old node
+
+			// clear some properties of temp node, avoid affect the new inserted node
+			if (tempNode instanceof Kekule.SubGroup)
+				tempNode.setAbbr(undefined).setFormulaText(undefined);
+			tempNode.setRenderOption('customLabel', undefined);
+			tempNode.setRenderOption('customRtLabel', undefined);
+
+			newNode.assign(tempNode);  // copy some basic info of old node to new Node
+
 			var operReplace = new Kekule.ChemStructOperation.ReplaceNode(node, newNode, null, editor);
 			operGroup.add(operReplace);
+			if (modifiedProps)  // using renderOptions to set custom label of subgroup
+			{
+				if (modifiedProps.renderOptions)
+				{
+					var operRenderOptions = new Kekule.ChemObjOperation.ModifyRenderOptions(newNode, modifiedProps.renderOptions);
+					operGroup.add(operRenderOptions);
+					delete modifiedProps.renderOptions;
+				}
+				/*
+				var operModify = new Kekule.ChemObjOperation.Modify(newNode, modifiedProps, editor);
+				operGroup.add(operModify);
+				*/
+			}
 		}
 		else  // no need to replace
 			newNode = node;
@@ -587,7 +613,8 @@ Kekule.Editor.OperationUtils = {
 		var nodeClass = newData.nodeClass;
 		var modifiedProps = newData.props;
 		var repItem = newData.repositoryItem;
-		var newNode;
+		var newNode = newData.newNode;
+		var customRtLabel = newData.customRtLabel;
 
 		if (repItem)  // need to apply structure repository item
 		{
@@ -597,6 +624,12 @@ Kekule.Editor.OperationUtils = {
 			editor.transformCoordAndSizeOfObjects(repObjects, transformParams);
 			newNode = repObjects[0];
 			nodeClass = newNode.getClass();
+		}
+		else if (newNode)   // subgroup but not repository item
+		{
+			// the setter created a new node already, just use it
+			nodeClass = newNode.getClass();
+			// TODO: new node coord transform is needed
 		}
 
 		if (newData.isUnknownPseudoatom && !editor.getEditorConfigs().getInteractionConfigs().getAllowUnknownAtomSymbol())
@@ -646,6 +679,10 @@ Kekule.Editor.OperationUtils = {
 						delete mProps.inputHydrogenCount;
 						//console.log('explicit HCount', mProps.inputHydrogenCount, newImplicitHCount);
 					}
+				}
+				if (customRtLabel)
+				{
+					mProps.customRtLabel = customRtLabel;
 				}
 			}
 			return Kekule.Editor.OperationUtils.createNodeModificationOperation(node, newNode, nodeClass, mProps, editor);

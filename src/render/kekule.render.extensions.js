@@ -968,7 +968,22 @@
 		 */
 		getAllAutoScaleRefLengths: function(coordMode, allowCoordBorrow)
 		{
-			return [this.getLength(coordMode, allowCoordBorrow)];
+			var length = this.getLength(coordMode, allowCoordBorrow);
+			if (length)
+				return [length];
+			// TODO: now only use the visible connector between two visible nodes to calculate the length
+			if (!this.getVisible())
+				return [];
+			var objs = this.getConnectedObjs();
+			if (objs.length !== 2)
+				return [];
+			if (!objs[0].getVisible() || !objs[1].getVisible())
+				return [];
+			var length = this.getLength(coordMode, allowCoordBorrow);
+			if (length)
+				return [length];
+			else
+				return [];
 		}
 	});
 
@@ -1082,13 +1097,29 @@
 			if (showCharge)
 				result = this.appendElectronStateDisplayText(result);
 			*/
-
 			//console.log('rich text', result);
 
 			return result;
 		},
 		/** @private */
-		getCoreDisplayRichTextItem: function(hydrogenDisplayLevel, showCharge, displayLabelConfigs, partialChargeDecimalsLength){
+		getCoreDisplayRichTextItem: function(hydrogenDisplayLevel, showCharge, displayLabelConfigs, partialChargeDecimalsLength, chargeMarkType, distinguishSingletAndTripletRadical){
+			var displayLabelRtItem = this.getCustomDisplayLabelRichTextItem(hydrogenDisplayLevel, showCharge, displayLabelConfigs, partialChargeDecimalsLength, chargeMarkType, distinguishSingletAndTripletRadical);
+			if (!displayLabelRtItem)
+				displayLabelRtItem = this.getDisplayLabelRichTextItem(hydrogenDisplayLevel, showCharge, displayLabelConfigs, partialChargeDecimalsLength, chargeMarkType, distinguishSingletAndTripletRadical);
+
+			var coreItem;
+			if (displayLabelRtItem)
+			{
+				coreItem = displayLabelRtItem;
+			}
+			else
+			{
+				coreItem = this.getCoreChemDisplayRichTextItem(hydrogenDisplayLevel, showCharge, displayLabelConfigs, partialChargeDecimalsLength);
+			}
+			return coreItem;
+		},
+		/** @private */
+		getCoreChemDisplayRichTextItem: function(hydrogenDisplayLevel, showCharge, displayLabelConfigs, partialChargeDecimalsLength, chargeMarkType, distinguishSingletAndTripletRadical){
 			// do nothing here, descendants need to override this method.
 			return null;
 		},
@@ -1107,6 +1138,11 @@
 			if (rtLabel)
 			{
 				result = R.RichTextUtils.clone(rtLabel);
+				/*
+				// set the anchor item
+				if (result.items && result.items.length)
+					result.anchorItem = result.items[0];
+				*/
 			}
 			else if (customLabel)
 			{
@@ -1114,6 +1150,7 @@
 			}
 			return result;
 		},
+
 		/**
 		 * Returns the text string of display label (custom label or rich text label).
 		 * @return {string}
@@ -1215,18 +1252,18 @@
 			{
 				if (hcount > 1)
 				{
-					var group = R.RichTextUtils.createGroup();
+					var group = R.RichTextUtils.createGroup(null, {_noAnchor: true});
 					group.charDirection = Kekule.Render.TextDirection.LTR;
 					// TODO: 'H' is fixed here, but actually it should be read from element symbol database.
 					var item = R.RichTextUtils.appendText2(group, 'H');
 
 					R.RichTextUtils.appendText(group, hcount.toString(), {
-						'textType': R.RichText.SUB, 'refItem': item
+						'textType': R.RichText.SUB, /*'refItem': item,*/ '_noAnchor': true
 					});
 					R.RichTextUtils.append(richText, group);
 				}
 				else  // hcount == 1
-					R.RichTextUtils.appendText(richText, 'H');
+					R.RichTextUtils.appendText(richText, 'H', {_noAnchor: true});
 			}
 			return richText;
 		}
@@ -1235,7 +1272,7 @@
 	ClassEx.extend(Kekule.Atom,
 	/** @lends Kekule.Atom# */
 	{
-		getCoreDisplayRichTextItem: function(hydrogenDisplayLevel, showCharge, displayLabelConfigs, partialChargeDecimalsLength)
+		getCoreChemDisplayRichTextItem: function(hydrogenDisplayLevel, showCharge, displayLabelConfigs, partialChargeDecimalsLength)
 		{
 			var R = Kekule.Render;
 			var result = R.RichTextUtils.createGroup();
@@ -1279,7 +1316,7 @@
 	/** @lends Kekule.Pseudoatom# */
 	{
 		/** @ignore */
-		getCoreDisplayRichTextItem: function(hydrogenDisplayLevel, showCharge, displayLabelConfigs, partialChargeDecimalsLength)
+		getCoreChemDisplayRichTextItem: function(hydrogenDisplayLevel, showCharge, displayLabelConfigs, partialChargeDecimalsLength)
 		{
 			var R = Kekule.Render;
 			var s;
@@ -1327,7 +1364,7 @@
 	/** @lends Kekule.VariableAtom# */
 	{
 		/** @ignore */
-		getCoreDisplayRichTextItem: function(hydrogenDisplayLevel, showCharge, displayLabelConfigs, partialChargeDecimalsLength)
+		getCoreChemDisplayRichTextItem: function(hydrogenDisplayLevel, showCharge, displayLabelConfigs, partialChargeDecimalsLength)
 		{
 			var R = Kekule.Render;
 			var D = displayLabelConfigs;
@@ -1645,7 +1682,8 @@
 		 */
 		getAllAutoScaleRefLengths: function(coordMode, allowCoordBorrow)
 		{
-			if (this.hasCtab())
+			//if (this.hasCtab())
+			if (this.isCtabExposed())
 				return this.getCtab().getAllAutoScaleRefLengths(coordMode, allowCoordBorrow);
 			else
 				return null;
@@ -1693,8 +1731,12 @@
 
 	ClassEx.extendMethod(Kekule.StructureFragment, 'doObjectChange', function($origin, modifiedPropNames) {
 		// when formula changed, or custom label in renderOptions changed, label size may need to be recalculated
-		if (Kekule.ArrayUtils.intersect(['formula', 'renderOptions'], modifiedPropNames).length)
+		// when a subgroup's coord changes, the direction of label rendering may also change
+		if (Kekule.ArrayUtils.intersect(['formula', 'renderOptions', 'coord2D', 'coord3D'], modifiedPropNames).length)
+		{
+			// console.log('!!!set need recalc size true', this.getId());
 			this.setNeedRecalcSize(true);
+		}
 	});
 
 	// overwrite the original method, using labelBoundBox to calculate the box when label is showing

@@ -629,6 +629,9 @@ Kekule.ChemWidget.StructureNodeSetter = Class.create(Kekule.Widget.BaseWidget,
 	initProperties: function()
 	{
 		this.defineProp('enableHydrogenCountInput', {'dataType': DataType.BOOL});
+		this.defineProp('enableCondensedFormula', {'dataType': DataType.BOOL});
+		this.defineProp('repositorySubgroupItems', {'dataType': DataType.ARRAY, 'serializable': false});
+
 		this.defineProp('nodes', {'dataType': DataType.ARRAY, 'serializable': false,
 			'setter': function(value)
 			{
@@ -897,12 +900,31 @@ Kekule.ChemWidget.StructureNodeSetter = Class.create(Kekule.Widget.BaseWidget,
 		return result;
 	},
 	/** @private */
+	_getBaseNodesXBondOrderSumList: function()
+	{
+		var nodes = this.getNodes() || [];
+		var result = [];
+		for (var i = 0, l = nodes.length; i < l; ++i)
+		{
+			var node = nodes[i];
+			var xBondOrderSum = Kekule.ChemStructureUtils.getChemNodeXConnectorsOrderSum(node);
+			if (result.indexOf(xBondOrderSum) < 0)
+				result.push(xBondOrderSum);
+		}
+		return result;
+		/*
+		var baseNode = Kekule.ArrayUtils.toArray(this.getNodes())[0];  // current selected nodes in editor, select the first one
+		return Kekule.ChemStructureUtils.getChemNodeXConnectorsOrderSum(baseNode);
+		*/
+	},
+	/** @private */
 	_getValueFromDirectInputText: function(text)
 	{
 		if (!text)
 			return null;
 
-		var nodeClass, modifiedProps, newNode, repItem, isUnknownPAtom, inputHydrogenCount;
+		var valueType;
+		var nodeClass, modifiedProps, newNode, repItem, isUnknownPAtom, inputHydrogenCount, customRtLabel, isCondensedFormula, xBondOrder;
 
 		var nonAtomInfo = this._getNonAtomInfo(text);
 		if (nonAtomInfo)  // is not an atom
@@ -910,6 +932,7 @@ Kekule.ChemWidget.StructureNodeSetter = Class.create(Kekule.Widget.BaseWidget,
 			nodeClass = nonAtomInfo.nodeClass;
 			modifiedProps = nonAtomInfo.props;
 			//isNonAtom = true;
+			valueType = 'non-atom';
 		}
 		else
 		{
@@ -931,6 +954,7 @@ Kekule.ChemWidget.StructureNodeSetter = Class.create(Kekule.Widget.BaseWidget,
 				 */
 				newNode = subGroupRepositoryItem.getStructureFragment(); //repObjects[0];
 				nodeClass = newNode.getClass();
+				valueType = 'repository-subgroup';
 			}
 			else if (text) // add normal node
 			{
@@ -955,16 +979,77 @@ Kekule.ChemWidget.StructureNodeSetter = Class.create(Kekule.Widget.BaseWidget,
 					{
 						nodeClass = Kekule.Pseudoatom;
 						isUnknownPAtom = true;
+						valueType = 'pseudoatom';
+					}
+					else
+					{
+						valueType = 'atom';
 					}
 				}
+
+				if (isUnknownPAtom && this.getEnableCondensedFormula())
+				{
+					// try parsing the condensed formula first
+					try
+					{
+						var subgroupItems = this.getRepositorySubgroupItems() || Kekule.Editor.RepositoryData.subGroups;
+						var options = {
+							structure: true, /*formula: true,*/
+							richText: true,
+							structureClass: Kekule.SubGroup
+						};  // create subgroup, not molecule, and at last add subgroup to existing molecule
+						// try converting the text to condensed formula
+						var linkedBondOrders = this._getBaseNodesXBondOrderSumList();
+						var matchedLinkedBondOrder;
+						for (var i = 0, l = linkedBondOrders.length; i < l; ++i)
+						{
+							var linkedBondOrder = linkedBondOrders[i];
+							try
+							{
+								var parseResult = Kekule.CondensedFormulaUtils.parse(text, linkedBondOrder, subgroupItems, options);
+								if (parseResult && parseResult.structure)  // condensed formula parse successful, using it
+								{
+									matchedLinkedBondOrder = linkedBondOrder;
+									//parseResult.structure.setFormula(parseResult.formula);
+									customRtLabel = parseResult.richText;
+									parseResult.structure.setCustomRtLabel(parseResult.richText);
+									parseResult.structure.setExpanded(false);  // hide the ctab, only showing formula
+									// console.log(formulaText, parseResult.structure, Kekule.Render.ChemDisplayTextUtils.formulaToRichText(parseResult.formula));
+									//result = {'isCondensedFormula': true, 'formulaText': formulaText, 'rtLabel': parseResult.richText, 'structure': parseResult.structure /*, 'formula': parseResult.formula*/};
+									newNode = parseResult.structure;
+									nodeClass = newNode.getClass();
+									isUnknownPAtom = false;
+									isCondensedFormula = true;
+									xBondOrder = linkedBondOrder;
+									valueType = 'condensed-formula-subgroup';
+									break;
+								}
+							}
+							catch(e)
+							{
+
+							}
+						}
+					}
+					catch(e)
+					{
+						// ignore condensed formula parse error
+						// console.error(e);
+					}
+				}
+
 				modifiedProps = (nodeClass === Kekule.Atom) ? {'isotopeId': isotopeId, 'inputHydrogenCount': inputHydrogenCount} :
-						(nodeClass === Kekule.Pseudoatom) ? {'symbol': text} :
-						{};
+					(nodeClass === Kekule.Pseudoatom) ? {'symbol': text} :
+					isCondensedFormula? {'formulaText': text, 'renderOptions': {customRtLabel: customRtLabel, expanded: false}} :
+					{};
 			}
 		}
 		var data = {
-			'nodeClass': nodeClass, 'props': modifiedProps, /*'node': newNode*/ 'repositoryItem': repItem, 'isUnknownPseudoatom': isUnknownPAtom
+			'nodeClass': nodeClass, 'props': modifiedProps, /*'node': newNode*/ 'repositoryItem': repItem, isUnknownPseudoatom: isUnknownPAtom,
+			'newNode': newNode, xBondOrder: matchedLinkedBondOrder,
+			'inputText': text, 'valueType': valueType
 		};
+		// console.log('modified data', data);
 
 		return data;
 	},
@@ -1079,6 +1164,7 @@ Kekule.ChemWidget.StructureNodeSetter = Class.create(Kekule.Widget.BaseWidget,
 	doValueChanged: function(newData, isSelectedFromPanel)
 	{
 		this.setPropStoreFieldValue('value', newData);
+		/*
 		var eventData = newData && {
 			'nodeClass': newData.nodeClass,
 			'props': newData.props,
@@ -1086,6 +1172,8 @@ Kekule.ChemWidget.StructureNodeSetter = Class.create(Kekule.Widget.BaseWidget,
 			'repositoryItem': newData.repositoryItem,
 			'isUnknownPseudoatom': newData.isUnknownPseudoatom
 		};
+		*/
+		var eventData = newData? Object.extend({}, newData): null;
 		if (isSelectedFromPanel)
 			this.invokeEvent('valueSelect', {'value': eventData});
 		this.invokeEvent('valueChange', {'value': eventData});

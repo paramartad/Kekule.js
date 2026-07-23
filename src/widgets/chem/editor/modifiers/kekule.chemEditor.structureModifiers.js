@@ -76,6 +76,7 @@ Kekule.Editor.ObjModifier.Atom = Class.create(Kekule.Editor.ObjModifier.ChemStru
 	/** @private */
 	initProperties: function()
 	{
+		this.defineProp('enableCondensedFormula', {'dataType': DataType.BOOL});
 		// private
 		this.defineProp('atomSetter', {
 			'dataType': 'Kekule.Widget.BaseWidget', 'serializable': false, 'setter': null
@@ -94,6 +95,11 @@ Kekule.Editor.ObjModifier.Atom = Class.create(Kekule.Editor.ObjModifier.ChemStru
 		//var atomSetter = this._createAtomSetter(this.getEditor());
 		//result.setDropDownWidget(atomSetter);
 		result.setDropDownWidgetGetter(this._createAtomSetter.bind(this));
+
+		var self = this;
+		result.on('dropDown', function(e) {
+			self._updateAtomSetterConfig();
+		});
 
 		return result;
 	},
@@ -184,6 +190,15 @@ Kekule.Editor.ObjModifier.Atom = Class.create(Kekule.Editor.ObjModifier.ChemStru
 		return result;
 	},
 	/** @private */
+	_updateAtomSetterConfig: function()
+	{
+		var atomSetter = this.getAtomSetter();
+
+		var isCondensedFormulaEnabled = this.getEditorConfigs().getInteractionConfigs().getEnableCreateMoleculeFromCondensedFormula();
+		atomSetter.setEnableCondensedFormula(isCondensedFormulaEnabled);
+	},
+
+	/** @private */
 	_filterStructureNodes: function(targets)
 	{
 		var nodes = [];
@@ -211,10 +226,19 @@ Kekule.Editor.ObjModifier.Atom = Class.create(Kekule.Editor.ObjModifier.ChemStru
 			var node = nodes[i];
 			if (node instanceof Kekule.StructureFragment)
 			{
+				if (node.isStandalone())
+				{
+					// a standalone molecule, bypass
+					continue;
+				}
 				if (node.isExpanded())  // actually modify children node in expanded group
 				{
 					var children = this._getActualModificationNodes(node.getNodes(), true);
 					AU.pushUnique(result, children);
+				}
+				else
+				{
+					AU.pushUnique(result, node);
 				}
 			}
 			else
@@ -263,6 +287,20 @@ Kekule.Editor.ObjModifier.Atom = Class.create(Kekule.Editor.ObjModifier.ChemStru
 		var opers = [];
 		//var nodes = this._filterStructureNodes(targets);
 		var nodes = this._getActualModificationNodes(targets);
+
+		if (data.xBondOrder >= 0 && data.valueType === 'condensed-formula-subgroup')
+		{
+			// only the node with correct xBondOrder can apply this subgroup built from condensed formula, we need to filter it out
+			var filteredNodes = [];
+			for (var i = 0, l = nodes.length; i < l; ++i)
+			{
+				var node = nodes[i];
+				if (Kekule.ChemStructureUtils.getChemNodeXConnectorsOrderSum(node) === data.xBondOrder)
+					filteredNodes.push(node);
+			}
+			nodes = filteredNodes;
+		}
+
 		for (var i = 0, l = nodes.length; i < l; ++i)
 		{
 			var target = nodes[i];

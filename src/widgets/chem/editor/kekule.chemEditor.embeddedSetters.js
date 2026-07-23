@@ -143,26 +143,33 @@ Kekule.Editor.EmbeddedSetterManager = {
 		}
 	},
 
-	getDefaultSetterClassForObjectClass: function(objClass)
+	getDefaultSetterClassesForObjectClass: function(objClass)
 	{
+		var result = [];
 		var items = ESM._setterRegistryItems;
 		for (var i = items.length - 1; i >= 0; --i)
 		{
 			if (items[i].target === objClass || ClassEx.isDescendantOf(objClass, items[i].target))
-				return items[i].setter;
+				result.push(items[i].setter);
 		}
+		return result;
 	},
 
-	getDefaultSetterClassForObject: function(obj)
-	{
+	getDefaultSetterClassForObject: function(obj) {
 
-		var result = ESM.getDefaultSetterClassForObjectClass(obj.getClass());
-		if (!result)
+		var candidates = (obj && ESM.getDefaultSetterClassesForObjectClass(obj.getClass())) || [];
+		if (!candidates.length)
 			return null;
-		else if (!result.isValidTarget || result.isValidTarget(obj))
-			return result;
 		else
+		{
+			for (var i = 0, l = candidates.length; i < l; ++i)
+			{
+				var result = candidates[i];
+				if (!result.isValidTarget || result.isValidTarget(obj))
+					return result;
+			}
 			return null;
+		}
 	}
 };
 
@@ -327,6 +334,21 @@ Kekule.Editor.EmbeddedSetter.MolAtom = Class.create(Kekule.Editor.EmbeddedSetter
 	/** @private */
 	initProperties: function()
 	{
+		this.defineProp('enableCondensedFormula', {
+			'dataType': DataType.BOOL,
+			'getter': function()
+			{
+				var result = this.getPropStoreFieldValue('enableCondensedFormula');
+				if (result === undefined || result === null)
+				{
+					// not set yet, use the editor config
+					result = this.getEditorConfigs().getInteractionConfigs().getEnableCreateMoleculeFromCondensedFormula();
+				}
+				return result;
+			}
+		});
+		this.defineProp('repositorySubgroupItems', {'dataType': DataType.ARRAY, 'serializable': false});
+
 		this.defineProp('currAtom', {'dataType': DataType.OBJECT, 'serializable': false});  // private
 		this.defineProp('nonAtomLabelInfos', {'dataType': DataType.ARRAY, 'serializable': false});  // private
 		this.defineProp('atomSetter', {
@@ -632,8 +654,11 @@ Kekule.Editor.EmbeddedSetter.MolAtom = Class.create(Kekule.Editor.EmbeddedSetter
 		var fontSize = this.getEditor().getEditorConfigs().getInteractionConfigs().getAtomSetterFontSize() || 0;
 		fontSize *= this.getEditor().getZoom() || 1;
 		var posAdjust = fontSize / 1.5;  // adjust position to align to atom center
+
 		var setter = this.getAtomSetterWidget(true);
 		//setter.setEditor(this.getEditor());
+		setter.setEnableCondensedFormula(this.getEnableCondensedFormula());
+		setter.setRepositorySubgroupItems(this.getRepositorySubgroupItems());
 		setter.setLabelConfigs(this.getEditor().getRenderConfigs().getDisplayLabelConfigs());
 		setter.setNodes([obj]);
 		var parentElem = this.getEditor().getCoreElement();
@@ -1109,8 +1134,20 @@ Kekule.Editor.EmbeddedSetter.Formula = Class.create(Kekule.Editor.EmbeddedSetter
 	/** @private */
 	initProperties: function()
 	{
-		this.defineProp('enableCondensedFormula', {'dataType': DataType.BOOL});
-		this.defineProp('repositorySubgroupItems', {'dataType': DataType.BOOL, 'serializable': false});
+		this.defineProp('enableCondensedFormula', {
+			'dataType': DataType.BOOL,
+			'getter': function()
+			{
+				var result = this.getPropStoreFieldValue('enableCondensedFormula');
+				if (result === undefined || result === null)
+				{
+					// not set yet, use the editor config
+					result = this.getEditorConfigs().getInteractionConfigs().getEnableCreateMoleculeFromCondensedFormula();
+				}
+				return result;
+			}
+		});
+		this.defineProp('repositorySubgroupItems', {'dataType': DataType.ARRAY, 'serializable': false});
 	},
 
 	/** @ignore */
@@ -1250,9 +1287,15 @@ Kekule.Editor.EmbeddedSetter.Formula = Class.create(Kekule.Editor.EmbeddedSetter
 	_doCreateCondensedFormulaModifyOper: function(obj, modifiedValues)
 	{
 		var newSubgroup = modifiedValues.structure;
+		var formulaTextModifyOper;
+		if (newSubgroup.hasProperty('formulaText'))
+			formulaTextModifyOper = new Kekule.ChemObjOperation.Modify(obj, {'formulaText': modifiedValues.formulaText}, this.getEditor());
+		else if (newSubgroup.hasProperty('formula'))
+			formulaTextModifyOper = new Kekule.ChemObjOperation.Modify(obj.getFormula(), {'text': modifiedValues.formulaText}, this.getEditor());
 		var result = new Kekule.MacroOperation([
 			new Kekule.ChemStructOperation.ClearCtab(obj, this.getEditor()),
 			new Kekule.ChemStructOperation.AddNode(newSubgroup, obj, null, this.getEditor()),
+			formulaTextModifyOper,
 			new Kekule.ChemObjOperation.ModifyRenderOptions(obj, {
 				'expanded': false,
 				'customRtLabel': modifiedValues.rtLabel
@@ -1303,7 +1346,9 @@ Kekule.Editor.EmbeddedSetter.Formula = Class.create(Kekule.Editor.EmbeddedSetter
 /** @ignore */
 Kekule.Editor.EmbeddedSetter.Formula.isValidTarget = function(obj)
 {
-	return (obj instanceof Kekule.StructureFragment) && obj.isLabelExposed(); // && obj.hasFormula() && obj.isFormulaExposed(); // !obj.hasCtab();
+	// must be the top most structure fragment can be applied
+	var parent = obj.getParent()
+	return (!(parent instanceof Kekule.StructureFragment)) && (obj instanceof Kekule.StructureFragment) && obj.isLabelExposed(); // && obj.hasFormula() && obj.isFormulaExposed(); // !obj.hasCtab();
 };
 
 

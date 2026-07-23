@@ -53,8 +53,9 @@ Kekule.Render.RichText = {
  *            charDirection: 1,
  *            overhang: 0.1,
  *            oversink: 0.1,
- * 					  _noAlignRect: true,  // a special property to tell the drawer that this item should not be considered into align box.
- * 				  									// super/subscript defaultly has noAlign = true
+ * 			  _noAlignRect: true,  // a special property to tell the drawer that this item should not be considered into align box.
+ * 				  				   // super/subscript defaultly has noAlign = true
+ * 			  _noAnchor: true      // a special flag, implying that this section is not suite for an anchor item. The _noAlignRect item also implying not suite for an anchorItem.
  *          },
  *          {
  *            role: 'section'
@@ -68,7 +69,8 @@ Kekule.Render.RichText = {
  *            items: [...]
  *          }
  *          ]
- *       ]
+ *        }
+ *      ]
  *    }
  *  @class
  */
@@ -324,6 +326,86 @@ Kekule.Render.RichTextUtils = {
 				return item;
 		}
 		return null;
+	},
+
+	/**
+	 * Get the anchor item of rich text group.
+	 * @param {Object} richTextGroup
+	 * returns {Object}
+	 */
+	getAnchorItem: function(richTextGroup)
+	{
+		var result = richTextGroup.anchorItem;
+		if (result)
+		{
+			// ensure the anchor item is really inside rich text group
+			if (!richTextGroup.items && richTextGroup.items.indexOf(result) < 0)
+				result = null;
+		}
+		return result;
+	},
+
+	/**
+	 * Automatically set the anchor item of a rich text, usually the first normal text part.
+	 * @param {Object} richTextGroup
+	 * @param {Bool} cascade
+	 */
+	autoSetAnchorItem: function(richTextGroup, cascade)
+	{
+		var RTU = Kekule.Render.RichTextUtils;
+		if (!richTextGroup.items)
+			return null;
+		var currAnchorItem = RTU.getAnchorItem(richTextGroup);
+		if (currAnchorItem)
+		{
+			// check further in the child of anchorItem
+			if (cascade)
+				RTU.autoSetAnchorItem(currAnchorItem, cascade);
+			return currAnchorItem;
+		}
+		else
+		{
+			if (richTextGroup.items)
+			{
+				var currAnchorItem;
+				for (var i = 0, l = richTextGroup.items.length; i < l; ++i)
+				{
+					var item = richTextGroup.items[i];
+					if (!item._noAnchor && !item._noAlignRect && item.textType !== 'subscript' && item.textType !== 'superscript')
+					{
+						if (item.items)  // is group or line
+						{
+							if (cascade)
+							{
+								var cascadeResult = RTU.autoSetAnchorItem(item, cascade);
+								if (cascadeResult)
+								{
+									currAnchorItem = item;
+								}
+							}
+							else
+							{
+								currAnchorItem = item;
+							}
+							if (currAnchorItem)
+							{
+								richTextGroup.anchorItem = currAnchorItem;
+								break;
+							}
+						}
+						else  // is section
+						{
+							currAnchorItem = item;
+							richTextGroup.anchorItem = currAnchorItem;
+							break;
+						}
+					}
+				}
+				return currAnchorItem;
+			}
+			else
+				return null;
+		}
 	},
 
 	/**
@@ -974,7 +1056,7 @@ Kekule.Render.ChemDisplayTextUtils = {
 
 		if (slabel)
 			result = Kekule.Render.RichTextUtils.createSection(slabel,
-				{'textType': Kekule.Render.RichText.SUP, 'charDirection': Kekule.Render.TextDirection.LTR}
+				{'textType': Kekule.Render.RichText.SUP, 'charDirection': Kekule.Render.TextDirection.LTR, '_noAnchor': true}
 			);
 		return result;
 	},
@@ -1004,7 +1086,7 @@ Kekule.Render.ChemDisplayTextUtils = {
 			var bracketIndex = formula.getMaxNestedLevel(true) % Kekule.FormulaUtils.FORMULA_BRACKET_TYPE_COUNT;
 			var bracketStart = Kekule.FormulaUtils.FORMULA_BRACKETS[bracketIndex][0];
 			var bracketEnd = Kekule.FormulaUtils.FORMULA_BRACKETS[bracketIndex][1];
-			result = Kekule.Render.RichTextUtils.appendText(result, bracketStart);
+			result = Kekule.Render.RichTextUtils.appendText(result, bracketStart, {_noAnchor: true});
 		}
 		for (var i = 0, l = sections.length; i < l; ++i)
 		{
@@ -1029,7 +1111,7 @@ Kekule.Render.ChemDisplayTextUtils = {
 				// incoming bond
 				if (sections[i].incomingBondOrder && sections[i].incomingBondOrder > Kekule.BondOrder.SINGLE)
 				{
-					Kekule.Render.RichTextUtils.insertText(subgroup, 0, Kekule.FormulaUtils.getBondSymbol(sections[i].incomingBondOrder));
+					Kekule.Render.RichTextUtils.insertText(subgroup, 0, Kekule.FormulaUtils.getBondSymbol(sections[i].incomingBondOrder), {_noAnchor: true});
 				}
 				// count
 				if (sections[i].count != 1)
@@ -1052,7 +1134,7 @@ Kekule.Render.ChemDisplayTextUtils = {
 			}
 		}
 		if (showBracket)
-			result = Kekule.Render.RichTextUtils.appendText(result, bracketEnd);
+			result = Kekule.Render.RichTextUtils.appendText(result, bracketEnd, {_noAnchor: true});
 
 		if (showCharge || showRadical)
 		{
