@@ -4937,6 +4937,9 @@ Kekule.Editor.MolAtomIaController = Class.create(Kekule.Editor.BaseEditorIaContr
 		if (!this._embeddedSetter)
 		{
 			this._embeddedSetter = this.getEditor().getEmbeddedSetter(Kekule.Editor.EmbeddedSetter.MolAtom);
+			var atomSymbolWhitelist = this.getEditorConfigs().getStructureConfigs().getEnableCondensedFormulaAtomSymbolWhitelist()?
+				this.getEditorConfigs().getStructureConfigs().getCondensedFormulaAtomSymbolWhitelist(): null;
+			this._embeddedSetter.setCondensedFormulaAtomSymbolWhitelist(atomSymbolWhitelist);
 			this._embeddedSetter.setRepositorySubgroupItems(Kekule.Editor.RepositoryData.subGroups);
 		}
 		return this._embeddedSetter
@@ -6724,6 +6727,10 @@ Kekule.Editor.FormulaIaController = Class.create(Kekule.Editor.BaseEditorIaContr
 		if (!this._embeddedSetter)
 		{
 			this._embeddedSetter = this.getEditor().getEmbeddedSetter(Kekule.Editor.EmbeddedSetter.Formula);
+			this._embeddedSetter.setRepositorySubgroupItems(Kekule.Editor.RepositoryData.subGroups);
+			var atomSymbolWhitelist = this.getEditorConfigs().getStructureConfigs().getEnableCondensedFormulaAtomSymbolWhitelist()?
+				this.getEditorConfigs().getStructureConfigs().getCondensedFormulaAtomSymbolWhitelist(): null;
+			this._embeddedSetter.setCondensedFormulaAtomSymbolWhitelist(atomSymbolWhitelist);
 			this._embeddedSetter.setRepositorySubgroupItems(Kekule.Editor.RepositoryData.subGroups);
 		}
 		return this._embeddedSetter

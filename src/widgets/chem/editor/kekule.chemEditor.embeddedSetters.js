@@ -347,6 +347,7 @@ Kekule.Editor.EmbeddedSetter.MolAtom = Class.create(Kekule.Editor.EmbeddedSetter
 				return result;
 			}
 		});
+		this.defineProp('condensedFormulaAtomSymbolWhitelist', {'dataType': DataType.ARRAY});
 		this.defineProp('repositorySubgroupItems', {'dataType': DataType.ARRAY, 'serializable': false});
 
 		this.defineProp('currAtom', {'dataType': DataType.OBJECT, 'serializable': false});  // private
@@ -658,6 +659,7 @@ Kekule.Editor.EmbeddedSetter.MolAtom = Class.create(Kekule.Editor.EmbeddedSetter
 		var setter = this.getAtomSetterWidget(true);
 		//setter.setEditor(this.getEditor());
 		setter.setEnableCondensedFormula(this.getEnableCondensedFormula());
+		setter.setCondensedFormulaAtomSymbolWhitelist(this.getCondensedFormulaAtomSymbolWhitelist());
 		setter.setRepositorySubgroupItems(this.getRepositorySubgroupItems());
 		setter.setLabelConfigs(this.getEditor().getRenderConfigs().getDisplayLabelConfigs());
 		setter.setNodes([obj]);
@@ -1147,6 +1149,7 @@ Kekule.Editor.EmbeddedSetter.Formula = Class.create(Kekule.Editor.EmbeddedSetter
 				return result;
 			}
 		});
+		this.defineProp('condensedFormulaAtomSymbolWhitelist', {'dataType': DataType.ARRAY});
 		this.defineProp('repositorySubgroupItems', {'dataType': DataType.ARRAY, 'serializable': false});
 	},
 
@@ -1242,7 +1245,10 @@ Kekule.Editor.EmbeddedSetter.Formula = Class.create(Kekule.Editor.EmbeddedSetter
 				try
 				{
 					var subgroupItems = this.getRepositorySubgroupItems() || Kekule.Editor.RepositoryData.subGroups;
-					var options = {structure: true, /*formula: true,*/ richText: true, structureClass: Kekule.SubGroup};  // create subgroup, not molecule, and at last add subgroup to existing molecule
+					var options = {
+						structure: true, /*formula: true,*/ richText: true, structureClass: Kekule.SubGroup,
+						atomSymbolWhitelist: this.getCondensedFormulaAtomSymbolWhitelist(),
+					};  // create subgroup, not molecule, and at last add subgroup to existing molecule
 					var parseResult = Kekule.CondensedFormulaUtils.parse(formulaText, 0, subgroupItems, options);
 					if (parseResult && parseResult.structure)  // condensed formula parse successful, using it
 					{

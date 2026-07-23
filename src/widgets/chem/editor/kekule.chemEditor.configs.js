@@ -362,6 +362,8 @@ Kekule.Editor.UiMarkerConfigs = Class.create(Kekule.AbstractConfigs,
  *
  * @property {Bool} enableCreateMoleculeFromCondensedFormula Whether user can input condensed formula text to create molecule in formula tool.
  * @property {Bool} enableCreateSubgroupFromCondensedFormula Whether user can input condensed formula text to create subgroup in atom tool.
+ * @property {Bool} enableCondensedFormulaAtomSymbolWhitelist If true, only the elements in white list are allowed in the condensed formula.
+ * @property {Array} condensedFormulaAtomSymbolWhiteList
  */
 Kekule.Editor.StructureConfigs = Class.create(Kekule.AbstractConfigs,
 /** @lends Kekule.Editor.StructureConfigs# */
@@ -428,6 +430,8 @@ Kekule.Editor.StructureConfigs = Class.create(Kekule.AbstractConfigs,
 
 		this.addBoolConfigProp('enableCreateMoleculeFromCondensedFormula', true);
 		this.addBoolConfigProp('enableCreateSubgroupFromCondensedFormula', true);
+		this.addBoolConfigProp('enableCondensedFormulaAtomSymbolWhitelist', !true);
+		this.addConfigProp('condensedFormulaAtomSymbolWhitelist', DataType.ARRAY, undefined, {'scope': PS.PUBLIC});
 	},
 	/** @private */
 	initPropValues: function(/*$super*/)
@@ -453,7 +457,13 @@ Kekule.Editor.StructureConfigs = Class.create(Kekule.AbstractConfigs,
 		this.setBondConstrainedDirectionAngleThreshold(degreeStep * 3);
 		this.setInitialBondDirection(30 * degreeStep);
 
-		this.setPrimaryOrgChemAtoms(['C', 'H', 'O', 'N', 'P', 'S', 'F', 'Cl', 'Br', 'I', 'Si', 'D', 'C13']);
+		var primaryOrgChemAtoms = ['C', 'H', 'O', 'N', 'P', 'S', 'F', 'Cl', 'Br', 'I', 'Si', 'D', 'C13'];
+		this.setPrimaryOrgChemAtoms(primaryOrgChemAtoms);
+
+		var condensedFormulaAtomSymbolWhitelist = [].concat(primaryOrgChemAtoms).concat([
+			'B', 'Al', 'Mg', 'Zn', 'T'
+		]);
+		this.setCondensedFormulaAtomSymbolWhitelist(condensedFormulaAtomSymbolWhitelist);
 	},
 
 	/**

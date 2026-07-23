@@ -72,6 +72,7 @@ Kekule.Localization.addResource('en', 'ErrorMsg', {
 
 	// core/kekule.chemUtils.js
 	INVALID_CONDENSED_FORMULA_TEXT: 'Invalid condensed formula text',
+	ATOM_SYMBOL_NOT_IN_CONDENSED_FORMULA_WHITELIST: 'Element {0} not in condensed formula whitelist',
 
 	// algorithm/kekule.structures.helpers.js
 	CANNOT_ADD_NON_NODE_NOR_CONNECTOR_TO_STRUCT_CONTAINER: 'Can not add object other than node or connector to structure object container',

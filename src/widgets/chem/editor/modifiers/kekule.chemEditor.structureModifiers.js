@@ -196,6 +196,10 @@ Kekule.Editor.ObjModifier.Atom = Class.create(Kekule.Editor.ObjModifier.ChemStru
 
 		var isCondensedFormulaEnabled = this.getEditorConfigs().getStructureConfigs().getEnableCreateMoleculeFromCondensedFormula();
 		atomSetter.setEnableCondensedFormula(isCondensedFormulaEnabled);
+
+		var atomSymbolWhitelist = this.getEditorConfigs().getStructureConfigs().getEnableCondensedFormulaAtomSymbolWhitelist()?
+			this.getEditorConfigs().getStructureConfigs().getCondensedFormulaAtomSymbolWhitelist(): null;
+		atomSetter.setCondensedFormulaAtomSymbolWhitelist(atomSymbolWhitelist);
 	},
 
 	/** @private */

@@ -630,6 +630,7 @@ Kekule.ChemWidget.StructureNodeSetter = Class.create(Kekule.Widget.BaseWidget,
 	{
 		this.defineProp('enableHydrogenCountInput', {'dataType': DataType.BOOL});
 		this.defineProp('enableCondensedFormula', {'dataType': DataType.BOOL});
+		this.defineProp('condensedFormulaAtomSymbolWhitelist', {'dataType': DataType.ARRAY});
 		this.defineProp('repositorySubgroupItems', {'dataType': DataType.ARRAY, 'serializable': false});
 
 		this.defineProp('nodes', {'dataType': DataType.ARRAY, 'serializable': false,
@@ -996,7 +997,8 @@ Kekule.ChemWidget.StructureNodeSetter = Class.create(Kekule.Widget.BaseWidget,
 						var options = {
 							structure: true, /*formula: true,*/
 							richText: true,
-							structureClass: Kekule.SubGroup
+							structureClass: Kekule.SubGroup,
+							atomSymbolWhitelist: this.getCondensedFormulaAtomSymbolWhitelist()
 						};  // create subgroup, not molecule, and at last add subgroup to existing molecule
 						// try converting the text to condensed formula
 						var linkedBondOrders = this._getBaseNodesXBondOrderSumList();
