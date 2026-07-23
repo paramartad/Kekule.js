@@ -1927,6 +1927,12 @@ Kekule.CondensedFormulaUtils = {
 				*/
 				var unitInfo = getCurrUnit(true);
 				unitInfo.structType = 'atom';
+				// check of the atom symbol is correct
+				if (!Kekule.IsotopesDataUtil.getIsotopeId(atomSymbol))
+				{
+					throw new Error(Kekule.$L('ErrorMsg.INVALID_CHEMELEMENT'));
+				}
+
 				unitInfo.atomSymbol = atomSymbol;  // TODO: handle D, T?
 				unitInfo.multipleEnabled = true;
 				unitInfo.text = tokenInfo.token;
