@@ -148,7 +148,8 @@ Kekule.ChemicalElementsDataUtil = {
 Kekule.IsotopeAliasUtil = {
 	enableAlias: true,
 	ALIAS: [
-		{'alias': 'D', 'atomicNumber': 1, 'massNumber': 2}
+		{'alias': 'D', 'atomicNumber': 1, 'massNumber': 2},
+		{'alias': 'T', 'atomicNumber': 1, 'massNumber': 3}
 	],
 	getAllAlias: function()
 	{
