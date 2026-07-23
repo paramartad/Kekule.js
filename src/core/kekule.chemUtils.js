@@ -1941,8 +1941,8 @@ Kekule.CondensedFormulaUtils = {
 				// check if the atom symbol is in white list
 				if (options.atomSymbolWhitelist && options.atomSymbolWhitelist.length)
 				{
-					if (!options.atomSymbolWhitelist.indexOf(atomSymbol) >= 0)
-						throw new Error(Kekule.$L(ErrorMsg.ATOM_SYMBOL_NOT_IN_CONDENSED_FORMULA_WHITELIST).replaceAll('{0}', atomSymbol));
+					if (options.atomSymbolWhitelist.indexOf(atomSymbol) < 0)
+						throw new Error(Kekule.$L('ErrorMsg.ATOM_SYMBOL_NOT_IN_CONDENSED_FORMULA_WHITELIST').replaceAll('{0}', atomSymbol));
 				}
 
 				// check of the atom symbol is correct
