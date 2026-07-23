@@ -14,6 +14,7 @@
         <button id="btnExecDirect">Execute Direct</button>
     </section>
     <section>
+        <p>[<span id="labelType"></span>]</p>
         <p id="labelSmiles"></p>
         <p id="labelFormula"></p>
         <p id="labelRichText"></p>
@@ -72,6 +73,10 @@
         {
             var incomingBondOrder = parseInt(document.getElementById('inputBondOrder').value);
             var formulaText = document.getElementById('inputFormula').value;
+
+            var guessedType = Kekule.CondensedFormulaUtils.guessFormulaTextType(formulaText);
+            document.getElementById('labelType').innerText = guessedType;
+
             var result = Kekule.CondensedFormulaUtils.parse(formulaText, incomingBondOrder, Kekule.Editor.RepositoryData.subGroups, {structure: true, structureUnits: true, formula: true, richText: true});
             var mol = result.structure;
             var formula = result.formula;

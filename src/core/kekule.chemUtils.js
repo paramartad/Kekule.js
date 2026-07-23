@@ -1570,18 +1570,26 @@ Kekule.CondensedFormulaUtils = {
 					var structUnitList = Kekule.CondensedFormulaUtils._convertTokenListToStructureUnitList(tokenList, op);
 					if (structUnitList && structUnitList.length)
 					{
-						var result = Kekule.CondensedFormulaUtils._createStructureFragFromUnitListEx(structUnitList, 0, linkedBondOrder, op, subgroupInfoMap);
-						var fragment = result && result.frag;  // .frag is type of SubGroup
-						if (fragment) {
-							//if (!createMolecule)
-							if (fragment.setAnchorNodes)
-							{
-								// mark the anchor node of fragment
-								var anchorNodes = result.anchorNodes || result.anchorNodesLeading;
-								fragment.setAnchorNodes(anchorNodes);
+						if (outputStructure)
+						{
+							var result = Kekule.CondensedFormulaUtils._createStructureFragFromUnitListEx(structUnitList, 0, linkedBondOrder, op, subgroupInfoMap);
+							var fragment = result && result.frag;  // .frag is type of SubGroup
+							if (fragment) {
+								//if (!createMolecule)
+								if (fragment.setAnchorNodes)
+								{
+									// mark the anchor node of fragment
+									var anchorNodes = result.anchorNodes || result.anchorNodesLeading;
+									fragment.setAnchorNodes(anchorNodes);
+								}
+								// creation successful, skip out
+								return {success: true, result: {fragment: fragment, structureUnits: structUnitList}};
 							}
-							// creation successful, skip out
-							return {success: true, result: {fragment: fragment, structureUnits: structUnitList}};
+						}
+						else
+						{
+							// no need to create structure, we just return this structUnitList
+							return {success: true, result: {structureUnits: structUnitList}};
 						}
 					}
 				}
@@ -1635,6 +1643,8 @@ Kekule.CondensedFormulaUtils = {
 	 */
 	textToStructureFragment: function(text, linkedBondOrder, subgroupItems, options)
 	{
+		var op = Object.create(options || {});
+		op.structure = true;  // ensure create the structure
 		var parseResult = Kekule.CondensedFormulaUtils.parse(text, linkedBondOrder, subgroupItems, options);
 		return parseResult && parseResult.structure;
 	},
@@ -2497,6 +2507,68 @@ Kekule.CondensedFormulaUtils = {
 		}
 
 		return {richText: resultRt, maxBranchLevel: maxBranchLevel};
+	},
+
+	/**
+	 * Guess the formula text of an input text.
+	 * Note, this function only *guess* the type, will not return an accurate result.
+	 * @param {String} text
+	 * @returns {string} 'normal' or 'condensed'.
+	 */
+	guessFormulaTextType: function(text)
+	{
+		// if there are bond chars (exclude -, which may be a charge symbol), then the text should be condensed formula
+		var bondChars = Object.keys(Kekule.CondensedFormulaUtils.BOND_CHAR_MAP);
+		bondChars = Kekule.ArrayUtils.exclude(bondChars, Kekule.CondensedFormulaUtils.SINGLE_BOND_OR_NEGATIVE_CHARGE_SYMBOLS);
+		for (var i = 0, l = bondChars.length; i < l; ++i)
+		{
+			if (text.indexOf(bondChars[i]) >= 0)
+				return 'condensed';
+		}
+
+		var result = 'normal';
+		// then we convert the text to normal formula, check if there are many duplicate atoms (e.g., CH3CH2CH2OH, there are multiple C/H), if so, it should be condensed formula
+		try
+		{
+			var testResult = Kekule.CondensedFormulaUtils.parse(text, 0, [], {structure: false, structureUnits: true});
+			if (testResult.structureUnits)
+			{
+				var atomCountMap = {};
+				var assocHGroupCount = 0;
+				for (var i = 0, l = testResult.structureUnits.length; i < l; ++i)
+				{
+					var unit = testResult.structureUnits[i];
+					if (unit.structType === 'atom')
+					{
+						var atomSymbol = unit.atomSymbol;
+						atomCountMap[atomSymbol] = (atomCountMap[atomSymbol] || 0) + 1;
+						if (unit.hCount)  // has explict H
+						{
+							++assocHGroupCount;
+						}
+
+						if (assocHGroupCount > 3 || atomCountMap[atomSymbol] > 3)
+						{
+							result = 'condensed';
+							break;
+						}
+					}
+				}
+				var atomCount = Object.keys(atomCountMap).length;
+
+				// TODO: now the check threshold is fixed
+				if (result !== 'condensed' && atomCount * 2 < testResult.structureUnits.length)
+				{
+					result = 'condensed';
+				}
+			}
+		}
+		catch(e)
+		{
+			result = 'normal';
+		}
+
+		return result;
 	}
 };
 
