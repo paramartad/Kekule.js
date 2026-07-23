@@ -251,7 +251,8 @@ Kekule.Render.BaseRichTextDrawer = Class.create(ObjectEx,
 			}
 		}
 		if (Kekule.ObjUtils.isUnset(richTextItem.charDirection))  // char direction is regarded as default when not set in item
-			result.charDirection = TD.DEFAULT;
+			// result.charDirection = TD.DEFAULT;
+			result.charDirection = options.charDirection
 		else if (richTextItem.charDirection === TD.INHERIT)
 			result.charDirection = options.charDirection;
 		return result;
