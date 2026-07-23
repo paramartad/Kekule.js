@@ -364,6 +364,7 @@ Kekule.Editor.UiMarkerConfigs = Class.create(Kekule.AbstractConfigs,
  * @property {Bool} enableCreateSubgroupFromCondensedFormula Whether user can input condensed formula text to create subgroup in atom tool.
  * @property {Bool} enableCondensedFormulaAtomSymbolWhitelist If true, only the elements in white list are allowed in the condensed formula.
  * @property {Array} condensedFormulaAtomSymbolWhiteList
+ * @property {Bool} forceCondensedFormulaErrorCheck If true, the input condensed formula text (or something like condensed formula text) will raise error when illegal (rather than fail back to other form silently).
  */
 Kekule.Editor.StructureConfigs = Class.create(Kekule.AbstractConfigs,
 /** @lends Kekule.Editor.StructureConfigs# */
@@ -430,7 +431,8 @@ Kekule.Editor.StructureConfigs = Class.create(Kekule.AbstractConfigs,
 
 		this.addBoolConfigProp('enableCreateMoleculeFromCondensedFormula', true);
 		this.addBoolConfigProp('enableCreateSubgroupFromCondensedFormula', true);
-		this.addBoolConfigProp('enableCondensedFormulaAtomSymbolWhitelist', !true);
+		this.addBoolConfigProp('forceCondensedFormulaErrorCheck', true);
+		this.addBoolConfigProp('enableCondensedFormulaAtomSymbolWhitelist', true);
 		this.addConfigProp('condensedFormulaAtomSymbolWhitelist', DataType.ARRAY, undefined, {'scope': PS.PUBLIC});
 	},
 	/** @private */

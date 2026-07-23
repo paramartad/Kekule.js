@@ -347,6 +347,7 @@ Kekule.Editor.EmbeddedSetter.MolAtom = Class.create(Kekule.Editor.EmbeddedSetter
 				return result;
 			}
 		});
+		this.defineProp('forceCondensedFormulaErrorCheck', {'dataType': DataType.BOOL});
 		this.defineProp('condensedFormulaAtomSymbolWhitelist', {'dataType': DataType.ARRAY});
 		this.defineProp('repositorySubgroupItems', {'dataType': DataType.ARRAY, 'serializable': false});
 
@@ -659,6 +660,7 @@ Kekule.Editor.EmbeddedSetter.MolAtom = Class.create(Kekule.Editor.EmbeddedSetter
 		var setter = this.getAtomSetterWidget(true);
 		//setter.setEditor(this.getEditor());
 		setter.setEnableCondensedFormula(this.getEnableCondensedFormula());
+		setter.setForceCondensedFormulaErrorCheck(this.getForceCondensedFormulaErrorCheck());
 		setter.setCondensedFormulaAtomSymbolWhitelist(this.getCondensedFormulaAtomSymbolWhitelist());
 		setter.setRepositorySubgroupItems(this.getRepositorySubgroupItems());
 		setter.setLabelConfigs(this.getEditor().getRenderConfigs().getDisplayLabelConfigs());
@@ -1149,6 +1151,7 @@ Kekule.Editor.EmbeddedSetter.Formula = Class.create(Kekule.Editor.EmbeddedSetter
 				return result;
 			}
 		});
+		this.defineProp('forceCondensedFormulaErrorCheck', {'dataType': DataType.BOOL});
 		this.defineProp('condensedFormulaAtomSymbolWhitelist', {'dataType': DataType.ARRAY});
 		this.defineProp('repositorySubgroupItems', {'dataType': DataType.ARRAY, 'serializable': false});
 	},
@@ -1261,6 +1264,9 @@ Kekule.Editor.EmbeddedSetter.Formula = Class.create(Kekule.Editor.EmbeddedSetter
 				}
 				catch(e)
 				{
+					if (this.getForceCondensedFormulaErrorCheck() && Kekule.CondensedFormulaUtils.guessFormulaTextType(formulaText) === 'condensed')
+						Kekule.error(e);
+					// else
 					// ignore condensed formula parse error
 				}
 			}

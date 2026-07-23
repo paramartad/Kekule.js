@@ -630,6 +630,7 @@ Kekule.ChemWidget.StructureNodeSetter = Class.create(Kekule.Widget.BaseWidget,
 	{
 		this.defineProp('enableHydrogenCountInput', {'dataType': DataType.BOOL});
 		this.defineProp('enableCondensedFormula', {'dataType': DataType.BOOL});
+		this.defineProp('forceCondensedFormulaErrorCheck', {'dataType': DataType.BOOL});
 		this.defineProp('condensedFormulaAtomSymbolWhitelist', {'dataType': DataType.ARRAY});
 		this.defineProp('repositorySubgroupItems', {'dataType': DataType.ARRAY, 'serializable': false});
 
@@ -1003,6 +1004,7 @@ Kekule.ChemWidget.StructureNodeSetter = Class.create(Kekule.Widget.BaseWidget,
 						// try converting the text to condensed formula
 						var linkedBondOrders = this._getBaseNodesXBondOrderSumList();
 						var matchedLinkedBondOrder;
+						var parseError;
 						for (var i = 0, l = linkedBondOrders.length; i < l; ++i)
 						{
 							var linkedBondOrder = linkedBondOrders[i];
@@ -1029,7 +1031,7 @@ Kekule.ChemWidget.StructureNodeSetter = Class.create(Kekule.Widget.BaseWidget,
 							}
 							catch(e)
 							{
-
+								parseError = e;
 							}
 						}
 					}
@@ -1038,6 +1040,9 @@ Kekule.ChemWidget.StructureNodeSetter = Class.create(Kekule.Widget.BaseWidget,
 						// ignore condensed formula parse error
 						// console.error(e);
 					}
+
+					if (parseError && this.getForceCondensedFormulaErrorCheck() && Kekule.CondensedFormulaUtils.guessFormulaTextType(text) === 'condensed')
+						Kekule.error(parseError);
 				}
 
 				modifiedProps = (nodeClass === Kekule.Atom) ? {'isotopeId': isotopeId, 'inputHydrogenCount': inputHydrogenCount} :

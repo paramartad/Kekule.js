@@ -4939,6 +4939,8 @@ Kekule.Editor.MolAtomIaController = Class.create(Kekule.Editor.BaseEditorIaContr
 			this._embeddedSetter = this.getEditor().getEmbeddedSetter(Kekule.Editor.EmbeddedSetter.MolAtom);
 			var atomSymbolWhitelist = this.getEditorConfigs().getStructureConfigs().getEnableCondensedFormulaAtomSymbolWhitelist()?
 				this.getEditorConfigs().getStructureConfigs().getCondensedFormulaAtomSymbolWhitelist(): null;
+			this._embeddedSetter.setForceCondensedFormulaErrorCheck(this.getEditorConfigs().getStructureConfigs().getForceCondensedFormulaErrorCheck());
+			this.defineProp('forceCondensedFormulaErrorCheck', {'dataType': DataType.BOOL});
 			this._embeddedSetter.setCondensedFormulaAtomSymbolWhitelist(atomSymbolWhitelist);
 			this._embeddedSetter.setRepositorySubgroupItems(Kekule.Editor.RepositoryData.subGroups);
 		}
@@ -6730,6 +6732,7 @@ Kekule.Editor.FormulaIaController = Class.create(Kekule.Editor.BaseEditorIaContr
 			this._embeddedSetter.setRepositorySubgroupItems(Kekule.Editor.RepositoryData.subGroups);
 			var atomSymbolWhitelist = this.getEditorConfigs().getStructureConfigs().getEnableCondensedFormulaAtomSymbolWhitelist()?
 				this.getEditorConfigs().getStructureConfigs().getCondensedFormulaAtomSymbolWhitelist(): null;
+			this._embeddedSetter.setForceCondensedFormulaErrorCheck(this.getEditorConfigs().getStructureConfigs().getForceCondensedFormulaErrorCheck());
 			this._embeddedSetter.setCondensedFormulaAtomSymbolWhitelist(atomSymbolWhitelist);
 			this._embeddedSetter.setRepositorySubgroupItems(Kekule.Editor.RepositoryData.subGroups);
 		}
