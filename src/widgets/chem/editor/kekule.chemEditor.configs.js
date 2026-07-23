@@ -121,9 +121,6 @@ Kekule.ClassUtils.makeSingleton(Kekule.Editor.ChemSpaceEditorConfigs);
  * @property {Bool} enablePreserveLastOrphanNeighborChemNode When deleting a chem node (and its linked connectors), if its neighbor is the last node in molecule, whether this last node should be preserved.
  *   If this property is true, it is much easier to input single main atom molecule (e.g., CH4, OH2) in editor.
  *
- * @property {Bool} enableCreateMoleculeFromCondensedFormula Whether user can input condensed formula text to create molecule in formula tool.
- * @property {Bool} enableCreateSubgroupFromCondensedFormula Whether user can input condensed formula text to create subgroup in atom tool.
- *
  * @property {Bool} followPointerCoordOnDirectManipulatingSingleObj If true, the new coord of manipulating object will be set directly by the position of pointer (rather than the delta coord to the original position).
  * @property {Bool} enableOffSelectionManipulation If true, holding pointer down outside selection region for a while
  *   will enter the manipulation state to move the selected objects.
@@ -212,9 +209,6 @@ Kekule.Editor.InteractionConfigs = Class.create(Kekule.AbstractConfigs,
 
 		this.addIntConfigProp('atomSetterFontSize', 14);
 		this.addBoolConfigProp('allowUnknownAtomSymbol', true);
-
-		this.addBoolConfigProp('enableCreateMoleculeFromCondensedFormula', true);
-		this.addBoolConfigProp('enableCreateSubgroupFromCondensedFormula', true);
 
 		this.addBoolConfigProp('enableBondKekulizeHucklize', true);
 
@@ -365,6 +359,9 @@ Kekule.Editor.UiMarkerConfigs = Class.create(Kekule.AbstractConfigs,
  * //@property {Int} initialFlexRingAtomCount The initial atom count when creating carbon ring using flex ring tool.
  *
  * @property {Hash} nonAtomNodeInputSetting Settings to restrict the input types of non-atom node.
+ *
+ * @property {Bool} enableCreateMoleculeFromCondensedFormula Whether user can input condensed formula text to create molecule in formula tool.
+ * @property {Bool} enableCreateSubgroupFromCondensedFormula Whether user can input condensed formula text to create subgroup in atom tool.
  */
 Kekule.Editor.StructureConfigs = Class.create(Kekule.AbstractConfigs,
 /** @lends Kekule.Editor.StructureConfigs# */
@@ -428,6 +425,9 @@ Kekule.Editor.StructureConfigs = Class.create(Kekule.AbstractConfigs,
 			'hydrogen': true,
 			'transition': true
 		});
+
+		this.addBoolConfigProp('enableCreateMoleculeFromCondensedFormula', true);
+		this.addBoolConfigProp('enableCreateSubgroupFromCondensedFormula', true);
 	},
 	/** @private */
 	initPropValues: function(/*$super*/)

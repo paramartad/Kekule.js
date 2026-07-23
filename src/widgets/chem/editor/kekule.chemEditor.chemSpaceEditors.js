@@ -6732,7 +6732,7 @@ Kekule.Editor.FormulaIaController = Class.create(Kekule.Editor.BaseEditorIaContr
 	/** @private */
 	isCondensedFormulaEnabled: function()
 	{
-		return this.getEditorConfigs().getInteractionConfigs().getEnableCreateMoleculeFromCondensedFormula();
+		return this.getEditorConfigs().getStructureConfigs().getEnableCreateMoleculeFromCondensedFormula();
 	},
 	/** @private */
 	react_pointerup: function(e)

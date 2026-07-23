@@ -342,7 +342,7 @@ Kekule.Editor.EmbeddedSetter.MolAtom = Class.create(Kekule.Editor.EmbeddedSetter
 				if (result === undefined || result === null)
 				{
 					// not set yet, use the editor config
-					result = this.getEditorConfigs().getInteractionConfigs().getEnableCreateMoleculeFromCondensedFormula();
+					result = this.getEditorConfigs().getStructureConfigs().getEnableCreateMoleculeFromCondensedFormula();
 				}
 				return result;
 			}
@@ -1142,7 +1142,7 @@ Kekule.Editor.EmbeddedSetter.Formula = Class.create(Kekule.Editor.EmbeddedSetter
 				if (result === undefined || result === null)
 				{
 					// not set yet, use the editor config
-					result = this.getEditorConfigs().getInteractionConfigs().getEnableCreateMoleculeFromCondensedFormula();
+					result = this.getEditorConfigs().getStructureConfigs().getEnableCreateMoleculeFromCondensedFormula();
 				}
 				return result;
 			}

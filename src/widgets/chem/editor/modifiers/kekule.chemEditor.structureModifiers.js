@@ -194,7 +194,7 @@ Kekule.Editor.ObjModifier.Atom = Class.create(Kekule.Editor.ObjModifier.ChemStru
 	{
 		var atomSetter = this.getAtomSetter();
 
-		var isCondensedFormulaEnabled = this.getEditorConfigs().getInteractionConfigs().getEnableCreateMoleculeFromCondensedFormula();
+		var isCondensedFormulaEnabled = this.getEditorConfigs().getStructureConfigs().getEnableCreateMoleculeFromCondensedFormula();
 		atomSetter.setEnableCondensedFormula(isCondensedFormulaEnabled);
 	},
 
