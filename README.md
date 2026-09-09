@@ -186,6 +186,24 @@ Project [Kekule-Vue](https://github.com/partridgejiang/Kekule-Vue) can be used t
 Project [Kekule-React](https://github.com/partridgejiang/Kekule-React) can be used to wrap Kekule widget into
 [React](https://github.com/facebook/react) components with props and events.
  
+## Testing
+
+```shell
+npm test                  # fast, pure-function unit test suite (unitTests/core/pure, unitTests/algorithm/pure)
+npm run test:integration  # full legacy suite: file-loading / format round-trip tests
+```
+
+`npm test` runs isolated unit tests that build molecules in memory (via `appendAtom`/`appendBond` or the
+`TestMolBuilder` helper in `unitTests/_utils/testMolBuilder.js`) and assert directly on a function's return
+value, with no file I/O or DOM involved. `npm run test:integration` runs the original, larger suite that loads
+real `.mol`/`.cml`/`.jcamp` fixtures and is better suited to testing format I/O and other integration-level
+behavior that a pure function test can't cover.
+
+**When adding new tests, prefer the pure unit test suite (`unitTests/core/pure/`, `unitTests/algorithm/pure/`)
+over the integration-style pattern whenever the function under test can be exercised with an in-memory molecule.**
+Only add to the integration suite when the behavior being tested is inherently about file I/O, format parsing/writing,
+or other things that can't reasonably be expressed as a pure function test.
+
 ## Documentations and Demos
 
 [Tutorials](http://partridgejiang.github.io/Kekule.js/documents/tutorial/index.html) and 
