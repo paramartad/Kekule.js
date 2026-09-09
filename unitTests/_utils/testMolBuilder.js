@@ -96,6 +96,7 @@ TestMolBuilder = {
 		{
 			mol.addAtom('C').addBond([i - 1, i], BO.SINGLE);
 		}
+		return mol;
 	},
 
 	makeAlphaPinene: function()

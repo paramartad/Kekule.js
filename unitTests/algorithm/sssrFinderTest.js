@@ -15,13 +15,9 @@ describe('Test of finding SSSR in molecule', function(){
 		return result;
 	};
 
-	it('SSSR test on internal data: SSSR atoms and bonds in Alpha Pinene', function(){
-		var mol = MB.makeAlphaPinene();
-		var rings = mol.findSSSR();
-		var partition = mergeRingMembers(rings);
-		expect(partition.nodes.length).toEqual(7);
-		expect(partition.connectors.length).toEqual(8);
-	});
+	// Note: the internal-data (TestMolBuilder) SSSR spec was moved to
+	// unitTests/algorithm/pure/sssrFinder.spec.js as part of the pure-function retrofit.
+	// The external-file specs below stay here as part of the integration suite.
 
 	it('SSSR Test on external data: molecule with subgroups - PhCOOH', function(done){
 		MB.loadExternalData('json/PhCOOH.kcj', function(mol){

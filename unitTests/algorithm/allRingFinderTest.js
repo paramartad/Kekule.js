@@ -8,25 +8,9 @@
 describe('Test of finding all rings in molecule', function(){
 	var MB = TestMolBuilder;
 
-	it('Ring count test on internal data: Ethyl Propyl Phenantren', function(){
-		var mol = MB.makeEthylPropylPhenantren();
-		var rings = mol.findAllRings();
-		expect(rings.length).toEqual(6);
-	});
-
-	it('Ring member test on internal data: Ethyl Propyl Phenantren', function(){
-		var mol = MB.makeEthylPropylPhenantren();
-		var rings = mol.findAllRings();
-		rings.forEach(function(ring){
-			var bonds = ring.connectors;
-			bonds.forEach(function(bond){
-				var atoms = bond.getConnectedObjs();
-				atoms.forEach(function(atom){
-					expect(ring.nodes.indexOf(atom) >= 0).toBeTruthy();
-				});
-			});
-		});
-	});
+	// Note: internal-data (TestMolBuilder) specs for findAllRings() were moved to
+	// unitTests/algorithm/pure/ringFinder.spec.js as part of the pure-function retrofit.
+	// The external-file specs below stay here as part of the integration suite.
 
 	it('Ring test on external data: Porphyrine', function(done){
 		MB.loadExternalData('mdl/porphyrin.mol', function(mol){

@@ -1,8 +1,11 @@
 {
   "spec_dir": ".",
   "spec_files": [
-    "./core/pure/*.js",
-    "./algorithm/pure/*.js"
+    "./core/*Test.js",
+    "./io/*Test.js",
+    "./algorithm/*Test.js",
+    "./widget/*Test.js",
+    "./spectrum/*Test.js"
   ],
   "helpers": [
     "./_utils/kekuleLoaderCli.js"

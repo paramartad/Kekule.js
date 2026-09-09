@@ -104,7 +104,9 @@
     "email": "partridge@cpu.edu.cn"
   },
   "scripts": {
-    "lint": "eslint ./src"
+    "lint": "eslint ./src",
+    "test": "cd unitTests && jasmine --config=spec/support/jasmine.json",
+    "test:integration": "cd unitTests && jasmine --config=spec/support/jasmine.integration.json"
   },
   "contributors": [
     {
@@ -140,6 +142,7 @@
     "molecule"
   ],
   "devDependencies": {
-    "eslint": "^5.7.0"
+    "eslint": "^5.7.0",
+    "jasmine": "^7.0.0"
   }
 }
