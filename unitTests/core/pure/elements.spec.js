@@ -70,4 +70,27 @@ describe('Test of Kekule.Element lookups and predicates', function(){
 		expect(Kekule.Element.isPseudoElement('C')).toBe(false);
 		expect(Kekule.Element.isPseudoElement(6)).toBe(false);
 	});
+
+	it('isDummyElement() / isRGroupElement() (instance) match how the element was constructed', function(){
+		var dummy = new Kekule.Element(Kekule.Element.DUMMY_ELEMENT_ATOMICNUM);
+		var rgroup = new Kekule.Element(Kekule.Element.RGROUP_ELEMENT);
+		var carbon = new Kekule.Element('C');
+
+		expect(dummy.isDummyElement()).toBe(true);
+		expect(dummy.isRGroupElement()).toBe(false);
+		expect(rgroup.isRGroupElement()).toBe(true);
+		expect(rgroup.isDummyElement()).toBe(false);
+		expect(carbon.isDummyElement()).toBe(false);
+		expect(carbon.isRGroupElement()).toBe(false);
+	});
+
+	it('IsotopeFactory.getIsotope() / getIsotopeById() resolve to the same cached isotope instance', function(){
+		var byNumber = Kekule.IsotopeFactory.getIsotope('C', 13);
+		var byId = Kekule.IsotopeFactory.getIsotopeById('C13');
+
+		expect(byNumber.getSymbol()).toEqual('C');
+		expect(byNumber.getMassNumber()).toEqual(13);
+		expect(byNumber.getExactMass()).toEqual(13.00335484);
+		expect(byId).toBe(byNumber);  // isotope instances are cached/interned by id
+	});
 });
